@@ -32,10 +32,10 @@ library(sf)
 #' @param clip_path A path and name of a .kml of boundaries to crop.
 #' @param threads  An interger of the number of threads to use.
 
-input_file <- "data/test.las"
-output_name <- "data/test"
-resolution <- 0.25
-clip_path <- "data/FAB2.kml"
+input_file <- "C:/Users/guzman/Documents/temp/2022-04-10_FAB.las"
+output_name <- "data/2022-04-10_FAB"
+resolution <- 0.1
+clip_path <- "data/FAB2_blocks_buffer.gpkg"
 threads <- 25
 
 #' -----------------------------------------------------------------------------
@@ -51,8 +51,12 @@ get_digital_models <- function(input_file, output_name, resolution = 0.10, threa
   
   #Classify ground points
   point_cloud <- classify_ground(point_cloud, 
-                                 algorithm = csf(), 
-                                 last_returns = TRUE)
+                                 algorithm = csf(sloop_smooth = FALSE,
+                                                 class_threshold = 0.2,
+                                                 cloth_resolution = 0.2,
+                                                 rigidness = 3L,
+                                                 iterations = 500L,
+                                                 time_step = 0.65))
   
   #Get projection
   CRS <- crs(point_cloud)
@@ -64,8 +68,7 @@ get_digital_models <- function(input_file, output_name, resolution = 0.10, threa
   #Digital Terrain Model  ---------------------------------------------
   dtm <- rasterize_terrain(las = point_cloud, 
                            res = resolution,
-                           algorithm = knnidw(k = 10L, p = 2, rmax = 1),
-                           shape = "convex")
+                           algorithm = knnidw(k = 10L, p = 2, rmax = 0.2))
   
   #dtm <- crop(dtm, clip)
   dtm_name <- paste0(output_name, "_DTM.tif")
@@ -87,7 +90,7 @@ get_digital_models <- function(input_file, output_name, resolution = 0.10, threa
   normalized_name <- paste0(output_name, "_normalized.las")
   lasheader <- header_create(point_cloud_normalized)
   writeLAS(point_cloud_normalized, normalized_name, index = FALSE)
- 
+  
   
   #Canopy Height Model -----------------------------------------------
   chm <- rasterize_canopy(point_cloud_normalized, 
@@ -105,5 +108,5 @@ get_digital_models <- function(input_file, output_name, resolution = 0.10, threa
   #dm <- crop(dm, clip)
   dm_name <- paste0(output_name, "_DM.tif")
   writeRaster(dm, dm_name, overwrite=TRUE)
-
+  
 }
