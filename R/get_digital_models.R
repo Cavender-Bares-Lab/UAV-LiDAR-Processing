@@ -32,11 +32,11 @@ library(sf)
 #' @param clip_path A path and name of a .kml of boundaries to crop.
 #' @param threads  An interger of the number of threads to use.
 
-input_file <- "C:/Users/guzman/Documents/temp/2022-04-10_FAB.las"
-output_name <- "data/2022-04-10_FAB"
+input_file <- "data/2022-04-10_FAB.las"
+output_name <- "data/2022-04-10_FAB2"
 resolution <- 0.1
 clip_path <- "data/FAB2_blocks_buffer.gpkg"
-threads <- 25
+threads <- 26
 
 #' -----------------------------------------------------------------------------
 #' Function
@@ -49,64 +49,113 @@ get_digital_models <- function(input_file, output_name, resolution = 0.10, threa
   #Read point cloud
   point_cloud <- readLAS(input_file)
   
-  #Classify ground points
-  point_cloud <- classify_ground(point_cloud, 
-                                 algorithm = csf(sloop_smooth = FALSE,
-                                                 class_threshold = 0.2,
-                                                 cloth_resolution = 0.2,
-                                                 rigidness = 3L,
-                                                 iterations = 500L,
-                                                 time_step = 0.65))
+  #Read clipping polygon
+  clip <- st_read(dsn = clip_path)
+  clip_terra <- vect(clip_path)
   
   #Get projection
-  CRS <- crs(point_cloud)
+  pc_CRS <- crs(point_cloud)
+  vector <- crs(clip)
   
-  #Clipping vector read and project
-  clip <- st_read(dsn = clip_path)
-  clip <- st_transform(clip, CRS)
+  if(all.equal(pc_CRS, vector) == FALSE) {
+    stop("Projections of point cloud and cliping vector does not match")
+  }
+  
+  #Create a buffer 4 times the resolution on the clipping polygon
+  boundary <- st_union(st_buffer(clip, (resolution*4)))
+  
+  #######################
+  # Point cloud processing
+  ######################
+  
+  #Clip point cloud        ---------------------------------------------
+  extend <- st_bbox(boundary)
+  
+  #Rectangle for speed
+  pc <- clip_rectangle(point_cloud, xleft = extend[1], 
+                                    ybottom = extend[2], 
+                                    xright = extend[3], 
+                                    ytop = extend[4])
+  #ROI for details
+  pc <- clip_roi(pc, boundary)
+  
+  #Release memory
+  rm(list = c("point_cloud"))
+  gc()
+  
+  #Classify ground points  ---------------------------------------------
+  pc <- classify_ground(pc, 
+                        algorithm = csf(sloop_smooth = FALSE,
+                                        class_threshold = 0.2,
+                                        cloth_resolution = 0.2,
+                                        rigidness = 3L,
+                                        iterations = 500L,
+                                        time_step = 0.65))
+  
+  #Export
+  pc_name <- paste0(output_name, "_clip.las")
+  writeLAS(pc, pc_name, index = FALSE)
   
   #Digital Terrain Model  ---------------------------------------------
-  dtm <- rasterize_terrain(las = point_cloud, 
-                           res = resolution,
-                           algorithm = knnidw(k = 10L, p = 2, rmax = 0.2))
+  dtm <- rasterize_terrain(las = pc, 
+                           res = resolution*5,
+                           algorithm = tin())
   
-  #dtm <- crop(dtm, clip)
+  dtm <- terra::crop(dtm, clip_terra, mask = TRUE)
   dtm_name <- paste0(output_name, "_DTM.tif")
   writeRaster(dtm, dtm_name, overwrite=TRUE)
   
+  #Release memory
+  rm(list = c("dtm", "dtm_name"))
+  gc()
+  
   #Digital Surface Model  ---------------------------------------------
-  dsm <- rasterize_canopy(las = point_cloud, 
+  dsm <- rasterize_canopy(las = pc, 
                           res = resolution, 
                           algorithm = p2r(resolution, na.fill = tin()))
   
-  #dsm <- crop(dsm, clip)
+  dsm <- terra::crop(dsm, clip_terra, mask = TRUE)
   dsm_name <- paste0(output_name, "_DSM.tif")
   writeRaster(dsm, dsm_name, overwrite=TRUE)
   
+  #Release memory
+  rm(list = c("dsm", "dsm_name"))
+  gc()
+  
   #Normalize height ---------------------------------------------------
-  point_cloud_normalized <- normalize_height(point_cloud, 
-                                             knnidw(k = 10L, p = 2, rmax = 1))
+  pc_normalized <- normalize_height(pc, 
+                                    algorithm = tin())
   
   normalized_name <- paste0(output_name, "_normalized.las")
-  lasheader <- header_create(point_cloud_normalized)
-  writeLAS(point_cloud_normalized, normalized_name, index = FALSE)
+  writeLAS(pc_normalized, normalized_name, index = FALSE)
   
+  #Release memory
+  rm(list = c("normalized_name", "pc"))
+  gc()
   
   #Canopy Height Model -----------------------------------------------
-  chm <- rasterize_canopy(point_cloud_normalized, 
+  chm <- rasterize_canopy(pc_normalized, 
                           res = resolution, 
-                          algorithm = p2r(resolution/2, na.fill = tin()))
+                          algorithm = p2r(resolution, na.fill = tin()))
   
-  #chm <- crop(chm, clip)
+  chm <- terra::crop(chm, clip_terra, mask = TRUE)
   chm_name <- paste0(output_name, "_CHM.tif")
   writeRaster(chm, chm_name, overwrite=TRUE)
   
+  #Release memory
+  rm(list = c("chm", "chm_name"))
+  gc()
+  
   #Density map --------------------------------------------------------
-  dm <- rasterize_density(point_cloud, 
+  dm <- rasterize_density(pc_normalized, 
                           res = resolution)
   
-  #dm <- crop(dm, clip)
+  dm <- terra::crop(dm, clip, mask = TRUE)
   dm_name <- paste0(output_name, "_DM.tif")
   writeRaster(dm, dm_name, overwrite=TRUE)
+  
+  #Release memory
+  rm(list = c("dm", "dm_name"))
+  gc()
   
 }
