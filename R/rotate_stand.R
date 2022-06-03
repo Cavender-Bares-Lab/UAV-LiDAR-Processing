@@ -15,12 +15,14 @@ library(rTLS)
 #' Arguments
 #' @param pc point cloud to rotate
 
-#pc <- readLAS("data/PIBA-1050.las")
+point_cloud <- readLAS("data/PIBA-1050.las")
 #pc <- data.table(X = pc$X, Y = pc$Y, Z = pc$Z)
 
 #' -----------------------------------------------------------------------------
 #' Function
-rotate_stand <- function(pc) {
+rotate_stand <- function(point_cloud) {
+  
+  pc <- data.table(X = point_cloud$X, Y = point_cloud$Y, Z = point_cloud$Z)
   
   #Convex hull
   ch <- chull(x = pc$X, y = pc$Y)
@@ -62,8 +64,12 @@ rotate_stand <- function(pc) {
   
   #Stand rotation
   stand <- rotate2D(pc[, 1:2], angle = rotation_angel)
-  stand$Z <- pc$Z
   
-  return(stand)
+  #Approximate coordinate
+  pc <- point_cloud
+  pc$X <- stand$X
+  pc$Y <- stand$Y
+  
+  return(pc)
   
 }
