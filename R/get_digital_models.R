@@ -34,14 +34,14 @@ library(geometry)
 #' @param clip_path A path and name of a .kml of boundaries to crop.
 #' @param threads  An integer of the number of threads to use.
 
-#input_file <- "data/2022-04-10_FAB.las"
-input_file <- "Z:/9-UAV/LiDAR/2022-05-18_FAB2/L2/2022-05-18_FAB2.las"
-#output_name <- "data/2022-04-10_FAB2"
-output_name <- "Z:/9-UAV/LiDAR/2022-05-18_FAB2/L3/2022-05-18_FAB2"
+input_file <- "/media/antonio/antonio_ssd/point_clouds/2022-05-18_FAB2_clean.las"
+#input_file <- "Z:/9-UAV/LiDAR/2022-05-18_FAB2/L2/2022-05-18_FAB2.las"
+output_name <- "/media/antonio/antonio_ssd/point_clouds/2022-05-18_FAB2.las"
+#output_name <- "Z:/9-UAV/LiDAR/2022-05-18_FAB2/L3/2022-05-18_FAB2"
 resolution <- 0.1
 DTM <- "Z:/9-UAV/LiDAR/2022-04-10_FAB1-2/L3/FAB2/2022-04-10_FAB2_DTM.tif"
-clip_path <- "data/FAB2_blocks_buffer.gpkg"
-threads <- 6
+clip_path <- "data/FAB_square.gpkg"
+threads <- 26
 
 #' -----------------------------------------------------------------------------
 #' Function
@@ -71,9 +71,13 @@ get_digital_models <- function(input_file,
     stop("Projections of point cloud and cliping vector does not match")
   }
   
+  #Filter points ------------------------------------------------------
+  pc <- filter_poi(pc, Classification != 18L)
+  
+  #Digital Terrain Model ----------------------------------------------
   if(is.null(DTM)) {
     
-    #Digital Terrain Model  ------------------------------------------
+    #Create
     dtm <- rasterize_terrain(las = pc, 
                              res = resolution,
                              algorithm = tin())
@@ -87,11 +91,9 @@ get_digital_models <- function(input_file,
     gc()
     
   } else {
+    #Read
     dtm <- rast(DTM)
   }
-  
-  #Filter points ------------------------------------------------------
-  pc <- filter_poi(pc, Classification != LASNOISE)
   
   #Digital Surface Model  ---------------------------------------------
   dsm <- rasterize_canopy(las = pc,

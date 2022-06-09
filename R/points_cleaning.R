@@ -31,7 +31,7 @@ input_file <- "/media/antonio/antonio_ssd/point_clouds/2022-05-18_FAB2.las"
 #output_name <- "data/2022-04-10_FAB2"
 output_name <- "/media/antonio/antonio_ssd/point_clouds/2022-05-18_FAB2"
 resolution <- 0.1
-clip_path <- "data/FAB2_blocks_buffer.gpkg"
+clip_path <- "data/FAB_square.gpkg"
 threads <- 26
 
 #' @references 
