@@ -25,8 +25,8 @@ library(sfheaders)
 #' -----------------------------------------------------------------------------
 #' @example
 
-#point_cloud <- readLAS("data/PIBA_1015.las")
-#forest_structure(point_cloud[1:3])
+point_cloud <- readLAS("data/PIBA_1015.las")
+forest_structure(point_cloud[1:3])
 
 #' -----------------------------------------------------------------------------
 #' Function
@@ -84,7 +84,7 @@ forest_structure <- function(point_cloud,
   }
   
   #If profiles are bigger than 2 times z_res
-  if(min(z_above) >= z_res*2) {
+  if(min(z_above) <= z_res*2) {
     
     #Vertical profiles
     LAD <- LAD(pc$Z, dz = z_res, k = k, z0 = z_min)
