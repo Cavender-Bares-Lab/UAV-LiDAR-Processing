@@ -23,7 +23,7 @@ library(sfheaders)
 #' it uses the point with the heights elevation.
 #' @param limit_fOV degrees to limit the field of view. If NULL it uses all the points.
 
-point_cloud <- readLAS("data/PIBA-1050.las")
+#point_cloud <- readLAS("data/PIBA-1050.las")
 
 #' -----------------------------------------------------------------------------
 #' Function
@@ -32,7 +32,7 @@ stand_metrics <- function(point_cloud,
                           xy_res = 1.0, 
                           z_res = 0.25,
                           z_min = 0.25,
-                          z_max = 10,
+                          z_max = 8,
                           limit_fOV = NULL) {
   
   #Create point cloud
@@ -65,67 +65,138 @@ stand_metrics <- function(point_cloud,
   sub_complete <- data.table()
 
   #Loop over grid
-  for(i in 1:nrow(xyz_grid)) {
-    temp <- subset(pc, X >= pc$X[i]-xy_res/2 &
-                       X < pc$X[i]+xy_res/2 &
-                       Y >= pc$Y[i]-xy_res/2 &
-                       Y < pc$Y[i]+xy_res/2)
+  for(i in 1:(nrow(xyz_grid)+1)) {
     
-    #Remove ground
-    z_above <- temp$Z[temp$Z >= z_min]
+    #Subset stand or grid
+    if(i == (nrow(xyz_grid)+1)) {
+      temp <- pc
     
-    #Next if null
-    if(length(z_above) <= 10 | max(z_above) <= ((z_res*3)+z_min)) {
-      next
+    } else {
+      
+      temp <- subset(pc, X >= xyz_grid$X[i]-xy_res/2 &
+                       X < xyz_grid$X[i]+xy_res/2 &
+                       Y >= xyz_grid$Y[i]-xy_res/2 &
+                       Y < xyz_grid$Y[i]+xy_res/2)
     }
     
-    #Basic grid metrics
-    sub_frame <- data.table(X = pc$X[i], 
-                            Y = pc$Y[i],
-                            npoints = length(z_above),
-                            height_max = max(temp$Z),
-                            height_mean = mean(temp$Z),
-                            height_cv = sd(z_above)/mean(z_above),
-                            skwewness = skewness(z_above),
-                            kurtosis = kurtosis(z_above))
+    #Location if stand
+    if(i == (nrow(xyz_grid)+1)) {
+      X = 0
+      Y = 0
+    } else {
+      X = xyz_grid$X[i] 
+      Y = xyz_grid$Y[i]
+    }
     
-    #Vertical profiles
-    LAD <- LAD(temp$Z, dz = z_res, k = k, z0 = z_min)
-    gpag <- gap_fraction_profile(temp$Z, dz = z_res, z0 = z_min)
+    #Add basic information
+    if(nrow(temp[temp$Z >= z_min, ]) == 0) {
+      
+      #Remove ground
+      z_above <- 0
+      
+      #Basic grid metrics
+      sub_frame <- data.table(X = X, 
+                              Y = Y,
+                              npoints = 0,
+                              height_max = NA,
+                              height_mean = NA,
+                              height_cv = NA,
+                              skwewness = NA,
+                              kurtosis = NA)
+      
+    } else {
+      
+      #Remove ground
+      z_above <- temp$Z[temp$Z >= z_min]
+      
+      #Basic grid metrics
+      sub_frame <- data.table(X = X, 
+                              Y = Y,
+                              npoints = length(z_above),
+                              height_max = max(z_above),
+                              height_mean = mean(z_above),
+                              height_cv = sd(z_above)/mean(z_above),
+                              skwewness = skewness(z_above),
+                              kurtosis = kurtosis(z_above))
+      
+    }
     
-    #Metrics from vertical profiles
-    sub_frame$n_profiles <- nrow(LAD)
-    sub_frame$p_vci <- VCI(z_above, sub_frame$height_max, by = z_res)
-    sub_frame$p_entropy <- entropy(z_above, by = z_res, zmax = sub_frame$height_max)
-    sub_frame$H <- shannon(LAD$lad)
-    sub_frame$Hmax <- shannon(rep(1, nrow(LAD))) #H max
-    sub_frame$equitavility <- sub_frame$H/sub_frame$Hmax
-    sub_frame$negentropy <- sub_frame$Hmax - sub_frame$H
-    
-    #Cx, Cy, RG
-    lad <- LAD
-    lad$lad <- 0
-    lad[(nrow(lad)+1),] <- c(z_min/2, 0)
-    lad <- rbind(lad, LAD)
-    poly <-sf_polygon(lad)
-    centroid <- st_centroid(poly)
-    centroid <- st_coordinates(centroid)
-    
-    sub_frame$Cx <- centroid[1,2]
-    sub_frame$Cy <- centroid[1,1]
-    TopRG <- sum((LAD$lad - sub_frame$Cx)^2)+sum((LAD$z - sub_frame$Cy)^2)
-    sub_frame$RG <- sqrt(TopRG/length(LAD$lad))
-    
-    #Profile manage for stacking
-    lad_profile <- merge(zframe, LAD, by = "z", all.x = TRUE, all.y = TRUE)
-    lad_profile <- as.data.table(t(lad_profile)[1:2,])
-    colnames(lad_profile) <- paste0("LAD_", as.character(z_seq))
-    lad_profile <- lad_profile[2,]
-    
-    gpag_profile <- merge(zframe, gpag, by = "z", all.x = TRUE, all.y = TRUE)
-    gpag_profile <- as.data.table(t(gpag_profile)[1:2,])
-    colnames(gpag_profile) <- paste0("Pgap_", as.character(z_seq))
-    gpag_profile <- gpag_profile[2,]
+    #If profiles are bigger than 2 times z_res
+    if(min(z_above) >= z_res*2) {
+      
+      #Vertical profiles
+      LAD <- LAD(temp$Z, dz = z_res, k = k, z0 = z_min)
+      gpag <- gap_fraction_profile(temp$Z, dz = z_res, z0 = z_min)
+      
+      #Metrics from vertical profiles
+      sub_frame$n_profiles <- nrow(LAD)
+      sub_frame$p_vci <- VCI(z_above, sub_frame$height_max, by = z_res)
+      sub_frame$p_entropy <- entropy(z_above, by = z_res, zmax = sub_frame$height_max)
+      sub_frame$H <- shannon(LAD$lad)
+      sub_frame$Hmax <- shannon(rep(1, nrow(LAD))) #H max
+      sub_frame$equitavility <- sub_frame$H/sub_frame$Hmax
+      sub_frame$negentropy <- sub_frame$Hmax - sub_frame$H
+      
+      #Cx, Cy, RG
+      lad <- LAD
+      lad$lad <- 0
+      lad[(nrow(lad)+1),] <- c(z_min/2, 0)
+      lad <- rbind(lad, LAD)
+      poly <-sf_polygon(lad)
+      centroid <- st_centroid(poly)
+      centroid <- st_coordinates(centroid)
+      
+      sub_frame$Cx <- centroid[1,2]
+      sub_frame$Cy <- centroid[1,1]
+      TopRG <- sum((LAD$lad - sub_frame$Cx)^2)+sum((LAD$z - sub_frame$Cy)^2)
+      sub_frame$RG <- sqrt(TopRG/length(LAD$lad))
+      
+      rm(list = c("poly", "centroid"))
+      
+      #Profile manage for stacking
+      lad_profile <- merge(zframe, LAD, by = "z", all.x = TRUE, all.y = TRUE)
+      lad_profile <- as.data.table(t(lad_profile)[1:2,])
+      colnames(lad_profile) <- paste0("LAD_", as.character(z_seq))
+      lad_profile <- lad_profile[2,]
+      
+      gpag_profile <- merge(zframe, gpag, by = "z", all.x = TRUE, all.y = TRUE)
+      gpag_profile <- as.data.table(t(gpag_profile)[1:2,])
+      colnames(gpag_profile) <- paste0("Pgap_", as.character(z_seq))
+      gpag_profile <- gpag_profile[2,]
+      
+    } else {
+      
+      #Vertical profiles
+      LAD <- LAD(temp$Z, dz = z_res, k = k, z0 = z_min)
+      gpag <- gap_fraction_profile(temp$Z, dz = z_res, z0 = z_min)
+      
+      #Metrics from vertical profiles
+      sub_frame$n_profiles <- nrow(LAD)
+      sub_frame$p_vci <- NA
+      sub_frame$p_entropy <- NA
+      sub_frame$H <- NA
+      sub_frame$Hmax <- NA
+      sub_frame$equitavility <- NA
+      sub_frame$negentropy <- NA
+      
+      #Cx, Cy, RG
+      sub_frame$Cx <- NA
+      sub_frame$Cy <- NA
+      TopRG <- NA
+      sub_frame$RG <- NA
+      
+      #Profile manage for stacking
+      lad_profile <- merge(zframe, LAD, by = "z", all.x = TRUE, all.y = TRUE)
+      lad_profile <- as.data.table(t(lad_profile)[1:2,])
+      colnames(lad_profile) <- paste0("LAD_", as.character(z_seq))
+      lad_profile <- lad_profile[2,]
+      
+      gpag_profile <- merge(zframe, gpag, by = "z", all.x = TRUE, all.y = TRUE)
+      gpag_profile <- as.data.table(t(gpag_profile)[1:2,])
+      colnames(gpag_profile) <- paste0("Pgap_", as.character(z_seq))
+      gpag_profile <- gpag_profile[2,]
+      
+    }
     
     #Stack results
     profiles <- cbind(lad_profile, gpag_profile)
@@ -135,85 +206,20 @@ stand_metrics <- function(point_cloud,
     sub_complete <- rbind(sub_complete, sub_frame)
     
     #Clean residuals
-    rm(list = c("temp", "z_above", "sub_frame", "LAD", "gpag", "lad", "poly", 
-            "centroid", "TopRG", "lad_profile", "gpag_profile", "profiles"))
+    rm(list = c("temp", "z_above", "X", "Y", "sub_frame", "LAD", "gpag", "lad_profile", 
+                "gpag_profile", "profiles"))
     gc()
     
   }
   
-  #All the stand
-  #Remove ground
-  z_above <- pc$Z[pc$Z >= z_min]
-  
-  #Next if null
-  if(length(z_above) <= 10 | max(z_above) <= ((z_res*3)+z_min)) {
-    next
-  }
-  
-  #Basic grid metrics
-  sub_frame <- data.table(X = 0, 
-                          Y = 0,
-                          npoints = length(z_above),
-                          height_max = max(pc$Z),
-                          height_mean = mean(pc$Z),
-                          height_cv = sd(z_above)/mean(z_above),
-                          skwewness = skewness(z_above),
-                          kurtosis = kurtosis(z_above))
-  
-  #Vertical profiles
-  LAD <- LAD(pc$Z, dz = z_res, k = k, z0 = z_min)
-  gpag <- gap_fraction_profile(pc$Z, dz = z_res, z0 = z_min)
-  
-  #Metrics from vertical profiles
-  sub_frame$n_profiles <- nrow(LAD)
-  sub_frame$p_vci <- VCI(z_above, sub_frame$height_max, by = z_res)
-  sub_frame$p_entropy <- entropy(z_above, by = z_res, zmax = sub_frame$height_max)
-  sub_frame$H <- shannon(LAD$lad)
-  sub_frame$Hmax <- shannon(rep(1, nrow(LAD))) #H max
-  sub_frame$equitavility <- sub_frame$H/sub_frame$Hmax
-  sub_frame$negentropy <- sub_frame$Hmax - sub_frame$H
-  
-  #Cx, Cy, RG
-  lad <- LAD
-  lad$lad <- 0
-  lad[(nrow(lad)+1),] <- c(z_min/2, 0)
-  lad <- rbind(lad, LAD)
-  poly <-sf_polygon(lad)
-  centroid <- st_centroid(poly)
-  centroid <- st_coordinates(centroid)
-  
-  sub_frame$Cx <- centroid[1,2]
-  sub_frame$Cy <- centroid[1,1]
-  TopRG <- sum((LAD$lad - sub_frame$Cx)^2)+sum((LAD$z - sub_frame$Cy)^2)
-  sub_frame$RG <- sqrt(TopRG/length(LAD$lad))
-  
-  #Profile manage for stacking
-  lad_profile <- merge(zframe, LAD, by = "z", all.x = TRUE, all.y = TRUE)
-  lad_profile <- as.data.table(t(lad_profile)[1:2,])
-  colnames(lad_profile) <- paste0("LAD_", as.character(z_seq))
-  lad_profile <- lad_profile[2,]
-  
-  gpag_profile <- merge(zframe, gpag, by = "z", all.x = TRUE, all.y = TRUE)
-  gpag_profile <- as.data.table(t(gpag_profile)[1:2,])
-  colnames(gpag_profile) <- paste0("Pgap_", as.character(z_seq))
-  gpag_profile <- gpag_profile[2,]
-  
-  #Stack results
-  profiles <- cbind(lad_profile, gpag_profile)
-  sub_frame <- cbind(sub_frame, profiles)
-  
-  #stack
-  sub_complete <- rbind(sub_complete, sub_frame)
-  
   #Clean residuals
-  rm(list = c("pc", "z_above", "sub_frame", "LAD", "gpag", "lad", "poly", 
-          "centroid", "TopRG", "lad_profile", "gpag_profile", "profiles", 
-          "x_range", "y_range", "z_max", "x_seq", "y_seq", "z_seq", "xyz_grid", 
-          "zframe"))
+  rm(list = c("pc", "x_range", "y_range", "z_max", "x_seq", "y_seq", 
+              "z_seq", "xyz_grid", "zframe"))
   gc()
 
   #Return
   return(sub_complete)
+  
 }
 
 #Shannon function

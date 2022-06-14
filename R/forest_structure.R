@@ -25,8 +25,10 @@ library(sfheaders)
 #' -----------------------------------------------------------------------------
 #' @example
 
-point_cloud <- readLAS("data/PIBA_1015.las")
-forest_structure(point_cloud[1:3])
+#point_cloud <- readLAS("data/PIBA_1015.las")
+#forest_structure(point_cloud, k = 1, xy_res = 1.0, z_res = 0.25, z_min = 0.25, z_max = 8)
+#forest_structure(point_cloud[1:3], k = 1, xy_res = 1.0, z_res = 0.25, z_min = 0.25, z_max = 8)
+
 
 #' -----------------------------------------------------------------------------
 #' Function
@@ -83,12 +85,12 @@ forest_structure <- function(point_cloud,
     
   }
   
+  #Vertical profiles
+  LAD <- LAD(pc$Z, dz = z_res, k = k, z0 = z_min)
+  gpag <- gap_fraction_profile(pc$Z, dz = z_res, z0 = z_min)
+  
   #If profiles are bigger than 2 times z_res
-  if(min(z_above) <= z_res*2) {
-    
-    #Vertical profiles
-    LAD <- LAD(pc$Z, dz = z_res, k = k, z0 = z_min)
-    gpag <- gap_fraction_profile(pc$Z, dz = z_res, z0 = z_min)
+  if(min(z_above) >= z_min & max(z_above) >= z_res*2 & nrow(LAD) >= 2) {
     
     #Metrics from vertical profiles
     sub_frame$n_profiles <- nrow(LAD)
@@ -130,10 +132,6 @@ forest_structure <- function(point_cloud,
     gpag_profile <- gpag_profile[2,]
     
   } else {
-    
-    #Vertical profiles
-    LAD <- LAD(pc$Z, dz = z_res, k = k, z0 = z_min)
-    gpag <- gap_fraction_profile(pc$Z, dz = z_res, z0 = z_min)
     
     #Metrics from vertical profiles
     sub_frame$n_profiles <- nrow(LAD)
