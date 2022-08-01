@@ -1,8 +1,8 @@
 ################################################################################
-#' @title Fractal geometry 
+#' @title Forest Structure 
 ################################################################################
 
-#' @description Get the fractal geometry from a point cloud.
+#' @description Get the metrics of Forest Structure from a point cloud.
 
 #' -----------------------------------------------------------------------------
 #' Libraries
@@ -11,7 +11,6 @@ library(lidR)
 library(moments)
 library(sf)
 library(sfheaders)
-library(rTLS)
 
 #' -----------------------------------------------------------------------------
 #' Arguments
@@ -26,50 +25,33 @@ library(rTLS)
 #' -----------------------------------------------------------------------------
 #' @example
 
-point_cloud <- readLAS("data/PIBA-1050.las")
-forest_structure(point_cloud[1:3])
+#point_cloud <- readLAS("data/PIBA_1015.las")
+#forest_structure(point_cloud[1:3])
 
 #' -----------------------------------------------------------------------------
 #' Function
-forest_fractal <- function(point_cloud, 
-                             z_min = 0.25) {
+forest_structure <- function(point_cloud, 
+                             k = 1, 
+                             xy_res = 1.0, 
+                             z_res = 0.25,
+                             z_min = 0.25,
+                             z_max = 8) {
   
   #Create point cloud
   pc <- data.table(X = point_cloud$X,
                    Y = point_cloud$Y,
                    Z = point_cloud$Z)
   
-  #Remove ground
-  pc <- subset(pc, Z >= z_min)
+  #Get mid location
+  X <- mean(range(pc$X))
+  Y <- mean(range(pc$X))
+  
+  #Profile
+  z_seq <- seq((z_min+z_res/2), (z_max-z_res/2), by = z_res)
+  zframe <- data.table(z = z_seq)
   
   #Add basic information
-  if(nrow(pc) == 0) {
-  
-  } else {
-    
-    min.size <- min_distance(pc)
-    
-    if(min.size == 0) {
-      min.size <- 0.01
-    }
-    
-    fractals <- voxels_counting(pc, 
-                                edge_sizes = NULL,
-                                min_size = min.size, 
-                                length_out = 10, 
-                                bootstrap = FALSE, 
-                                R = NULL, 
-                                progress = TRUE,
-                                parallel = FALSE,
-                                threads = NULL)
-    
-    
-    dimention <- lm(log10(N_voxels) ~ log10(1/(Edge.X*Edge.Y*Edge.Z)), 
-                    data = fractals)
-    
-    
-    
-  }
+  if(nrow(pc[pc$Z >= z_min, ]) == 0) {
     
     #Remove ground
     z_above <- 0
@@ -200,3 +182,4 @@ shannon <- function(n_points) {
   H <- (-1) * sum(p.i * log10(p.i))
   return(H)
 }
+

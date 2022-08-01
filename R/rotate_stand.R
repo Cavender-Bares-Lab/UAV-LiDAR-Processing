@@ -15,7 +15,7 @@ library(rTLS)
 #' Arguments
 #' @param pc point cloud to rotate
 
-point_cloud <- readLAS("data/PIBA-1050.las")
+point_cloud <- readLAS("data/PIBA_1015.las")
 #pc <- data.table(X = pc$X, Y = pc$Y, Z = pc$Z)
 
 #' -----------------------------------------------------------------------------

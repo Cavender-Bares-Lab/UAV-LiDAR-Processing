@@ -23,6 +23,7 @@ library(rlas)
 library(RCSF)
 library(terra)
 library(sf)
+library(geometry)
 
 #' -----------------------------------------------------------------------------
 #' Arguments
@@ -33,12 +34,13 @@ library(sf)
 #' @param clip_path A path and name of a .kml of boundaries to crop.
 #' @param threads  An integer of the number of threads to use.
 
-#input_file <- "data/2022-04-10_FAB.las"
-input_file <- "/media/antonio/antonio_ssd/point_clouds/2022-04-10_FAB2_clean.las"
-#output_name <- "data/2022-04-10_FAB2"
-output_name <- "/media/antonio/antonio_ssd/point_clouds/2022-04-10_FAB2"
+input_file <- "/media/antonio/antonio_ssd/point_clouds/2022-05-18_FAB2_clean.las"
+#input_file <- "Z:/9-UAV/LiDAR/2022-05-18_FAB2/L2/2022-05-18_FAB2.las"
+output_name <- "/media/antonio/antonio_ssd/point_clouds/2022-05-18_FAB2.las"
+#output_name <- "Z:/9-UAV/LiDAR/2022-05-18_FAB2/L3/2022-05-18_FAB2"
 resolution <- 0.1
-clip_path <- "data/FAB2_blocks_buffer.gpkg"
+DTM <- "Z:/9-UAV/LiDAR/2022-04-10_FAB1-2/L3/FAB2/2022-04-10_FAB2_DTM.tif"
+clip_path <- "data/FAB_square.gpkg"
 threads <- 26
 
 #' -----------------------------------------------------------------------------
@@ -69,9 +71,13 @@ get_digital_models <- function(input_file,
     stop("Projections of point cloud and cliping vector does not match")
   }
   
+  #Filter points ------------------------------------------------------
+  pc <- filter_poi(pc, Classification != 18L)
+  
+  #Digital Terrain Model ----------------------------------------------
   if(is.null(DTM)) {
     
-    #Digital Terrain Model  ---------------------------------------------
+    #Create
     dtm <- rasterize_terrain(las = pc, 
                              res = resolution,
                              algorithm = tin())
@@ -84,11 +90,14 @@ get_digital_models <- function(input_file,
     rm(list = c("dtm_name"))
     gc()
     
+  } else {
+    #Read
+    dtm <- rast(DTM)
   }
   
   #Digital Surface Model  ---------------------------------------------
-  dsm <- rasterize_canopy(las = pc, 
-                          res = resolution, 
+  dsm <- rasterize_canopy(las = pc,
+                          res = resolution,
                           algorithm = p2r(resolution, na.fill = tin()))
   
   dsm <- terra::crop(dsm, clip_terra, mask = TRUE)
@@ -100,7 +109,7 @@ get_digital_models <- function(input_file,
   gc()
   
   #Normalize height ---------------------------------------------------
-  pc_normalized <- normalize_height(pc, dtm = dtm)
+  pc_normalized <- pc - dtm
   
   normalized_name <- paste0(output_name, "_normalized.las")
   writeLAS(pc_normalized, normalized_name, index = FALSE)
