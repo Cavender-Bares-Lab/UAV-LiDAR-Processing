@@ -23,7 +23,7 @@ library(doParallel)
 path_pc <- "Z:/9-UAV/LiDAR/2022-04-10_FAB1-2/L3/FAB2/2022-04-10_FAB2_normalized.las"
 path_gpkg <- "data/FAB2_plots.gpkg"
 point_cloud <- "Z:/9-UAV/LiDAR/2022-04-10_FAB1-2/L3/FAB2/2022-04-10_FAB2m"
-threads <- 16
+threads <- 4
 
 #' -----------------------------------------------------------------------------
 #' Function
@@ -61,11 +61,11 @@ batch_stand_metrics <- function(path_pc, path_gpkg, output_name, threads) {
   registerDoParallel(cl)
   
   # Loop over scenes to estimate delta VI
-  complete <- foreach(i = 1:10,
+  complete <- foreach(i = 1:4,
                       .combine= frame_combine,
                       .packages = c("lidR", "data.table", "moments", "sf", "sfheaders"),
                       .export = c("stand_metrics", "shannon"),
-                      .inorder = F) %dopar% {
+                      .inorder = F) %do% {
                          
                          if(!is.null(pcs[[i]])) {
                          

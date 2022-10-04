@@ -27,12 +27,13 @@ library(sf)
 #' @param threads  An integer of the number of threads to use.
 
 #input_file <- "data/2022-04-10_FAB.las"
-input_file <- "/media/antonio/antonio_ssd/point_clouds/2022-05-18_FAB2.las"
-#output_name <- "data/2022-04-10_FAB2"
-output_name <- "/media/antonio/antonio_ssd/point_clouds/2022-05-18_FAB2"
+input_file <- "Z:/9-UAV/LiDAR/2022-09-07_FAB2/L2/2022-09-07_FAB2.las"
+output_name <- "Z:/9-UAV/LiDAR/2022-09-07_FAB2/L3/2022-09-07_FAB2"
 resolution <- 0.1
-clip_path <- "data/FAB_square.gpkg"
-threads <- 26
+clip_path <- "data/large_boundaries/FAB2_large.gpkg"
+threads <- 22
+
+points_cleaning(input_file, output_name, resolution = 0.10, clip_path, threads = 26)
 
 #' @references 
 # W. Zhang, J. Qi*, P. Wan, H. Wang, D. Xie, X. Wang, and G. Yan, “An Easy-to-Use Airborne
@@ -42,7 +43,7 @@ threads <- 26
 #' -----------------------------------------------------------------------------
 #' Function
 
-points_cleaning <- function(input_file, output_name, resolution = 0.10, threads = 26) {
+points_cleaning <- function(input_file, output_name, resolution = 0.10, clip_path = NULL, threads = 26) {
   
   #Set number of threads to use
   set_lidr_threads(threads)
@@ -50,39 +51,52 @@ points_cleaning <- function(input_file, output_name, resolution = 0.10, threads 
   #Read point cloud
   point_cloud <- readLAS(input_file)
   
-  #Read clipping polygon
-  clip <- st_read(dsn = clip_path)
-  
-  #Get projection
-  pc_CRS <- crs(point_cloud)
-  vector <- crs(clip)
-  
-  if(all.equal(pc_CRS, vector) == FALSE) {
-    stop("Projections of point cloud and cliping vector does not match")
+  #Using clip
+  if(is.null(clip_path) != TRUE) {
+    
+    #Read clipping polygon
+    clip <- st_read(dsn = clip_path)
+    
+    #Get projection
+    pc_CRS <- crs(point_cloud)
+    vector <- crs(clip)
+    
+    if(all.equal(pc_CRS, vector) == FALSE) {
+      stop("Projections of point cloud and cliping vector does not match")
+    }
+    
+    #Create a buffer 4 times the resolution on the clipping polygon
+    boundary <- st_union(st_buffer(clip, (resolution*4)))
+    
+    #######################
+    # Point cloud processing
+    ######################
+    
+    #Clip point cloud        ---------------------------------------------
+    extend <- st_bbox(boundary)
+    
+    #Rectangle for speed
+    pc <- clip_rectangle(point_cloud, xleft = extend[1], 
+                         ybottom = extend[2], 
+                         xright = extend[3], 
+                         ytop = extend[4])
+    
+    #ROI for details
+    pc <- clip_roi(pc, boundary)
+    
+    #Release memory
+    rm(list = c("point_cloud"))
+    gc()
+    
+  } else {
+    
+    pc <- point_cloud
+    
+    #Release memory
+    rm(list = c("point_cloud"))
+    gc()
+    
   }
-  
-  #Create a buffer 4 times the resolution on the clipping polygon
-  boundary <- st_union(st_buffer(clip, (resolution*4)))
-  
-  #######################
-  # Point cloud processing
-  ######################
-  
-  #Clip point cloud        ---------------------------------------------
-  extend <- st_bbox(boundary)
-  
-  #Rectangle for speed
-  pc <- clip_rectangle(point_cloud, xleft = extend[1], 
-                       ybottom = extend[2], 
-                       xright = extend[3], 
-                       ytop = extend[4])
-  
-  #ROI for details
-  pc <- clip_roi(pc, boundary)
-  
-  #Release memory
-  rm(list = c("point_cloud"))
-  gc()
   
   #Remove duplicate points  ---------------------------------------------
   pc <- filter_duplicates(pc)
@@ -99,8 +113,20 @@ points_cleaning <- function(input_file, output_name, resolution = 0.10, threads 
                                         iterations = 500L,
                                         time_step = 0.65))
   
-  #Export
+  #Export•
   pc_name <- paste0(output_name, "_clean.las")
   writeLAS(pc, pc_name, index = FALSE)
   
 }
+
+points_cleaning(input_file = "Z:/9-UAV\LiDAR/2022-09-07_FAB2/L2/2022-09-07_FAB2.las", 
+                output_name = "Z:/9-UAV\LiDAR/2022-09-07_FAB2/L3/2022-09-07_FAB2", 
+                resolution = 0.10, 
+                clip_path = NULL, 
+                threads = 24)
+
+points_cleaning(input_file = "Z:/9-UAV/LiDAR/2022-09-18_FAB1-ACE/L2/2022-09-18_FAB1-ACE.las", 
+                output_name = "Z:/9-UAV/LiDAR/2022-09-18_FAB1-ACE/L3/2022-09-18_FAB1-ACE", 
+                resolution = 0.10, 
+                clip_path = NULL, 
+                threads = 24)

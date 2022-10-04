@@ -23,7 +23,7 @@ library(sfheaders)
 #' it uses the point with the heights elevation.
 #' @param limit_fOV degrees to limit the field of view. If NULL it uses all the points.
 
-point_cloud <- readLAS("data/PIBA-1050.las")
+#point_cloud <- readLAS("data/PIBA-1050.las")
 
 #' -----------------------------------------------------------------------------
 #' Function
