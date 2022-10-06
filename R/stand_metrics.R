@@ -30,7 +30,7 @@ library(sfheaders)
 stand_metrics <- function(point_cloud, 
                           k = 1, 
                           xy_res = 1.0, 
-                          z_res = 0.25,
+                          z_res = 0.1,
                           z_min = 0.25,
                           z_max = 10,
                           limit_fOV = NULL) {
@@ -66,6 +66,10 @@ stand_metrics <- function(point_cloud,
 
   #Loop over grid
   for(i in 1:nrow(xyz_grid)) {
+    
+    print(i)
+    
+    
     temp <- subset(pc, X >= pc$X[i]-xy_res/2 &
                        X < pc$X[i]+xy_res/2 &
                        Y >= pc$Y[i]-xy_res/2 &

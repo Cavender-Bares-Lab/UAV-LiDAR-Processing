@@ -20,10 +20,11 @@ library(doParallel)
 #' @param output_name Path and name of the outputs
 #' @param threads Number of threads
 
-path_pc <- "Z:/9-UAV/LiDAR/2022-04-10_FAB1-2/L3/FAB2/2022-04-10_FAB2_normalized.las"
-path_gpkg <- "data/FAB2_plots.gpkg"
-point_cloud <- "Z:/9-UAV/LiDAR/2022-04-10_FAB1-2/L3/FAB2/2022-04-10_FAB2m"
-threads <- 4
+path_pc <- "/home/antonio/FAB2/normalized/2022-04-10_FAB2_normalized.las"
+path_gpkg <- "data/plot/FAB2_plots.gpkg"
+point_cloud <- "/home/antonio/FAB2/2022-04-10_FAB2_metrics"
+edge <- 0.5
+threads <- 26
 
 #' -----------------------------------------------------------------------------
 #' Function
@@ -35,6 +36,7 @@ batch_stand_metrics <- function(path_pc, path_gpkg, output_name, threads) {
   
   #Read gpkp
   limits_gpkg <- st_read(dsn = path_gpkg)
+  limits_gpkg <- st_buffer(limits_gpkg, -edge)
   
   #Divide point cloud
   pcs <- clip_roi(pc, limits_gpkg)
@@ -72,15 +74,15 @@ batch_stand_metrics <- function(path_pc, path_gpkg, output_name, threads) {
                          #Apply function
                          metrics <- stand_metrics(point_cloud = pcs[[i]], 
                                                   k = 1, 
-                                                  xy_res = 1, 
-                                                  z_res = 0.25, 
+                                                  xy_res = 1.0, 
+                                                  z_res = 0.1, 
                                                   z_min = 0.25, 
-                                                  z_max = 10)
+                                                  z_max = 12)
                          
                          #Add id
                          metrics$id <- limits_gpkg$id[i]
                          
-                         #Reciduals
+                         #Residuals
                          gc()
                          
                          #Export

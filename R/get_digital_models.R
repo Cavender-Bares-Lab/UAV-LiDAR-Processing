@@ -30,11 +30,12 @@ library(geometry)
 #' @param buffer_path A path and name of a .gpkg of boundaries to crop the plots of interest (final area).
 #' @param threads An integer of the number of threads to use.
 
-input_file <- "Z:/9-UAV/LiDAR/2022-04-10_FAB1-2/L3/FAB1/2022-04-10_FAB1_clean.las"
-output_name <- "Z:/9-UAV/LiDAR/2022-04-10_FAB1-2/L4/FAB1/2022-04-10_FAB1"
+input_file <- "/home/antonio/FAB2/2022-04-10_FAB2_clean.las"
+output_name <- "/home/antonio/FAB2/2022-04-10_FAB2.las"
 resolution <- 0.1
-DTM <- "Z:/9-UAV/LiDAR/miscellaneous/DTM/FAB1_DTM_master.tif"
-buffer_path <- "data/buffer/FAB1_buffer.gpkg"
+DTM <- "/media/antonio/Work/FAB2/LiDAR/DTM/FAB2_DTM_master.tif"
+extend <- c(485153.182, 5028102.4825, 485160.531, 5028107.804)
+buffer_path <- "data/buffer/FAB2_buffer.gpkg"
 threads <- 26
 
 #' -----------------------------------------------------------------------------
@@ -44,6 +45,7 @@ get_digital_models <- function(input_file,
                                output_name, 
                                resolution = 0.10, 
                                DTM = NULL, 
+                               extend, 
                                buffer_path,
                                threads = 26) {
   
@@ -52,7 +54,7 @@ get_digital_models <- function(input_file,
   
   #Read point cloud
   pc <- readLAS(input_file)
-  
+
   #Filter noise points 
   pc <- filter_poi(pc, Classification != 18L)
   
@@ -64,9 +66,40 @@ get_digital_models <- function(input_file,
   pc_CRS <- crs(pc)
   vector <- crs(buffer)
   
-  if(all.equal(pc_CRS, vector) == FALSE) {
-    stop("Projections of point cloud and cliping vector does not match")
-  }
+  #if(all.equal(pc_CRS, vector) == FALSE) {
+  #  stop("Projections of point cloud and cliping vector does not match")
+  #}
+  
+  #Create and compare DTMs -----------------------------------------------------
+  if(is.null(DTM) != TRUE) {
+    
+    #Rectangle for ground section
+    pc_ground <- clip_rectangle(pc, xleft = extend[1], 
+                         ybottom = extend[2], 
+                         xright = extend[3], 
+                         ytop = extend[4])
+    
+    #DTM
+    dtm_ground <- rasterize_terrain(las = pc_ground, 
+                                    res = resolution,
+                                    algorithm = knnidw(k = 50, p = 2, rmax = 0.5))
+
+    #Get master DTM
+    dtm <- rast(DTM)
+    dtm_ground_master <- crop(dtm, dtm_ground)
+    
+    #Get difference
+    dtm_difference <- dtm_ground - dtm_ground_master
+    dtm_difference <- round(quantile(dtm_difference[], 0.5, na.rm = TRUE), 3)
+    
+    #Transform pc
+    pc$Z <- pc$Z - dtm_difference
+    
+    #Release memory
+    rm(list = c("pc_ground", "dtm_ground", "dtm_ground_master", "dtm_difference"))
+    gc()
+
+  } 
   
   #Using clip  -----------------------------------------------------------------
   boundary <- st_union(st_buffer(buffer, resolution*4))
@@ -87,24 +120,27 @@ get_digital_models <- function(input_file,
   rm(list = c("boundary", "extend"))
   gc()
   
-  #Digital Terrain Model -------------------------------------------------------
-    #Create
-  dtm <- rasterize_terrain(las = pc, 
-                           res = resolution,
-                           algorithm = knnidw(k = 50, p = 2, rmax = 0.5))
-
-  dtm <- terra::crop(dtm, buffer_terra, mask = TRUE)
-  dtm_name <- paste0(output_name, "_DTM.tif")
-  writeRaster(dtm, dtm_name, overwrite=TRUE)
-  
-  #Release memory
-  rm(list = c("dtm_name"))
-  gc()
+  #Digital Terrain Model (if not master) ---------------------------------------
+  if(is.null(DTM) == TRUE) {
+    
+    dtm <- rasterize_terrain(las = pc, 
+                             res = resolution,
+                             algorithm = knnidw(k = 50, p = 2, rmax = 0.5))
+    
+    dtm <- terra::crop(dtm, buffer_terra, mask = TRUE)
+    dtm_name <- paste0(output_name, "_DTM.tif")
+    writeRaster(dtm, dtm_name, overwrite=TRUE)
+    
+    #Release memory
+    rm(list = c("dtm_name"))
+    gc()
+    
+  }
   
   #Digital Surface Model  ------------------------------------------------------
   dsm <- rasterize_canopy(las = pc,
                           res = resolution,
-                          algorithm = pitfree(thresholds = c(0, 10, 20), max_edge = c(0, 1.5)))
+                          algorithm = p2r(resolution, na.fill = tin()))
   
   dsm <- terra::crop(dsm, buffer_terra, mask = TRUE)
   dsm_name <- paste0(output_name, "_DSM.tif")
@@ -149,34 +185,4 @@ get_digital_models <- function(input_file,
   rm(list = c("pc_normalized", "dm", "dm_name"))
   gc()
   
-  #If master DTM ---------------------------------------------------------------
-  if(is.null(DTM) != TRUE) {
-    
-    #Get master DTM
-    dtm <- rast(DTM)
-    
-    #Normalize height
-    pc_normalized <- pc - dtm
-    
-    normalized_name <- paste0(output_name, "_normalized-master.las")
-    writeLAS(pc_normalized, normalized_name, index = FALSE)
-    
-    #Release memory
-    rm(list = c("normalized_name"))
-    gc()
-    
-    #Canopy Height Model
-    chm <- rasterize_canopy(pc_normalized, 
-                            res = resolution, 
-                            algorithm = p2r(resolution, na.fill = tin()))
-    
-    chm <- terra::crop(chm, buffer_terra, mask = TRUE)
-    chm_name <- paste0(output_name, "_CHM-master.tif")
-    writeRaster(chm, chm_name, overwrite=TRUE)
-    
-    #Release memory
-    rm(list = c("pc_normalized", "chm", "chm_name"))
-    gc()
-    
-  }
 }
