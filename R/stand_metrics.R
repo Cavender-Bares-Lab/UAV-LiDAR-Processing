@@ -29,7 +29,7 @@ library(sfheaders)
 #' Function
 stand_metrics <- function(point_cloud, 
                           k = 1, 
-                          xy_res = 1.0, 
+                          xy_res = 0.5, 
                           z_res = 0.1,
                           z_min = 0.25,
                           z_max = 10,
