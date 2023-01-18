@@ -17,14 +17,15 @@ library(doParallel)
 #' Arguments
 #' @param path_pc Path to the point cloud
 #' @param path_gpkg Path to the gpkl
+#' @param edge A distance to the plot edge to apply as a buffer.
 #' @param output_name Path and name of the outputs
 #' @param threads Number of threads
 
-path_pc <- "/home/antonio/FAB2/normalized/2022-04-10_FAB2_normalized.las"
+path_pc <- "F:/point_clouds/for_correction/FAB2/normalized/2022-04-10_FAB2_normalized.las"
 path_gpkg <- "data/plot/FAB2_plots.gpkg"
-point_cloud <- "/home/antonio/FAB2/2022-04-10_FAB2_metrics"
 edge <- 0.5
-threads <- 26
+output_name <- "F:/point_clouds/for_correction/FAB2/normalized/2022-04-10_FAB2_metrics"
+threads <- 4
 
 #' -----------------------------------------------------------------------------
 #' Function
