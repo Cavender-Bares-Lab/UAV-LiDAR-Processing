@@ -21,19 +21,19 @@ library(doParallel)
 #' @param path_gpkg Path to the gpkl
 #' @param edge A distance to the plot edge to apply as a buffer.
 #' @param output_name Path and name of the outputs
-#' @param threads Number of threads
+#' @param threads Number of threads for parallel processing
 
 root_path <- "F:/LiDAR/L4/FAB1"
 #root_path <- "/home/antonio/Documents"
 path_pc <- paste0(root_path, "/", "2022-04-10_FAB1_normalized.las")
 path_gpkg <- "data/less/FAB1_less.gpkg"
-output_name <- "F:/point_clouds/for_correction/FAB2/normalized/2022-04-10_FAB2_metrics"
+output_name <- paste0(root_path, "/", "2022-04-10_FAB1_stand")
 threads <- 4
 
 #' -----------------------------------------------------------------------------
 #' Function
 
-batch_stand_metrics <- function(path_pc, path_gpkg, output_name, threads) {
+batch_stand <- function(path_pc, path_gpkg, output_name, threads) {
   
   #Read point cloud
   pc <- readLAS(path_pc)
@@ -118,7 +118,89 @@ batch_stand_metrics <- function(path_pc, path_gpkg, output_name, threads) {
   #Export
   fwrite(complete, output_name, sep = "\t")
   
-  #Return 
-  return(complete)
-  
 }
+
+
+#' -----------------------------------------------------------------------------
+#' @examples 
+
+# FAB1 ----------------------------------
+root_path <- "F:/LiDAR/L4/FAB1"
+path_gpkg <- "data/less/FAB1_less.gpkg"
+threads <- 4
+
+# 2022-04-10
+path_pc <- paste0(root_path, "/", "2022-04-10_FAB1_normalized-master.las")
+output_name <- paste0(root_path, "/", "2022-04-10_FAB1_stand")
+batch_stand(path_pc, path_gpkg, output_name, threads)
+
+# 2022-05-18
+path_pc <- paste0(root_path, "/", "2022-05-18_FAB1_normalized-master.las")
+output_name <- paste0(root_path, "/", "2022-05-18_FAB1_stand")
+batch_stand(path_pc, path_gpkg, output_name, threads)
+
+# 2022-06-12
+path_pc <- paste0(root_path, "/", "2022-06-12_FAB1_normalized-master.las")
+output_name <- paste0(root_path, "/", "2022-06-12_FAB1_stand")
+batch_stand(path_pc, path_gpkg, output_name, threads)
+
+# 2022-07-06
+path_pc <- paste0(root_path, "/", "2022-07-06_FAB1_normalized-master.las")
+output_name <- paste0(root_path, "/", "2022-07-06_FAB1_stand")
+batch_stand(path_pc, path_gpkg, output_name, threads)
+
+# 2022-08-03
+path_pc <- paste0(root_path, "/", "2022-08-03_FAB1_normalized-master.las")
+output_name <- paste0(root_path, "/", "2022-08-03_FAB1_stand")
+batch_stand(path_pc, path_gpkg, output_name, threads)
+
+# 2022-09-07
+path_pc <- paste0(root_path, "/", "2022-09-07_FAB1_normalized-master.las")
+output_name <- paste0(root_path, "/", "2022-09-07_FAB1_stand")
+batch_stand(path_pc, path_gpkg, output_name, threads)
+
+# 2022-09-18
+path_pc <- paste0(root_path, "/", "2022-09-18_FAB1_normalized-master.las")
+output_name <- paste0(root_path, "/", "2022-09-18_FAB1_stand")
+batch_stand(path_pc, path_gpkg, output_name, threads)
+
+
+# FAB2 ----------------------------------
+root_path <- "F:/LiDAR/L4/FAB2"
+path_gpkg <- "data/less/FAB2_less.gpkg"
+threads <- 4
+
+# 2022-04-10
+path_pc <- paste0(root_path, "/", "2022-04-10_FAB2_normalized.las")
+output_name <- paste0(root_path, "/", "2022-04-10_FAB2_stand")
+batch_stand(path_pc, path_gpkg, output_name, threads)
+
+# 2022-05-18
+path_pc <- paste0(root_path, "/", "2022-05-18_FAB2_normalized.las")
+output_name <- paste0(root_path, "/", "2022-05-18_FAB2_stand")
+batch_stand(path_pc, path_gpkg, output_name, threads)
+
+# 2022-06-12
+path_pc <- paste0(root_path, "/", "2022-06-12_FAB2_normalized.las")
+output_name <- paste0(root_path, "/", "2022-06-12_FAB2_stand")
+batch_stand(path_pc, path_gpkg, output_name, threads)
+
+# 2022-07-06
+path_pc <- paste0(root_path, "/", "2022-07-06_FAB2_normalized.las")
+output_name <- paste0(root_path, "/", "2022-07-06_FAB2_stand")
+batch_stand(path_pc, path_gpkg, output_name, threads)
+
+# 2022-08-03
+path_pc <- paste0(root_path, "/", "2022-08-03_FAB2_normalized.las")
+output_name <- paste0(root_path, "/", "2022-08-03_FAB2_stand")
+batch_stand(path_pc, path_gpkg, output_name, threads)
+
+# 2022-09-07
+path_pc <- paste0(root_path, "/", "2022-09-07_FAB2_normalized.las")
+output_name <- paste0(root_path, "/", "2022-09-07_FAB2_stand")
+batch_stand(path_pc, path_gpkg, output_name, threads)
+
+# 2022-09-18
+path_pc <- paste0(root_path, "/", "2022-09-18_FAB2_normalized.las")
+output_name <- paste0(root_path, "/", "2022-09-18_FAB2_stand")
+batch_stand(path_pc, path_gpkg, output_name, threads)
