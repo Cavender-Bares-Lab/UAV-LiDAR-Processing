@@ -32,7 +32,7 @@ stand_metrics <- function(point_cloud,
                           xy_res = 0.5, 
                           z_res = 0.1,
                           z_min = 0.25,
-                          z_max = 10,
+                          z_max = 15,
                           limit_fOV = NULL) {
   
   #Create point cloud
@@ -68,7 +68,6 @@ stand_metrics <- function(point_cloud,
   for(i in 1:nrow(xyz_grid)) {
     
     print(i)
-    
     
     temp <- subset(pc, X >= pc$X[i]-xy_res/2 &
                        X < pc$X[i]+xy_res/2 &
@@ -123,12 +122,12 @@ stand_metrics <- function(point_cloud,
     #Profile manage for stacking
     lad_profile <- merge(zframe, LAD, by = "z", all.x = TRUE, all.y = TRUE)
     lad_profile <- as.data.table(t(lad_profile)[1:2,])
-    colnames(lad_profile) <- paste0("LAD_", as.character(z_seq))
+    colnames(lad_profile) <- paste0("LAD_", as.character(lad_profile[1,]))
     lad_profile <- lad_profile[2,]
     
     gpag_profile <- merge(zframe, gpag, by = "z", all.x = TRUE, all.y = TRUE)
     gpag_profile <- as.data.table(t(gpag_profile)[1:2,])
-    colnames(gpag_profile) <- paste0("Pgap_", as.character(z_seq))
+    colnames(gpag_profile) <- paste0("Pgap_", as.character(gpag_profile[1,]))
     gpag_profile <- gpag_profile[2,]
     
     #Stack results

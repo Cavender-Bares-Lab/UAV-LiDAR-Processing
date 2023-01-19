@@ -21,9 +21,9 @@ library(doParallel)
 #' @param output_name Path and name of the outputs
 #' @param threads Number of threads
 
-path_pc <- "F:/point_clouds/for_correction/FAB2/normalized/2022-04-10_FAB2_normalized.las"
+root_path <- "/home/antonio/Documents"
+path_pc <- paste0(root_path, "/", "2022-07-06_FAB2_normalized.las")
 path_gpkg <- "data/plot/FAB2_plots.gpkg"
-edge <- 0.5
 output_name <- "F:/point_clouds/for_correction/FAB2/normalized/2022-04-10_FAB2_metrics"
 threads <- 4
 
@@ -37,7 +37,6 @@ batch_stand_metrics <- function(path_pc, path_gpkg, output_name, threads) {
   
   #Read gpkp
   limits_gpkg <- st_read(dsn = path_gpkg)
-  limits_gpkg <- st_buffer(limits_gpkg, -edge)
   
   #Divide point cloud
   pcs <- clip_roi(pc, limits_gpkg)
@@ -48,6 +47,30 @@ batch_stand_metrics <- function(path_pc, path_gpkg, output_name, threads) {
   
   #N of stands
   stands <- length(pcs)
+  
+  #Loop over the number of stands
+  for(i in 1:stands) {
+    
+    #Get subsets
+    sub_pc <- pcs[[i]]
+    
+    #The boundary box
+    limits <- limits_gpkg[i, ]
+    limits <- st_bbox(limits$geom)
+    
+    #Rotate stand
+    pc_rotate <- rotate_stand(sub_pc, limits)
+    
+    metrics <- stand_metrics(point_cloud = pc_rotate, 
+                             k = 1, 
+                             xy_res = 1.0, 
+                             z_res = 0.1, 
+                             z_min = 0.25, 
+                             z_max = 12)
+    
+    
+    
+  }
   
   #Combine function
   frame_combine <- function(x, b) {

@@ -14,61 +14,35 @@ library(rTLS)
 #' -----------------------------------------------------------------------------
 #' Arguments
 #' @param pc point cloud to rotate
-
-point_cloud <- readLAS("data/PIBA_1015.las")
-#pc <- data.table(X = pc$X, Y = pc$Y, Z = pc$Z)
+#' @param limits 
 
 #' -----------------------------------------------------------------------------
 #' Function
-rotate_stand <- function(point_cloud) {
+rotate_stand <- function(point_cloud, limits) {
   
+  #Get frame
   pc <- data.table(X = point_cloud$X, Y = point_cloud$Y, Z = point_cloud$Z)
   
-  #Convex hull
-  ch <- chull(x = pc$X, y = pc$Y)
+  #Get distances
+  centroid <- c(mean(limits[c(1, 3)]), 
+                mean(limits[c(2, 4)]))
+  hypothenuse <- sqrt( (limits[3] - centroid[1])^2 + ((limits[4] - centroid[2])^2))
+  adjacent <- limits[3] - centroid[1]
   
-  #Get edge
-  edge <- pc[ch]
-  edge$Z <- 0
-  
-  #Get distance
-  centroid <- c(mean(pc$X), mean(pc$Y), 0)
-  dist <- euclidean_distance(point = c(mean(pc$X), mean(pc$Y), 0), edge, threads = 1L)
-  max_dist <- as.numeric(edge[which.max(dist)])
-  hypotenuse <- dist[which.max(dist)]
-  
-  #Determine the quadrant
-  if(max_dist[1] < centroid[1] & max_dist[2] >= centroid[2]) { # I quadrant
-    lateral <- centroid[1] - max_dist[1] 
-    angle <- acos(lateral/hypotenuse) * (180/pi)
-    
-  } else if(max_dist[1] >= centroid[1] & max_dist[2] >= centroid[2]) { # II quadrant
-    lateral <- max_dist[1] - centroid[1] 
-    angle <- acos(lateral/hypotenuse) * (180/pi)
-    
-  } else if(max_dist[1] >= centroid[1] & max_dist[2] < centroid[2]) { # III quadrant
-    lateral <- max_dist[1] - centroid[1]
-    angle <- acos(lateral/hypotenuse) * (180/pi)
-    
-  } else if(max_dist[1] < centroid[1] & max_dist[2] < centroid[2]) { # IV quadrant
-    lateral <- centroid[1] - max_dist[1]
-    angle <- acos(lateral/hypotenuse) * (180/pi)
-  }
+  #Get angle
+  angle <- acos((adjacent/hypothenuse)) * 180/pi
   
   #Rotation angle
-  if(angle >= 45) {
-    rotation_angel <- angle - 45
-  } else {
-    rotation_angel <- 45 - angle 
-  }
+  rotation_angel <- (45 - angle)
   
-  #Stand rotation
-  stand <- rotate2D(pc[, 1:2], angle = rotation_angel)
-  
-  #Approximate coordinate
+  #Rotate
+  rotation <- rotate3D(pc, roll = 0, pitch = 0, yaw = rotation_angel)
   pc <- point_cloud
-  pc$X <- stand$X
-  pc$Y <- stand$Y
+  pc@header@PHB[["X offset"]] <- floor(min(rotation$X))
+  pc@header@PHB[["Y offset"]] <- floor(min(rotation$Y))
+  
+  pc$X <- rotation$X
+  pc$Y <- rotation$Y
   
   return(pc)
   
