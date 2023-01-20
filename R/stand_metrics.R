@@ -23,7 +23,10 @@ library(sfheaders)
 #' it uses the point with the heights elevation.
 #' @param limit_fOV degrees to limit the field of view. If NULL it uses all the points.
 
-#point_cloud <- readLAS("data/PIBA-1050.las")
+#' -----------------------------------------------------------------------------
+#' @example
+
+
 
 #' -----------------------------------------------------------------------------
 #' Function
@@ -63,11 +66,6 @@ stand_metrics <- function(point_cloud,
   #All the stand
   #Remove ground
   z_above <- pc$Z[pc$Z >= z_min]
-  
-  #Next if null
-  if(length(z_above) <= 10 | max(z_above) <= ((z_res*3)+z_min)) {
-    next
-  }
   
   #Basic grid metrics
   sub_frame <- data.table(npoints = length(z_above),

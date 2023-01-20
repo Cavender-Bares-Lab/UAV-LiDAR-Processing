@@ -80,31 +80,45 @@ batch_stand <- function(path_pc, path_gpkg, output_name, threads) {
                            #Apply filter
                            pc <- decimate_points(pc, random_per_voxel(0.01, 1))
                            
-                           # Stands metrics ------------------------------------
-                           # Apply function
-                           metrics <- stand_metrics(point_cloud = pc, 
-                                                    k = 1, 
-                                                    z_res = 0.1, 
-                                                    z_min = 0.25, 
-                                                    z_max = 12)
+                           #Normalize by local ground
+                           ground <- filter_ground(pc)
+                           quant <- quantile(ground$Z, 0.5)
+                           pc$Z <- pc$Z - quant
                            
-                           # Fractal metrics------------------------------------
-                           #The boundary box
-                           limits <- limits_gpkg[i, ]
-                           limits <- st_bbox(limits$geom)
-                           
-                           #Rotate stand
-                           pc_rotate <- rotate_stand(pc, limits)
-                           
-                           #Get fractal 
-                           fractal <- stand_fractal(pc_rotate)
-                           
-                           # Merge
-                           results <- data.table(Plot = limits_gpkg$Plot[i])
-                           results <- cbind(results, fractal, metrics) 
-                           
-                           return(results)
-                           
+                           #Test to fit
+                           #Next if null
+                           if(length(pc$Z[pc$Z > 0.25]) <= 10 | max(pc$Z) <= 0.55) {
+                             
+                             return(NA)
+                             
+                           } else {
+                             
+                             # Stands metrics ------------------------------------
+                             # Apply function
+                             metrics <- stand_metrics(point_cloud = pc, 
+                                                      k = 1, 
+                                                      z_res = 0.1, 
+                                                      z_min = 0.25, 
+                                                      z_max = 12)
+                             
+                             # Fractal metrics------------------------------------
+                             #The boundary box
+                             limits <- limits_gpkg[i, ]
+                             limits <- st_bbox(limits$geom)
+                             
+                             #Rotate stand
+                             pc_rotate <- rotate_stand(pc, limits)
+                             
+                             #Get fractal 
+                             fractal <- stand_fractal(pc_rotate)
+                             
+                             # Merge
+                             results <- data.table(Plot = limits_gpkg$Plot[i])
+                             results <- cbind(results, fractal, metrics) 
+                             
+                             return(results)
+                             
+                           }
                          }
                        }
   
