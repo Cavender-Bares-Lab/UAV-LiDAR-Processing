@@ -18,14 +18,14 @@ library(data.table)
 
 path <- "F:/LiDAR/L5"
 path_in <- paste0(path, "/FAB1")
-path_out <- paste0(path, "/FAB1/LiDAR_results.csv")
+path_out <- paste0(path, "/FAB1/LiDAR_FAB1.csv")
 
 #-------------------------------------------------------------------------------
 #' Function
 
 compile_results <- function(path_in, path_out) {
   
-  files <- list.files(path_in, ".txt")
+  files <- list.files(path_in, ".csv")
   
   results <- data.table()
   

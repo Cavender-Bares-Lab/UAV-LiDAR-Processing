@@ -20,9 +20,9 @@ library(rTLS)
 stand_fractal <- function(point_cloud, z_min = 0.25) {
   
   #Point cloud stand
-  pc <- data.table(X = pcs[[i]]$X, 
-                   Y = pcs[[i]]$Y, 
-                   Z = pcs[[i]]$Z)
+  pc <- data.table(X = point_cloud$X, 
+                   Y = point_cloud$Y, 
+                   Z = point_cloud$Z)
   
   #Remove ground
   pc <- pc[Z >= 0.25]
