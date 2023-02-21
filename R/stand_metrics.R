@@ -56,16 +56,19 @@ stand_metrics <- function(point_cloud,
   y_range <- range(pc$Y)
   z_max <- ifelse(is.null(z_max), max(pc$Z), z_max)
   
+  #Remove zmax 
+  limit <- quantile(pc$Z[pc$Z > z_min], 0.95)
+  pc <- subset(pc, Z <= limit)
+  
   #Sequences
   z_seq <- round(seq((z_min+z_res/2), (z_max-z_res/2), by = z_res), 1)
   zframe <- data.table(z = z_seq)
   
-  #Frame to complete
-  sub_complete <- data.table()
-
-  #All the stand
   #Remove ground
   z_above <- pc$Z[pc$Z >= z_min]
+  
+  #Frame to complete
+  sub_complete <- data.table()
   
   #Basic grid metrics
   sub_frame <- data.table(npoints = length(z_above),
@@ -76,13 +79,14 @@ stand_metrics <- function(point_cloud,
                           kurtosis = kurtosis(z_above))
   
   #Vertical profiles
-  LAD <- LAD(pc$Z, dz = z_res, k = k, z0 = z_min)
+  LAD <- LAD(pc$Z, dz = z_res, k = 1.0, z0 = z_min)
   gpag <- gap_fraction_profile(pc$Z, dz = z_res, z0 = z_min)
   LAD$z <- round(LAD$z, 1)
   gpag$z <- round(gpag$z, 1)
   
   #Metrics from vertical profiles
   sub_frame$n_profiles <- nrow(LAD)
+  sub_frame$LAIa <- sum(LAD$lad)
   sub_frame$vci <- VCI(z_above, sub_frame$height_max, by = z_res)
   sub_frame$entropy <- entropy(z_above, by = z_res, zmax = sub_frame$height_max)
   sub_frame$H <- shannon(LAD$lad + 1)
@@ -121,6 +125,9 @@ stand_metrics <- function(point_cloud,
   
   #stack
   sub_complete <- rbind(sub_complete, sub_frame)
+  
+  #NA fill
+  setnafill(sub_complete, fill = 0)   
   
   #Clean residuals
   rm(list = c("pc", "z_above", "sub_frame", "LAD", "gpag", "lad", "poly", 
