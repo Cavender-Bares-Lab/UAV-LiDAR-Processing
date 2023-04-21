@@ -16,7 +16,7 @@ library(data.table)
 #-------------------------------------------------------------------------------
 #' @example 
 
-path <- "/media/antonio/Extreme SSD/LiDAR/L5"
+path <-  "/home/antonio/Documents/LiDAR/L5"
 path_in <- paste0(path, "/FAB2")
 path_out <- paste0(path, "/FAB2/LiDAR_results.csv")
 
@@ -75,9 +75,9 @@ library(sf)
 #' @param path_gpkg Path and name (without extension) of files to export.
 #' @param resolution Resolution of the digital models.
 
-path_metrics <- "/media/antonio/Extreme SSD/LiDAR/L5/FAB2/FAB2_LiDAR-metrics.csv"
+path_metrics <- "/home/antonio/Documents/LiDAR/L5/FAB2/FAB2_LiDAR-metrics.csv"
 path_gpkg <- "data/less/FAB2_less.gpkg"
-out_path <- "/media/antonio/Extreme SSD/LiDAR/L5/FAB2/FAB2_meta.csv"
+out_path <- "/home/antonio/Documents/LiDAR/L5/FAB2/FAB2_meta.csv"
 
 #' -----------------------------------------------------------------------------
 #' Function

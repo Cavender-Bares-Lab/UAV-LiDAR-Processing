@@ -30,7 +30,7 @@ library(geometry)
 #' @param buffer_path A path and name of a .gpkg of boundaries to crop the plots of interest (final area).
 #' @param threads An integer of the number of threads to use.
 
-input_file <- "/home/antonio/FAB2/2022-04-10_FAB2_clean.las"
+input_file <- "/home/antonio/FAB2/2022-04-10_FAB2_clean.laz"
 output_name <- "/home/antonio/FAB2/2022-04-10_FAB2.las"
 resolution <- 0.1
 DTM <- "/media/antonio/Work/FAB2/LiDAR/DTM/FAB2_DTM_master.tif"
@@ -153,7 +153,7 @@ get_digital_models <- function(input_file,
   #Normalize height ------------------------------------------------------------
   pc_normalized <- pc - dtm
   
-  normalized_name <- paste0(output_name, "_normalized.las")
+  normalized_name <- paste0(output_name, "_normalized.laz")
   writeLAS(pc_normalized, normalized_name, index = FALSE)
   
   #Release memory

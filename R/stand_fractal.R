@@ -28,10 +28,10 @@ stand_fractal <- function(point_cloud, z_min = 0.25) {
   pc <- pc[Z >= 0.25]
   
   #Remove zmax 
-  limit <- quantile(pc$Z[pc$Z > z_min], 0.95)
-  pc <- subset(pc, Z <= limit)
+  #limit <- quantile(pc$Z[pc$Z > z_min], 0.99)
+  #pc <- subset(pc, Z <= limit)
   
-  min_dist = 0.1
+  min_dist <- 0.1
   
   #Range size
   ranges <- c(max(pc[,1]) - min(pc[,1]), max(pc[,2]) - min(pc[,2]), max(pc[,3]) - min(pc[,3]))
@@ -52,11 +52,19 @@ stand_fractal <- function(point_cloud, z_min = 0.25) {
                               threads = NULL)
   
   #Get model
-  model <- lm(fractals$H ~ log10(1/(fractals$Edge.X*fractals$Edge.Y*fractals$Edge.Z)))      
+  N_model <- lm(log10(fractals$N_voxels) ~ log10(1/(fractals$Edge.X*fractals$Edge.Y*fractals$Edge.Z)))  
+  H_model <- lm(fractals$H ~ log10(1/(fractals$Edge.X*fractals$Edge.Y*fractals$Edge.Z)))
+  Hmax_model <- lm(fractals$Hmax ~ log10(1/(fractals$Edge.X*fractals$Edge.Y*fractals$Edge.Z)))
   
-  results <- data.table(Intercept = model$coefficients[1],
-                        Slope = model$coefficients[2],
-                        Rsq = summary(model)$r.squared)
+  results <- data.table(Intercept_N = N_model$coefficients[1],
+                        Intercept_H = H_model$coefficients[1],
+                        Intercept_Hmax = Hmax_model$coefficients[1],
+                        Slope_N = N_model$coefficients[2],
+                        Slope_H = H_model$coefficients[2],
+                        Slope_Hmax = Hmax_model$coefficients[2],
+                        Rsq_N = summary(N_model)$r.squared,
+                        Rsq_H = summary(H_model)$r.squared,
+                        Rsq_Hmax = summary(Hmax_model)$r.squared)
   
   #Export
   return(results)

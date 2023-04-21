@@ -13,19 +13,20 @@ source("R/rotate_stand.R")
 #' -----------------------------------------------------------------------------
 #' Libraries
 library(foreach)
+library(lidR)
 library(doParallel)
 
 #-------------------------------------------------------------------------------
 #' Arguments
 #' @param path_pc Path to the point cloud
-#' @param path_gpkg Path to the gpkl
-#' @param edge A distance to the plot edge to apply as a buffer.
+#' @param path_gpkg Path to the gpkg
+#' @param z_correction Z correction based on direct comparisons.
 #' @param output_name Path and name of the outputs
 #' @param threads Number of threads for parallel processing
 
 #root_path <- "F:/LiDAR/L4/FAB1"
-root_path <- "/media/antonio/Extreme SSD/LiDAR/L4/FAB2"
-path_pc <- paste0(root_path, "/", "2022-04-10_FAB2_normalized.las")
+root_path <- "/home/antonio/Documents/LiDAR/L4/FAB2"
+path_pc <- paste0(root_path, "/", "2022-05-18_FAB2_normalized.las")
 path_gpkg <- "data/less/FAB2_less.gpkg"
 output_name <- paste0(root_path, "/", "2022-04-10_FAB2_stand")
 threads <- 16
@@ -33,13 +34,14 @@ threads <- 16
 #' -----------------------------------------------------------------------------
 #' Function
 
-batch_stand <- function(path_pc, path_gpkg, output_name, threads) {
+batch_stand <- function(path_pc, path_gpkg, z_correction = 0, output_name, threads) {
   
   #Set number of threads to use
   set_lidr_threads(threads)
   
   #Read point cloud
   pc <- readLAS(path_pc)
+  pc$Z <- pc$Z - z_correction
   
   #Read gpkp
   limits_gpkg <- st_read(dsn = path_gpkg)
@@ -75,15 +77,15 @@ batch_stand <- function(path_pc, path_gpkg, output_name, threads) {
                            pc <- decimate_points(pc, random_per_voxel(0.01, 1))
                            
                            #Normalize by local ground
-                           ground <- filter_ground(pc)
+                           #ground <- filter_ground(pc)
                            
-                           if(length(ground$Z) == 0) {
-                             quant <- quantile(pc$Z, 0.05)
-                           } else {
-                             quant <- quantile(ground$Z, 0.5)
-                           }
+                           #if(length(ground$Z) == 0) {
+                           #  quant <- quantile(pc$Z, 0.05)
+                           #} else {
+                           # quant <- quantile(ground$Z, 0.5)
+                           #}
                            
-                           pc$Z <- pc$Z - quant
+                           #pc$Z <- pc$Z - quant
                            
                            #Test to fit
                            #Next if null
@@ -135,7 +137,6 @@ batch_stand <- function(path_pc, path_gpkg, output_name, threads) {
   
 }
 
-
 #' -----------------------------------------------------------------------------
 #' @examples 
 
@@ -181,41 +182,41 @@ batch_stand(path_pc, path_gpkg, output_name, threads)
 
 
 # FAB2 ----------------------------------
-root_path <- "/media/antonio/Extreme SSD/LiDAR/L4/FAB2"
+root_path <- "/home/antonio/Documents/LiDAR/L4/FAB2"
 path_gpkg <- "data/less/FAB2_less.gpkg"
 threads <- 12
 
 # 2022-04-10
 path_pc <- paste0(root_path, "/", "2022-04-10_FAB2_normalized.las")
 output_name <- paste0(root_path, "/", "2022-04-10_FAB2_stand.csv")
-batch_stand(path_pc, path_gpkg, output_name, threads)
+batch_stand(path_pc, path_gpkg, z_correction = 0, output_name, threads)
 
 # 2022-05-18
 path_pc <- paste0(root_path, "/", "2022-05-18_FAB2_normalized.las")
 output_name <- paste0(root_path, "/", "2022-05-18_FAB2_stand.csv")
-batch_stand(path_pc, path_gpkg, output_name, threads)
+batch_stand(path_pc, path_gpkg, z_correction = 0.06179, output_name, threads)
 
 # 2022-06-12
 path_pc <- paste0(root_path, "/", "2022-06-12_FAB2_normalized.las")
 output_name <- paste0(root_path, "/", "2022-06-12_FAB2_stand.csv")
-batch_stand(path_pc, path_gpkg, output_name, threads)
+batch_stand(path_pc, path_gpkg, z_correction = 0.17872, output_name, threads)
 
 # 2022-07-06
 path_pc <- paste0(root_path, "/", "2022-07-06_FAB2_normalized.las")
 output_name <- paste0(root_path, "/", "2022-07-06_FAB2_stand.csv")
-batch_stand(path_pc, path_gpkg, output_name, threads)
+batch_stand(path_pc, path_gpkg, z_correction = 0.12484, output_name, threads)
 
 # 2022-08-03
 path_pc <- paste0(root_path, "/", "2022-08-03_FAB2_normalized.las")
 output_name <- paste0(root_path, "/", "2022-08-03_FAB2_stand.csv")
-batch_stand(path_pc, path_gpkg, output_name, threads)
+batch_stand(path_pc, path_gpkg, z_correction = 0.01934, output_name, threads)
 
 # 2022-09-07
 path_pc <- paste0(root_path, "/", "2022-09-07_FAB2_normalized.las")
 output_name <- paste0(root_path, "/", "2022-09-07_FAB2_stand.csv")
-batch_stand(path_pc, path_gpkg, output_name, threads)
+batch_stand(path_pc, path_gpkg, z_correction = 0.147311, output_name, threads)
 
 # 2022-09-18
 path_pc <- paste0(root_path, "/", "2022-09-18_FAB2_normalized.las")
 output_name <- paste0(root_path, "/", "2022-09-18_FAB2_stand.csv")
-batch_stand(path_pc, path_gpkg, output_name, threads)
+batch_stand(path_pc, path_gpkg, z_correction = 0.171044, output_name, threads)

@@ -24,11 +24,6 @@ library(sfheaders)
 #' @param limit_fOV degrees to limit the field of view. If NULL it uses all the points.
 
 #' -----------------------------------------------------------------------------
-#' @example
-
-
-
-#' -----------------------------------------------------------------------------
 #' Function
 stand_metrics <- function(point_cloud, 
                           k = 1, 
@@ -57,7 +52,7 @@ stand_metrics <- function(point_cloud,
   z_max <- ifelse(is.null(z_max), max(pc$Z), z_max)
   
   #Remove zmax 
-  limit <- quantile(pc$Z[pc$Z > z_min], 0.95)
+  limit <- quantile(pc$Z[pc$Z > z_min], 0.99)
   pc <- subset(pc, Z <= limit)
   
   #Sequences
