@@ -27,10 +27,6 @@ stand_fractal <- function(point_cloud, z_min = 0.25) {
   #Remove ground
   pc <- pc[Z >= 0.25]
   
-  #Remove zmax 
-  #limit <- quantile(pc$Z[pc$Z > z_min], 0.99)
-  #pc <- subset(pc, Z <= limit)
-  
   min_dist <- 0.1
   
   #Range size
