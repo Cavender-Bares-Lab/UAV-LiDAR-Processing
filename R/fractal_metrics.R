@@ -9,6 +9,7 @@
 library(data.table)
 library(lidR)
 library(rTLS)
+library(smatr)
 
 #' -----------------------------------------------------------------------------
 #' Arguments
@@ -48,19 +49,25 @@ stand_fractal <- function(point_cloud, z_min = 0.25) {
                               threads = NULL)
   
   #Get model
-  N_model <- lm(log10(fractals$N_voxels) ~ log10(1/(fractals$Edge.X*fractals$Edge.Y*fractals$Edge.Z)))  
-  H_model <- lm(fractals$H ~ log10(1/(fractals$Edge.X*fractals$Edge.Y*fractals$Edge.Z)))
-  Hmax_model <- lm(fractals$Hmax ~ log10(1/(fractals$Edge.X*fractals$Edge.Y*fractals$Edge.Z)))
+  N_model <- sma(formula = log10(N_voxels) ~ log10(1/(fractals$Edge.X^3)),
+                 data = fractals, 
+                 method=c("SMA"))
+
+  H_model <- sma(formula = log10(H) ~ log10(1/(fractals$Edge.X^3)),
+                 data = fractals, 
+                 method=c("SMA"))
   
-  results <- data.table(Intercept_N = N_model$coefficients[1],
-                        Intercept_H = H_model$coefficients[1],
-                        Intercept_Hmax = Hmax_model$coefficients[1],
-                        Slope_N = N_model$coefficients[2],
-                        Slope_H = H_model$coefficients[2],
-                        Slope_Hmax = Hmax_model$coefficients[2],
-                        Rsq_N = summary(N_model)$r.squared,
-                        Rsq_H = summary(H_model)$r.squared,
-                        Rsq_Hmax = summary(Hmax_model)$r.squared)
+  results <- data.table(Intercept_N = N_model$coef[[1]]$`coef(SMA)`[1],
+                        Intercept_H = H_model$coef[[1]]$`coef(SMA)`[1],
+                        Slope_N = N_model$coef[[1]]$`coef(SMA)`[2],
+                        Slope_H = H_model$coef[[1]]$`coef(SMA)`[2],
+                        Rsq_N = N_model$r2[[1]][1],
+                        Rsq_H = H_model$r2[[1]][1])
+  
+  #Clean residuals
+  rm(list = c("pc", "min_dist", "ranges", "max.range", "edge_sizes", "fractals",
+              "N_model", "H_model"))
+  gc()
   
   #Export
   return(results)
