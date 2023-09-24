@@ -31,7 +31,7 @@ root_path <- "/media/antonio/Extreme Pro/Projects/LiDAR/FAB2"
 path_pc <- paste0(root_path, "/", "2022-05-18_FAB2_noise.laz")
 path_gpkg <- "data/less/FAB2_less.gpkg"
 output_name <- paste0(root_path, "/", "2022-05-18_FAB2_stand")
-threads <- 16
+threads <- 6
 
 #' -----------------------------------------------------------------------------
 #' Function
@@ -65,9 +65,9 @@ batch_stand <- function(path_pc, path_gpkg, z_correction = 0, output_name, threa
   gc()
   
   #Divide point cloud
-  pcs <- clip_roi(pcs, limits_gpkg[,1])
-  saveRDS(pcs, paste0(output_name, ".rds"))
-  gc()
+  #pcs <- clip_roi(pcs, limits_gpkg[,1])
+  #saveRDS(pcs, paste0(output_name, ".rds"))
+  #gc()
   
   #N of stands
   stands <- dim(limits_gpkg)[1]
@@ -75,87 +75,88 @@ batch_stand <- function(path_pc, path_gpkg, z_correction = 0, output_name, threa
   #Set threads to 1
   set_lidr_threads(1)
   
-  #Set up cluster
-  #cl <- makeCluster(threads)
-  cl <- makeCluster(threads, type = "FORK")
-  registerDoParallel(cl)
-  
   # Loop over scenes to estimate delta VI
-  complete <- foreach(i = 1:stands,
-                      .combine= rbind,
-                      .packages = c("lidR", "data.table", "moments", "sf", 
-                                    "sfheaders", "rTLS", "terra", "Lmoments"),
-                      .export = c("gini", "shannon", "vertical_metrics", 
-                                  "horizontal_metrics", "stand_fractal", "f"),
-                      .inorder = TRUE) %dopar% {
+  get_metrics <- function(i, 
+                          point_cloud, 
+                          limits_gpkg,
+                          output_name) {
+    
+    # Select the limits of interest
+    limit <- limits_gpkg[i, ]
+    Plot <- limit$Plot[1]
+    
+    # Crop the point cloud
+    pc <- clip_roi(point_cloud, limit)
                         
-                        #Select point cloud
-                        pc <- pcs[[i]]
-                        
-                         if(!is.null(pc)) {
-                         
-                           #Remove large angles and potential noise
-                           pc <- filter_poi(pc, ScanAngleRank >= -15 &
-                                                ScanAngleRank <= 15)
-                           
-                           pc <- classify_noise(pc, sor(k = 50,
-                                                        m = 0.975,
-                                                        quantile = TRUE))
-                           pc <- filter_poi(pc, Classification != 18)
-                           
-                           #Apply filter
-                           pc <- decimate_points(pc, random_per_voxel(0.01, 1))
-                           
-                           # Logic to process
-                           size_above <- length(pc$Z[pc$Z > 0.25]) <= 10
-                           hight_above <- quantile(pc$Z[pc$Z > 0.25], 0.95) <= 0.5
-                           
-                           if(size_above == TRUE | hight_above == TRUE) {
-                             
-                             # Clean residuals
-                             rm(list = c("pc", "size_above", "hight_above"))
-                             gc()
-                             
-                             #Return empty frame
-                             return(data.table())
-                             
-                           } else {
-                             
-                             # Stands metrics ------------------------------------
-                             # Vertical function
-                             v_metrics <- vertical_metrics(point_cloud = pc, 
-                                                           k = 1, 
-                                                           z_res = 0.5, 
-                                                           z_min = 0.25, 
-                                                           z_max = 15)
-                             
-                             # Horizontal metrics
-                             h_metrics <- horizontal_metrics(point_cloud = pc)
-                             
-                             # 3D metrics 
-                             fractal <- stand_fractal(point_cloud = pc, z_min = 0.25)
-                             
-                             # Merge
-                             results <- data.table(Plot = limits_gpkg$Plot[i], i_value = i)
-                             results <- cbind(results, fractal, v_metrics, h_metrics) 
-                             
-                             # Clean residuals
-                             rm(list = c("v_metrics", "h_metrics", "fractal", 
-                                         "pc", "size_above", "hight_above"))
-                             gc()
-                             
-                             return(results)
-                             
-                           }
-                         }
-                       }
-  
-  #Stop cluster
-  stopCluster(cl)
-  gc()
-  
-  #Export
-  fwrite(complete, paste0(output_name, ".csv"), sep = "\t")
+    #Remove large angles and potential noise
+    pc <- filter_poi(pc, ScanAngleRank >= -15 &
+                         ScanAngleRank <= 15)
+                          
+    pc <- classify_noise(pc, sor(k = 50,
+                                 m = 0.975,
+                                 quantile = TRUE))
+    pc <- filter_poi(pc, Classification != 18)
+                          
+    #Apply filter
+    pc <- decimate_points(pc, random_per_voxel(0.01, 1))
+                          
+    # Logic to process
+    size_above <- length(pc$Z[pc$Z > 0.25]) <= 10
+    hight_above <- quantile(pc$Z[pc$Z > 0.25], 0.95) <= 0.5
+    
+    if(size_above == TRUE | hight_above == TRUE) {
+      
+      # Clean residuals
+      rm(list = c("pc", "size_above", "hight_above", "limit", "Plot"))
+      gc()
+      
+      #Return empty frame
+      return(NA)
+      
+    } else {
+      
+      # Stands metrics ------------------------------------
+      # Vertical function
+      v_metrics <- vertical_metrics(point_cloud = pc, 
+                                    k = 1, 
+                                    z_res = 0.5, 
+                                    z_min = 0.25, 
+                                    z_max = 15)
+      
+      # Horizontal metrics
+      h_metrics <- horizontal_metrics(point_cloud = pc)
+      
+      # 3D metrics 
+      fractal <- stand_fractal(point_cloud = pc, z_min = 0.25)
+      
+      # Merge
+      results <- data.table(Plot = Plot,
+                            area = area(pc),
+                            density = density(pc))
+      results <- cbind(results, fractal, v_metrics, h_metrics) 
+      
+      # Clean residuals
+      rm(list = c("v_metrics", "h_metrics", "fractal", 
+                  "pc", "size_above", "hight_above"))
+      gc()
+      
+      names_export <- paste0(output_name, "_", Plot, ".csv")
+      fwrite(results, names_export)
+      
+      return(NA)
+      
+    }
+  }
+
+  # Parallel
+  mclapply(1:stands, 
+           FUN = get_metrics, 
+           point_cloud = pcs, 
+           limits_gpkg = limits_gpkg,
+           output_name = output_name,
+           mc.cores = threads,
+           mc.preschedule = FALSE,
+           mc.cleanup = FALSE)
   
 }
 
@@ -206,7 +207,7 @@ batch_stand(path_pc, path_gpkg, output_name, threads)
 # FAB2 ----------------------------------
 root_path <- "/media/antonio/Extreme Pro/Projects/LiDAR/FAB2"
 path_gpkg <- "data/less/FAB2_less.gpkg"
-threads <- 16
+threads <- 6
 
 # 2022-04-10
 path_pc <- paste0(root_path, "/", "2022-04-10_FAB1-2_noise.laz")

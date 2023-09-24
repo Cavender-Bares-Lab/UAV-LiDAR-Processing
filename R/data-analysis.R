@@ -21,37 +21,24 @@ path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
 
 # Read structural complexity
 frame <- fread(paste0(path, "/fsc_results.csv"))
+diversity <- fread(paste0(path, "/diversity_complete.csv"))
+frame <- merge(diversity, frame, by = "plot", all.x = TRUE, all.y = TRUE)
+#fwrite(frame, paste0(path, "/master_frame.csv"))
+frame <- fread(paste0(path, "/master_frame.csv"))
 
-# Remove plots with heights lower than 1.25 m and area close to 80m2
-frame <- frame[height_max >= 1.25,]
+# Remove plots
+# By heights
 frame <- frame[area <= 150,]
+
+# By nprofiles
+frame <- frame[n_profiles > 1]
 
 # Get plots with complete information over time
 observations <- frame[, .N, by = "plot"]
 observations <- observations[N == 7,]
-observations <- observations[,1]
+observations <- observations[, 1]
 
 frame <- merge(frame, observations, by = "plot", all.x = FALSE, all.y = TRUE)
-
-#' -----------------------------------------------------------------------------
-#' Merge LiDAR and diversity metrics
-
-# Read diversity file
-diversity <- fread(paste0(path, "/diversity.csv"))
-
-# Merge LiDAR with diversity file
-frame <- merge(diversity, frame, by = "plot", all.x = FALSE, all.y = TRUE)
-frame <- frame[year_mean < 2017, ]
-frame <- frame[ntrees > 90, ]
-hist(frame$npoints)
-frame <- frame[plot != "113",]
-frame <- frame[plot != "54",]
-frame <- frame[plot != "69",]
-frame <- frame[plot != "73",]
-frame <- frame[plot != "8",]
-frame$date <- as.IDate(frame$date)
-fwrite(frame, paste0(path, "/diversity-LiDAR.csv"))
-frame <- fread(paste0(path, "/diversity-LiDAR.csv"))
 
 #' -----------------------------------------------------------------------------
 #' Make figures
@@ -64,23 +51,25 @@ divergin <- c("#01665e", "#80cdc1", "#c7eae5", "#dfc27d", "#8c510a")
 
 # Field inventory
 
-AGB <- ggplot(frame[date == "2022-07-06"], aes(x = as.factor(SR), y = log10(total_biomass), fill = as.factor(SR), gruop = as.factor(SR))) +
+AGB <- ggplot(frame[date == "2022-07-06"], aes(x = as.factor(SR), y = total_biomass, fill = as.factor(SR), gruop = as.factor(SR))) +
   geom_violin(trim = FALSE) +
-  geom_point(aes(colour = PG), position = position_jitterdodge(), size = 0.8, shape = 19) +
+  geom_point(aes(colour = PA), position = position_jitterdodge(), size = 0.8, shape = 19) +
   stat_summary(fun.data = mean_sdl, geom="pointrange", color="white", size = 0.5) +
   scale_fill_manual(values = colors, guide="none") + 
   scale_color_gradient2("Proportion of gymnosperms", 
                         midpoint= 0.5, low="#8c510a", mid="#f5f5f5", high= "#01665e", space ="Lab" ) +
   theme_bw() + 
-  coord_cartesian(ylim = c(0, 3.5), expand = FALSE) +
+  #coord_cartesian(ylim = c(0, 3.5), expand = FALSE) +
   xlab(" ") + 
-  ylab("AGB (log10 kg)") +
+  ylab("AGB (kg)") +
   #ylab(expression(paste("LAI (m"^2, " m"^-2, ")", sep = ""))) +
+  scale_y_continuous(trans= "log10") +
+  annotation_logticks(sides = "l") +
   th
 
 ntrees <- ggplot(frame[date == "2022-07-06"], aes(x = as.factor(SR), y = ntrees, fill = as.factor(SR), gruop = as.factor(SR))) +
   geom_violin(trim = FALSE) +
-  geom_point(aes(colour = PG), position = position_jitterdodge(), size = 0.8, shape = 19) +
+  geom_point(aes(colour = PA), position = position_jitterdodge(), size = 0.8, shape = 19) +
   stat_summary(fun.data = mean_sdl, geom="pointrange", color="white", size = 0.5) +
   scale_fill_manual(values = colors, guide="none") + 
   scale_color_gradient2("Proportion of gymnosperms", 
@@ -94,7 +83,7 @@ ntrees <- ggplot(frame[date == "2022-07-06"], aes(x = as.factor(SR), y = ntrees,
 
 gini <- ggplot(frame[date == "2022-07-06"], aes(x = as.factor(SR), y = tree_gini, fill = as.factor(SR), gruop = as.factor(SR))) +
   geom_violin(trim = FALSE) +
-  geom_point(aes(colour = PG), position = position_jitterdodge(), size = 0.8, shape = 19) +
+  geom_point(aes(colour = PA), position = position_jitterdodge(), size = 0.8, shape = 19) +
   stat_summary(fun.data = mean_sdl, geom="pointrange", color="white", size = 0.5) +
   scale_fill_manual(values = colors, guide="none") + 
   scale_color_gradient2("Proportion of gymnosperms", 
@@ -119,7 +108,7 @@ dev.off()
 
 cx <- ggplot(frame[date == "2022-07-06"], aes(x = as.factor(SR), y = Cx, fill = as.factor(SR), gruop = as.factor(SR))) +
   geom_violin(trim = FALSE) +
-  geom_point(aes(colour = PG), position = position_jitterdodge(), size = 0.8, shape = 19) +
+  geom_point(aes(colour = PA), position = position_jitterdodge(), size = 0.8, shape = 19) +
   stat_summary(fun.data = mean_sdl, geom="pointrange", color="white", size = 0.5) +
   scale_fill_manual(values = colors, guide="none") + 
   scale_color_gradient2("Proportion of gymnosperms", 
@@ -133,7 +122,7 @@ cx <- ggplot(frame[date == "2022-07-06"], aes(x = as.factor(SR), y = Cx, fill = 
 
 cy <- ggplot(frame[date == "2022-07-06"], aes(x = as.factor(SR), y = Cy, fill = as.factor(SR), gruop = as.factor(SR))) +
   geom_violin(trim = FALSE) +
-  geom_point(aes(colour = PG), position = position_jitterdodge(), size = 0.8, shape = 19) +
+  geom_point(aes(colour = PA), position = position_jitterdodge(), size = 0.8, shape = 19) +
   stat_summary(fun.data = mean_sdl, geom="pointrange", color="white", size = 0.5) +
   scale_fill_manual(values = colors, guide="none") + 
   scale_color_gradient2("Proportion of gymnosperms", 
@@ -220,7 +209,7 @@ dev.off()
 
 VCI <- ggplot(frame[date == "2022-07-06"], aes(x = as.factor(SR), y = vci, fill = as.factor(SR), gruop = as.factor(SR))) +
   geom_violin(trim = FALSE) +
-  geom_point(aes(colour = PG), position = position_jitterdodge(), size = 0.8, shape = 19) +
+  geom_point(aes(colour = PA), position = position_jitterdodge(), size = 0.8, shape = 19) +
   stat_summary(fun.data = mean_sdl, geom="pointrange", color="white", size = 0.5) +
   scale_fill_manual(values = colors, guide="none") + 
   scale_color_gradient2("Proportion of gymnosperms", 
@@ -580,3 +569,271 @@ jpeg("geometry.jpeg", width = 140, height = 150, units = "mm", res = 600)
 geometry
 
 dev.off()
+
+spectra <- fread("/home/antonio/Documents/spectra-diversity.csv")
+spectra <- spectra[year_mean < 2017, ]
+spectra <- spectra[ntrees > 90, ]
+colnames(spectra)[6] <- "SR"
+
+mean_NDVI <- ggplot(spectra, aes(x = as.factor(SR), y = mean_NDVI, fill = as.factor(SR), gruop = as.factor(SR))) +
+  geom_violin(trim = FALSE) +
+  geom_point(aes(colour = PG), position = position_jitterdodge(), size = 0.8, shape = 19) +
+  stat_summary(fun.data = mean_sdl, geom="pointrange", color="white", size = 0.5) +
+  scale_fill_manual(values = colors, guide="none") + 
+  scale_color_gradient2("Proportion of gymnosperms", 
+                        midpoint= 0.5, low="#8c510a", mid="#f5f5f5", high= "#01665e", space ="Lab" ) +
+  theme_bw() + 
+  #coord_cartesian(ylim = c(0.5, 1), expand = FALSE) +
+  xlab(" ") + 
+  ylab("Average (NDVI)") +
+  #ylab(expression(paste("PAI (m"^2, " m"^-2, ")", sep = ""))) +
+  th
+
+sd_NDVI <- ggplot(spectra, aes(x = as.factor(SR), y = sd_NDVI/mean_NDVI, fill = as.factor(SR), gruop = as.factor(SR))) +
+  geom_violin(trim = FALSE) +
+  geom_point(aes(colour = PG), position = position_jitterdodge(), size = 0.8, shape = 19) +
+  stat_summary(fun.data = mean_sdl, geom="pointrange", color="white", size = 0.5) +
+  scale_fill_manual(values = colors, guide="none") + 
+  scale_color_gradient2("Proportion of gymnosperms", 
+                        midpoint= 0.5, low="#8c510a", mid="#f5f5f5", high= "#01665e", space ="Lab" ) +
+  theme_bw() + 
+  #coord_cartesian(ylim = c(0.5, 1), expand = FALSE) +
+  xlab("Species Richness") + 
+  ylab("Coefficient of Variation (NDVI)") +
+  #ylab(expression(paste("PAI (m"^2, " m"^-2, ")", sep = ""))) +
+  th
+
+mean_NDRI <- ggplot(spectra, aes(x = as.factor(SR), y = mean_NDRI, fill = as.factor(SR), gruop = as.factor(SR))) +
+  geom_violin(trim = FALSE) +
+  geom_point(aes(colour = PG), position = position_jitterdodge(), size = 0.8, shape = 19) +
+  stat_summary(fun.data = mean_sdl, geom="pointrange", color="white", size = 0.5) +
+  scale_fill_manual(values = colors, guide="none") + 
+  scale_color_gradient2("Proportion of gymnosperms", 
+                        midpoint= 0.5, low="#8c510a", mid="#f5f5f5", high= "#01665e", space ="Lab" ) +
+  theme_bw() + 
+  #coord_cartesian(ylim = c(0.5, 1), expand = FALSE) +
+  xlab(" ") + 
+  ylab("Average (NDRI)") +
+  #ylab(expression(paste("PAI (m"^2, " m"^-2, ")", sep = ""))) +
+  th
+
+sd_NDRI <- ggplot(spectra, aes(x = as.factor(SR), y = sd_NDRI, fill = as.factor(SR), gruop = as.factor(SR))) +
+  geom_violin(trim = FALSE) +
+  geom_point(aes(colour = PG), position = position_jitterdodge(), size = 0.8, shape = 19) +
+  stat_summary(fun.data = mean_sdl, geom="pointrange", color="white", size = 0.5) +
+  scale_fill_manual(values = colors, guide="none") + 
+  scale_color_gradient2("Proportion of gymnosperms", 
+                        midpoint= 0.5, low="#8c510a", mid="#f5f5f5", high= "#01665e", space ="Lab" ) +
+  theme_bw() + 
+  #coord_cartesian(ylim = c(0.5, 1), expand = FALSE) +
+  xlab("Species Richness") + 
+  ylab("Coefficient of Variation (NDRI)") +
+  #ylab(expression(paste("PAI (m"^2, " m"^-2, ")", sep = ""))) +
+  th
+  
+
+
+spectral_indices <- ggarrange(mean_NDVI, mean_NDRI,
+                              sd_NDVI, sd_NDRI,
+                              ncol = 2, nrow = 2, common.legend = TRUE)
+
+jpeg("spectral_indices.jpeg", width = 210, height = 150, units = "mm", res = 600)
+
+spectral_indices
+
+dev.off()
+
+
+
+agb_NDVI <- ggplot(spectra, aes(x = total_biomass, y = mean_NDVI)) +
+  geom_point(colour = "darkgreen", size = 2, shape = 19, alpha = 0.5) +
+  geom_smooth(method = "lm", formula = y ~ x, se = TRUE, alpha = 0.10, colour = "black") +
+  #scale_fill_viridis("Date", option = "G", discrete = TRUE) +
+  #scale_colour_viridis("Date", option = "G", discrete = TRUE) +
+  xlab(" ") +
+  ylab("Average (NDVI)") +
+  theme_bw() + th +
+  scale_x_continuous(trans= "log10") +
+  annotation_logticks(sides = "b")
+
+agb_sd <- ggplot(spectra, aes(x = total_biomass, y = sd_NDVI/mean_NDVI)) +
+  geom_point(colour = "darkgreen", size = 2, shape = 19, alpha = 0.5) +
+  geom_smooth(method = "lm", formula = y ~ x, se = TRUE, alpha = 0.10, colour = "black") +
+  #scale_fill_viridis("Date", option = "G", discrete = TRUE) +
+  #scale_colour_viridis("Date", option = "G", discrete = TRUE) +
+  xlab("AGB (kg)") +
+  ylab("Coeficient of Variation (NDVI)") +
+  theme_bw() + th +
+  scale_x_continuous(trans= "log10") +
+  annotation_logticks(sides = "b")
+
+
+gini_NDVI <- ggplot(spectra, aes(x = tree_gini, y = mean_NDVI)) +
+  geom_point(colour = "darkgreen", size = 2, shape = 19, alpha = 0.5) +
+  geom_smooth(method = "lm", formula = y ~ x, se = TRUE, alpha = 0.10, colour = "black") +
+  #scale_fill_viridis("Date", option = "G", discrete = TRUE) +
+  #scale_colour_viridis("Date", option = "G", discrete = TRUE) +
+  xlab(" ") +
+  ylab(" ") +
+  theme_bw() + th 
+  #scale_x_continuous(trans= "log10") +
+  #annotation_logticks(sides = "b")
+
+gini_sd <- ggplot(spectra, aes(x = tree_gini, y = sd_NDVI/mean_NDVI)) +
+  geom_point(colour = "darkgreen", size = 2, shape = 19, alpha = 0.5) +
+  geom_smooth(method = "lm", formula = y ~ x, se = TRUE, alpha = 0.10, colour = "black") +
+  #scale_fill_viridis("Date", option = "G", discrete = TRUE) +
+  #scale_colour_viridis("Date", option = "G", discrete = TRUE) +
+  xlab("Tree size inequality") +
+  ylab(" ") +
+  theme_bw() + th 
+
+
+spectral_relations <- ggarrange(agb_NDVI, gini_NDVI,
+                                agb_sd, gini_sd,
+                              ncol = 2, nrow = 2, common.legend = TRUE)
+
+jpeg("spectral_relations.jpeg", width = 210, height = 150, units = "mm", res = 600)
+
+spectral_relations
+
+dev.off()
+
+
+spectral_diversity <- ggplot(spectra, aes(x = as.factor(SR), y = cv, fill = as.factor(SR), gruop = as.factor(SR))) +
+  geom_violin(trim = FALSE) +
+  geom_point(aes(colour = PG), position = position_jitterdodge(), size = 0.8, shape = 19) +
+  stat_summary(fun.data = mean_sdl, geom="pointrange", color="white", size = 0.5) +
+  scale_fill_manual(values = colors, guide="none") + 
+  scale_color_gradient2("Proportion of gymnosperms", 
+                        midpoint= 0.5, low="#8c510a", mid="#f5f5f5", high= "#01665e", space ="Lab" ) +
+  theme_bw() + 
+  #coord_cartesian(ylim = c(0.5, 1), expand = FALSE) +
+  xlab("Species Richness") + 
+  ylab("Spectral Diversity") +
+  #ylab(expression(paste("PAI (m"^2, " m"^-2, ")", sep = ""))) +
+  th
+
+
+jpeg("spectral_diversity.jpeg", width = 140, height = 90, units = "mm", res = 600)
+
+spectral_diversity
+
+dev.off()
+
+spectral_diverisity_gini <- ggplot(spectra, aes(x = tree_gini, y = cv)) +
+  geom_point(colour = "darkgreen", size = 2, shape = 19, alpha = 0.5) +
+  geom_smooth(method = "lm", formula = y ~ x, se = TRUE, alpha = 0.10, colour = "black") +
+  #scale_fill_viridis("Date", option = "G", discrete = TRUE) +
+  #scale_colour_viridis("Date", option = "G", discrete = TRUE) +
+  xlab("Tree size inequality") +
+  ylab("Spectral diversity") +
+  theme_bw() + th 
+
+
+spectral_diverisity_agb <- ggplot(spectra, aes(x = total_biomass, y = cv)) +
+  geom_point(colour = "darkgreen", size = 2, shape = 19, alpha = 0.5) +
+  geom_smooth(method = "lm", formula = y ~ x, se = TRUE, alpha = 0.10, colour = "black") +
+  #scale_fill_viridis("Date", option = "G", discrete = TRUE) +
+  #scale_colour_viridis("Date", option = "G", discrete = TRUE) +
+  xlab("AGB (kg)") +
+  ylab("Spectral diversity") +
+  theme_bw() + th +
+  scale_x_continuous(trans= "log10") +
+  annotation_logticks(sides = "b")
+
+
+diverisity_relations <- ggarrange(spectral_diverisity_agb, spectral_diverisity_gini,
+                                ncol = 2, nrow = 1, common.legend = TRUE)
+
+jpeg("diverisity_relations.jpeg", width = 210, height = 90, units = "mm", res = 600)
+
+diverisity_relations
+
+dev.off()
+
+
+
+
+
+diversity_VN <- ggplot(spectra, aes(x = as.factor(SR), y = ss_VN, fill = as.factor(SR), gruop = as.factor(SR))) +
+  geom_violin(trim = FALSE) +
+  geom_point(aes(colour = PG), position = position_jitterdodge(), size = 0.8, shape = 19) +
+  stat_summary(fun.data = mean_sdl, geom="pointrange", color="white", size = 0.5) +
+  scale_fill_manual(values = colors, guide="none") + 
+  scale_color_gradient2("Proportion of gymnosperms", 
+                        midpoint= 0.5, low="#8c510a", mid="#f5f5f5", high= "#01665e", space ="Lab" ) +
+  theme_bw() + 
+  #coord_cartesian(ylim = c(0.5, 1), expand = FALSE) +
+  xlab("Species Richness") + 
+  ylab("Spectral alpha diversity") +
+  #ylab(expression(paste("PAI (m"^2, " m"^-2, ")", sep = ""))) +
+  th + labs(subtitle = "Vector Normalized")
+
+diversity_SW <- ggplot(spectra, aes(x = as.factor(SR), y = ss_SW, fill = as.factor(SR), gruop = as.factor(SR))) +
+  geom_violin(trim = FALSE) +
+  geom_point(aes(colour = PG), position = position_jitterdodge(), size = 0.8, shape = 19) +
+  stat_summary(fun.data = mean_sdl, geom="pointrange", color="white", size = 0.5) +
+  scale_fill_manual(values = colors, guide="none") + 
+  scale_color_gradient2("Proportion of gymnosperms", 
+                        midpoint= 0.5, low="#8c510a", mid="#f5f5f5", high= "#01665e", space ="Lab" ) +
+  theme_bw() + 
+  #coord_cartesian(ylim = c(0.5, 1), expand = FALSE) +
+  xlab("Species Richness") + 
+  ylab("Spectral alpha diversity") +
+  #ylab(expression(paste("PAI (m"^2, " m"^-2, ")", sep = ""))) +
+  th + labs(subtitle = "Continuous Wavelet Transformation")
+
+alpha_diverisity <- ggarrange(diversity_VN, diversity_SW,
+                                  ncol = 2, common.legend = TRUE)
+
+jpeg("alpha_diverisity.jpeg", width = 210, height = 90, units = "mm", res = 600)
+
+alpha_diverisity
+
+dev.off()
+
+
+ss_biomass <- ggplot(spectra, aes(x = SR, y = cv_diversity_VN)) +
+  geom_point(colour = "darkgreen", size = 2, shape = 19, alpha = 0.5) +
+  geom_smooth(method = "lm", formula = y ~ x, se = TRUE, alpha = 0.10, colour = "black") +
+  #scale_fill_viridis("Date", option = "G", discrete = TRUE) +
+  #scale_colour_viridis("Date", option = "G", discrete = TRUE) +
+  xlab(" ") +
+  ylab("Average (NDVI)") +
+  theme_bw() + th +
+  scale_x_continuous(trans= "log10") +
+  annotation_logticks(sides = "b")
+
+ss_biomass <- ggplot(spectra, aes(x = sp_H, y = ss_VN)) +
+  geom_point(colour = "darkgreen", size = 2, shape = 19, alpha = 0.5) +
+  geom_smooth(method = "lm", formula = y ~ x, se = TRUE, alpha = 0.10, colour = "black") +
+  #scale_fill_viridis("Date", option = "G", discrete = TRUE) +
+  #scale_colour_viridis("Date", option = "G", discrete = TRUE) +
+  xlab(" ") +
+  ylab("Average (NDVI)") +
+  theme_bw() + th 
+  scale_x_continuous(trans= "log10") +
+  annotation_logticks(sides = "b")
+
+ss_biomass <- ggplot(spectra, aes(x = sp_H, y = ss_VN)) +
+  geom_point(colour = "darkgreen", size = 2, shape = 19, alpha = 0.5) +
+  geom_smooth(method = "lm", formula = y ~ x, se = TRUE, alpha = 0.10, colour = "black") +
+  #scale_fill_viridis("Date", option = "G", discrete = TRUE) +
+  #scale_colour_viridis("Date", option = "G", discrete = TRUE) +
+  xlab(" ") +
+  ylab("Average (NDVI)") +
+  theme_bw() + th +
+  scale_x_continuous(trans= "log10") +
+  annotation_logticks(sides = "b")
+
+ss_biomass <- ggplot(spectra, aes(x = tree_gini, y = ss_VN)) +
+  geom_point(colour = "darkgreen", size = 2, shape = 19, alpha = 0.5) +
+  geom_smooth(method = "lm", formula = y ~ x, se = TRUE, alpha = 0.10, colour = "black") +
+  #scale_fill_viridis("Date", option = "G", discrete = TRUE) +
+  #scale_colour_viridis("Date", option = "G", discrete = TRUE) +
+  xlab(" ") +
+  ylab("Average (NDVI)") +
+  theme_bw() + th +
+  scale_x_continuous(trans= "log10") +
+  annotation_logticks(sides = "b")
