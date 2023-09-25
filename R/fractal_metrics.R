@@ -18,7 +18,7 @@ library(smatr)
 
 #' -----------------------------------------------------------------------------
 #' Function
-stand_fractal <- function(point_cloud, z_min = 0.25) {
+fractal_metrics <- function(point_cloud, z_min = 0.25) {
   
   #Point cloud stand
   pc <- data.table(X = point_cloud$X, 
@@ -26,7 +26,7 @@ stand_fractal <- function(point_cloud, z_min = 0.25) {
                    Z = point_cloud$Z)
   
   #Remove ground
-  pc <- pc[Z >= 0.25]
+  pc <- pc[Z >= z_min]
   
   min_dist <- 0.1
   
