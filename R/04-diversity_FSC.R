@@ -9,27 +9,25 @@
 #' -----------------------------------------------------------------------------
 #' Libraries
 library(data.table)
-library(ggplot2) 
-library(sf)
+library(ggplot2)
 
 #' -----------------------------------------------------------------------------
 #' Working path
 
-path <- "/home/antonio/Documents/LiDAR/L5"
+root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
-#' File reading
+#' File reading and merging
 
-#Read biomass
-biomass <- fread(paste0(path, "/biomass.csv"))
-biomass <- biomass[, .SD, .SDcols = c(1, 3:ncol(biomass))]
+# Diversity
+diversity <- fread(paste0(root_path, "/diversity.csv"))
 
-#Read structural complexity
-frame <- fread(paste0(path, "/FAB2_meta.csv"))
-colnames(frame)[2] <- "SR"
-frame$date <- as.factor(frame$date)
-frame <- subset(frame, Site == "FAB2")
-data <- merge(frame, biomass, by = c("Plot", "SR"), all.x = TRUE, all.y = TRUE)
+# FSC
+FSC <- fread(paste0(root_path, "/FSC_results.csv"))
+
+# Merge files
+
+data <- merge(diversity, biomass, by = c("Plot", "SR"), all.x = TRUE, all.y = TRUE)
 
 #' -----------------------------------------------------------------------------
 #' Data preparation
