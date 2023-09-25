@@ -2,8 +2,8 @@
 #' @title Cleaning of field inventories and estimation of diversity metrics
 ################################################################################
 
-#' @description Data cleaning for the plot biomass files and estimate diversity 
-#' and yield features
+#' @description Data cleaning for the plot biomass inventory and estimate 
+#' diversity and yield features
 #' 
 #' @return A .csv file
 
