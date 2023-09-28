@@ -74,10 +74,10 @@ ggplot(frame, aes((MPD + 1),
                      palette = "Fall",
                      limits = c(95, 305),
                      breaks = c(100, 200, 300)) +
-  #scale_x_continuous(trans = log10_trans()) +
-  #scale_y_continuous(trans = log10_trans()) +
+  scale_x_continuous(trans = log10_trans()) +
+  scale_y_continuous(trans = log10_trans()) +
   #coord_cartesian(expand = FALSE) +
-  #annotation_logticks(sides = "bl") +
+  annotation_logticks(sides = "bl") +
   #xlab(" ") +
   #ylab(expression(SEI[vertical]))  +
   theme_bw(base_size = tamano) +

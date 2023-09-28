@@ -18,11 +18,19 @@ library(vegan)
 library(DescTools)
 library(phytools)
 library(ape)
+library(lefse)
+
+
+#' -----------------------------------------------------------------------------
+#' Working path
+
+root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+root_path <- "F:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Processing
 
-root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+# Load data
 data <- fread(paste0(root_path, "/fab2_allometry2.csv"))
 
 # Transform to date and get year
@@ -66,7 +74,7 @@ plot_summary <- data[deadmissing == "No",
                        year_mean = mean(year_planted),
                        year_cv = sd(year_planted)/mean(year_planted), 
                        ntrees = .N, 
-                       total_biomass = sum(Biomass.conoid_conoidoid_infill, na.rm = TRUE),
+                       biomass = sum(Biomass.conoid_conoidoid_infill, na.rm = TRUE),
                        gini = Gini(Biomass.conoid_conoidoid_infill,
                                    na.rm = TRUE, unbiased = TRUE,
                                    conf.level=0.95, type = "basic")[1]),
@@ -75,16 +83,19 @@ plot_summary <- data[deadmissing == "No",
 #-------------------------------------------------------------------------------
 # Summary of metrics by species in the plot.
 
+# Reshaping
 species_summary <- data[deadmissing == "No", .(ntrees = .N,
                                                biomass = sum(Biomass.conoid_conoidoid_infill, na.rm = TRUE)),
                         by = c("plot", "species")]
 
+# Function
 shannon <- function(sp) {
   p.i <- sp/sum(sp)
   H <- (-1) * sum(p.i * log10(p.i))
   return(H)
 }
 
+# Get shannon per plot
 feature_plot <- species_summary[, .(H = shannon(biomass),
                                     H_normalized = shannon(biomass)/shannon(rep(1, length(biomass)))),
                                 by = "plot"]
@@ -100,7 +111,7 @@ fwrite(complete, "diversity.csv")
 #' Taxonomic data cleaning
 species <- fread(paste0(root_path, "/traits.csv"))
 species_names <- species$species
-species <- as.matrix(species[, c(1:5, 7)])
+species <- as.matrix(species[, c(1:5)])
 rownames(species) <- species_names
 taxonomic <- taxa2dist(species, varstep=TRUE)
 taxonomic <- hclust(taxonomic)
@@ -121,6 +132,8 @@ hypotheses <- phylo.maker(species, scenarios = "S3")
 phylo <- multi2di(hypotheses$scenario.3)
 is.binary.phylo(phylo) #Test for Binary Tree
 is.ultrametric(phylo) #Test if a Tree is Ultrametric
+tol = 1e-9
+phylo$edge.length[phylo$edge.length <= 0] <- tol
 plot(phylo)
 
 #' -----------------------------------------------------------------------------
@@ -129,7 +142,11 @@ plot(phylo)
 # Read and select species
 species <- fread(paste0(root_path, "/traits.csv"))
 species_names <- species$species
-traits <- as.matrix(species[, c(12, 13, 16, 17)])
+traits <- as.matrix(species[, c("Wood_Density",
+                                "LMA",
+                                "HT_quantile",
+                                "CR_quantile",
+                                "slenderness_quantile")])
 rownames(traits) <- species_names
 traits <- as.matrix(scale(traits, center = TRUE, scale = TRUE))
 functional <- hclust(dist(traits))
@@ -142,6 +159,7 @@ community <- species_summary[, c("plot", "biomass", "species")]
 community$species <- chartr(" ", "_", community$species)
 community <- sample2matrix(community)
 master_matrix <- decostand(community, method = "hellinger") 
+master_matrix <- community
 
 #' -----------------------------------------------------------------------------
 #' Diversity metrics
@@ -165,7 +183,32 @@ plot(taxonomic_matched$phy)
 plot(phylogenetic_matched$phy)
 plot(functional_matched$phy)
 
+
+# Faith diversity
+TD_faith <- pd(taxonomic_matched$comm, 
+               taxonomic_matched$phy, 
+               include.root = TRUE)$PD
+
+PD_faith <- pd(phylogenetic_matched$comm, 
+               phylogenetic_matched$phy, 
+               include.root = TRUE)$PD
+
+FD_faith <- pd(functional_matched$comm, 
+               functional_matched$phy, 
+               include.root = TRUE)$PD
+
+# Faith weighted diversity
+TD_faith_w <- weighted.faith(taxonomic_matched$phy,
+                             taxonomic_matched$comm)
+
+PD_faith_w <- weighted.faith(phylogenetic_matched$phy,
+                             phylogenetic_matched$comm)
+
+FD_faith_w <- weighted.faith(functional_matched$phy,
+                             functional_matched$comm)
+
 # Standardized effect size of MPD
+
 TD_MPD <- ses.mpd(taxonomic_matched$comm, 
                   cophenetic(taxonomic_matched$phy), 
                   null.model = "taxa.labels", 
@@ -238,6 +281,9 @@ FD_PSC <- psc(functional_matched$comm,
 # Capture diversity in a frame
 
 diversity <- data.table(plot = rownames(community),
+                        TD_faith = TD_faith,
+                        PD_faith = PD_faith,
+                        FD_faith = FD_faith,
                         TD_MPD = TD_MPD$mpd.obs,
                         PD_MPD = PD_MPD$mpd.obs,
                         FD_MPD = FD_MPD$mpd.obs,
