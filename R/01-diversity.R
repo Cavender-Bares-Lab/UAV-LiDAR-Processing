@@ -21,9 +21,15 @@ library(ape)
 library(lefse)
 
 #' -----------------------------------------------------------------------------
-#' Processing
+#' Working path
 
 root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+root_path <- "F:/Projects/LiDAR/data"
+
+#' -----------------------------------------------------------------------------
+#' Processing
+
+# Load data
 data <- fread(paste0(root_path, "/fab2_allometry2.csv"))
 
 # Transform to date and get year
@@ -74,21 +80,24 @@ plot_summary <- data[deadmissing == "No",
                        tree_size_inequality = Gini(Biomass.conoid_conoidoid_infill,
                                                    na.rm = TRUE, unbiased = TRUE,
                                                    conf.level=0.95, type = "basic")[1]),
-                     by = "plot"]
+                       by = "plot"]
 
 #-------------------------------------------------------------------------------
 # Summary of metrics by species in the plot.
 
+# Reshaping
 species_summary <- data[deadmissing == "No", .(ntrees = .N,
                                                biomass = sum(Biomass.conoid_conoidoid_infill, na.rm = TRUE)),
                         by = c("plot", "species")]
 
+# Function
 shannon <- function(sp) {
   p.i <- sp/sum(sp)
   H <- (-1) * sum(p.i * log10(p.i))
   return(H)
 }
 
+# Get shannon per plot
 feature_plot <- species_summary[, .(H = shannon(biomass),
                                     H_normalized = shannon(biomass)/shannon(rep(1, length(biomass)))),
                                 by = "plot"]
@@ -142,7 +151,7 @@ complete <- merge(complete, proportions,
 #' Taxonomic data cleaning
 species <- fread(paste0(root_path, "/traits.csv"))
 species_names <- species$species
-species <- as.matrix(species[, c(1:5, 7)])
+species <- as.matrix(species[, c(1:5)])
 rownames(species) <- species_names
 taxonomic <- taxa2dist(species, varstep=TRUE)
 taxonomic <- hclust(taxonomic)
@@ -163,9 +172,9 @@ hypotheses <- phylo.maker(species, scenarios = "S3")
 phylo <- multi2di(hypotheses$scenario.3)
 is.binary.phylo(phylo) #Test for Binary Tree
 is.ultrametric(phylo) #Test if a Tree is Ultrametric
+tol = 1e-9
 phylo$edge.length[phylo$edge.length <= 0] <- tol
 is.ultrametric(phylo)
-plot(phylo)
 
 #' -----------------------------------------------------------------------------
 #' Functional data cleaning
@@ -191,6 +200,7 @@ community <- species_summary[, c("plot", "biomass", "species")]
 community$species <- chartr(" ", "_", community$species)
 community <- sample2matrix(community)
 master_matrix <- decostand(community, method = "hellinger") 
+master_matrix <- community
 
 #' -----------------------------------------------------------------------------
 #' Diversity metrics
@@ -226,7 +236,21 @@ PD_faith <- pd(phylogenetic_matched$comm, phylogenetic_matched$phy)$PD
 
 FD_faith <- pd(functional_matched$comm, functional_matched$phy)$PD
 
+# Faith diversity
+TD_faith <- pd(taxonomic_matched$comm, 
+               taxonomic_matched$phy, 
+               include.root = TRUE)$PD
+
+PD_faith <- pd(phylogenetic_matched$comm, 
+               phylogenetic_matched$phy, 
+               include.root = TRUE)$PD
+
+FD_faith <- pd(functional_matched$comm, 
+               functional_matched$phy, 
+               include.root = TRUE)$PD
+
 # Standardized effect size of MPD
+
 TD_MPD <- ses.mpd(taxonomic_matched$comm, 
                   cophenetic(taxonomic_matched$phy), 
                   null.model = "taxa.labels", 
