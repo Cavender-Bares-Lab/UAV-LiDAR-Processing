@@ -63,13 +63,45 @@ data <- data[, c("year_planted",
          "survey",
          "measurement_date",
          "deadmissing",
+         "V.conoid_conoidoid_infill",
          "Biomass.conoid_conoidoid_infill")]
 
-# Select 2022 inventory
-data <- subset(data, year(measurement_date) == 2022)
+#-------------------------------------------------------------------------------
+# Estimation of plot volume growth from 2021 to 2022.
+
+frame <- subset(data, year(measurement_date) >= 2021)
+frame$year <- year(frame$measurement_date)
+
+# Select years
+y2021 <- subset(frame, year == 2021)
+y2021 <- y2021[, c("block", "plot", "row", "column", "V.conoid_conoidoid_infill")]
+y2022 <- subset(frame, year == 2022)
+y2022 <- y2022[, c("block", "plot", "row", "column", "V.conoid_conoidoid_infill")]
+
+colnames(y2021)[5] <- "y2021"
+colnames(y2022)[5] <- "y2022"
+
+# Merge years of observations
+frame <- merge(y2021, y2022, by = c("block", "plot", "row", "column"), all.x = TRUE, all.y = TRUE)
+frame <- na.exclude(frame)
+
+# Get relative growth rate
+growth <- frame[, .(y2021 = sum(y2021, na.rm = TRUE),
+                    y2022 = sum(y2022, na.rm = TRUE)),
+                by = "plot"]
+
+growth$RGR <- ((growth$y2022 - growth$y2021)/growth$y2021)*100
+growth[is.infinite(RGR) == TRUE, RGR := NA]
+growth$AWP <- growth$y2022 - growth$y2021
+growth[is.infinite(AWP) == TRUE, AWP := NA]
+
+growth <- growth[, c("plot", "RGR", "AWP")]
 
 #-------------------------------------------------------------------------------
 # Summary of metrics by plot.
+
+# Select 2022 inventory
+data <- subset(data, year(measurement_date) == 2022)
 
 plot_summary <- data[deadmissing == "No", 
                      .(SR_real = length(unique(species)),
@@ -77,17 +109,28 @@ plot_summary <- data[deadmissing == "No",
                        year_cv = sd(year_planted)/mean(year_planted), 
                        ntrees = .N, 
                        biomass = sum(Biomass.conoid_conoidoid_infill, na.rm = TRUE),
-                       tree_size_inequality = Gini(Biomass.conoid_conoidoid_infill,
+                       volumen = sum(V.conoid_conoidoid_infill, na.rm = TRUE),
+                       tree_size_inequality_bio = Gini(Biomass.conoid_conoidoid_infill,
                                                    na.rm = TRUE, unbiased = TRUE,
-                                                   conf.level=0.95, type = "basic")[1]),
+                                                   conf.level=0.95, type = "basic")[1],
+                       tree_size_inequality_vol = Gini(V.conoid_conoidoid_infill,
+                                                       na.rm = TRUE, unbiased = TRUE,
+                                                       conf.level=0.95, type = "basic")[1]),
+                     
                        by = "plot"]
+
+complete <- merge(plot_summary, growth, 
+                  by = "plot", 
+                  all.x = TRUE, 
+                  all.y = TRUE)
 
 #-------------------------------------------------------------------------------
 # Summary of metrics by species in the plot.
 
 # Reshaping
 species_summary <- data[deadmissing == "No", .(ntrees = .N,
-                                               biomass = sum(Biomass.conoid_conoidoid_infill, na.rm = TRUE)),
+                                               biomass = sum(Biomass.conoid_conoidoid_infill, na.rm = TRUE),
+                                               volumen = sum(V.conoid_conoidoid_infill, na.rm = TRUE)),
                         by = c("plot", "species")]
 
 # Function
@@ -98,11 +141,13 @@ shannon <- function(sp) {
 }
 
 # Get shannon per plot
-feature_plot <- species_summary[, .(H = shannon(biomass),
-                                    H_normalized = shannon(biomass)/shannon(rep(1, length(biomass)))),
+feature_plot <- species_summary[, .(H_bio = shannon(biomass),
+                                    H_normalized_bio = shannon(biomass)/shannon(rep(1, length(biomass))),
+                                    H_vol = shannon(volumen),
+                                    H_normalized_vol = shannon(volumen)/shannon(rep(1, length(volumen)))),
                                 by = "plot"]
 
-complete <- merge(plot_summary, feature_plot, 
+complete <- merge(complete, feature_plot, 
                   by = "plot", 
                   all.x = TRUE, 
                   all.y = TRUE)
@@ -113,12 +158,12 @@ fwrite(complete, "diversity.csv")
 # Get proportion of angiosperms
 traits <- fread(paste0(root_path, "/traits.csv"))
 traits <- traits[, c(5, 11)]
-species <- species_summary[, c(1,2,4)]
+species <- species_summary[, c(1,2,5)]
 colnames(species)[2] <- "Species"
 
 proportions <- merge(traits, species, by = "Species", all.x = TRUE, all.y = TRUE)
-p <- proportions[, sum(biomass), by = c("plot", "Gymnosperm")]
-colnames(p)[3] <- "biomass"
+p <- proportions[, sum(volumen), by = c("plot", "Gymnosperm")]
+colnames(p)[3] <- "volumen"
 proportions <- data.frame(plot = "1", PA = 0)
 unique_plots <- unique(p$plot)
 
@@ -135,8 +180,8 @@ for(i in 1:length(unique_plots)) {
       proportions[i, 2] <- 0.00
     }
   } else {
-    gym <- sub[Gymnosperm == "Y", biomass]
-    ang <- sub[Gymnosperm == "N", biomass]
+    gym <- sub[Gymnosperm == "Y", volumen]
+    ang <- sub[Gymnosperm == "N", volumen]
     proportions[i, 1] <- unique_plots[i]
     proportions[i, 2] <- ang/(gym + ang)
   }
@@ -196,7 +241,7 @@ plot(functional, hang = -1)
 #' -----------------------------------------------------------------------------
 #' Biomass data 
 
-community <- species_summary[, c("plot", "biomass", "species")]
+community <- species_summary[, c("plot", "volumen", "species")]
 community$species <- chartr(" ", "_", community$species)
 community <- sample2matrix(community)
 master_matrix <- decostand(community, method = "hellinger") 

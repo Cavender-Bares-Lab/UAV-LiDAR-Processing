@@ -28,13 +28,15 @@ frame <- fread(paste0(root_path, "/master_clean.csv"))
 diversity <- fread(paste0(root_path, "/diversity_reshaped.csv"))
 
 # Get phenological variability
-FSC <- frame[, c("plot", "PA", "DOY", "shannon_vertical", 
+FSC <- frame[, c("plot", "PA", "RGR", "AWP", "DOY", "shannon_vertical", 
                  "shannon_horizontal", "Slope_N")]
 
 pheno <- FSC[, .(CV_SEI_vertical = sd(shannon_vertical)/mean(shannon_vertical),
                  CV_SEI_horizontal = sd(shannon_horizontal)/mean(shannon_horizontal),
                  CV_Slope_N = sd(Slope_N)/mean(Slope_N),
-                 PA = mean(PA)), by = "plot"]
+                 PA = mean(PA),
+                 RGR = mean(RGR),
+                 AWP = mean(AWP)), by = "plot"]
 pheno$plot <- as.character(pheno$plot)
 
 # Merge metrics of interest
@@ -55,7 +57,7 @@ th <- theme(plot.background = element_blank(),
             panel.grid.minor = element_blank(), 
             #axis.text.x = element_text(color = "black", size = tamano2),
             #axis.text.y = element_text(color = "black", size = tamano2),
-            plot.margin = margin(4, 4, 0, 0, "pt"),
+            plot.margin = margin(4, 4, 0, 1.5, "pt"),
             legend.position= c("top"), 
             legend.direction = "horizontal", 
             legend.background = element_rect(fill = "transparent"), 

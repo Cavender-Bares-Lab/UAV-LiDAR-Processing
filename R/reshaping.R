@@ -49,7 +49,6 @@ functional$type <- "Functional"
 
 #Merge and export
 diversity_reshape <- rbind(taxonomic, phylogenetic, functional)
-diversity_reshape[is.na(diversity_reshape)] <- 0
 diversity_reshape$plot <- as.character(diversity_reshape$plot)
 fwrite(diversity_reshape, paste0(root_path, "/diversity_reshaped.csv"))
 

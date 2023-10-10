@@ -14,6 +14,7 @@ library(rcartocolor)
 library(ggplot2)
 library(scales)
 library(ggpubr)
+library(ggpmisc)
 options(scipen = 99999)
 
 #' -----------------------------------------------------------------------------
@@ -36,7 +37,7 @@ th <- theme(plot.background = element_blank(),
             panel.grid.minor = element_blank(), 
             axis.text.x = element_text(color = "black"),
             axis.text.y = element_text(color = "black"),
-            plot.margin = margin(4, 4, 0, 0, "pt"),
+            plot.margin = margin(4, 4, 0, 1, "pt"),
             legend.position= c("top"), 
             legend.direction = "horizontal", 
             legend.background = element_rect(fill = "transparent"), 
@@ -49,7 +50,7 @@ gui <- guides(fill = guide_colourbar(barwidth = 15,
 
 # Biomass
 
-bio_SEIv <- ggplot(frame, aes(biomass/1000, 
+vol_SEIv <- ggplot(frame, aes(volumen/1000000, 
                               shannon_vertical, 
                               color = DOY,
                               fill = DOY,
@@ -58,6 +59,9 @@ bio_SEIv <- ggplot(frame, aes(biomass/1000,
   stat_ma_line(method = "SMA",
                se = FALSE,
                linewidth = 0.5) +
+  stat_ma_eq(label.x = "right",
+             label.y = "bottom",
+             size = text_size) +
   scale_color_carto_c("Day of the Year", 
                       type = "diverging", 
                       palette = "Fall",
@@ -76,13 +80,18 @@ bio_SEIv <- ggplot(frame, aes(biomass/1000,
   theme_bw(base_size = tamano) +
   th + gui
 
-bio_SEIh <- ggplot(frame, aes(biomass/1000, 
+vol_SEIh <- ggplot(frame, aes(volumen/1000000, 
                               shannon_horizontal, 
                               color = DOY,
                               fill = DOY,
                               gruop = as.factor(DOY))) +
   geom_point(shape = 21, colour = "grey", alpha = 0.2) +
-  geom_smooth(method = "lm", se = FALSE, linewidth = 0.5) + 
+  stat_ma_line(method = "SMA",
+               se = FALSE,
+               linewidth = 0.5) +
+  stat_ma_eq(label.x = "right",
+             label.y = "bottom",
+             size = text_size) +
   scale_color_carto_c("Day of the Year", 
                       type = "diverging", 
                       palette = "Fall",
@@ -101,7 +110,7 @@ bio_SEIh <- ggplot(frame, aes(biomass/1000,
   theme_bw(base_size = tamano) +
   th + gui
 
-bio_fractal <- ggplot(frame, aes(biomass/1000, 
+vol_fractal <- ggplot(frame, aes(volumen/1000000, 
                                  Slope_N, 
                                  color = DOY,
                                  fill = DOY,
@@ -109,7 +118,10 @@ bio_fractal <- ggplot(frame, aes(biomass/1000,
   geom_point(shape = 21, colour = "grey", alpha = 0.2) +
   stat_ma_line(method = "SMA",
                se = FALSE,
-               size = 0.5) +
+               linewidth = 0.5) +
+  stat_ma_eq(label.x = "right",
+             label.y = "bottom",
+             size = text_size) +
   scale_color_carto_c("Day of the Year", 
                       type = "diverging", 
                       palette = "Fall",
@@ -121,8 +133,8 @@ bio_fractal <- ggplot(frame, aes(biomass/1000,
                      breaks = c(100, 200, 300)) +
   scale_x_continuous(trans = log10_trans()) +
   annotation_logticks(sides = "b") +
-  coord_cartesian(ylim = c(0.15, 0.9), expand = FALSE) +
-  xlab("Above-ground biomass (kg)") +
+  coord_cartesian(ylim = c(0.15, 0.85), expand = FALSE) +
+  xlab(expression(paste("Wood volume (m"^3, ")"))) +
   ylab(expression({}*italic(D)[b]))  +
   theme_bw(base_size = tamano) +
   th + gui
@@ -130,7 +142,7 @@ bio_fractal <- ggplot(frame, aes(biomass/1000,
 
 # Tree size inequality
 
-TSI_SEIv <- ggplot(frame, aes(tree_size_inequality, 
+TSI_SEIv <- ggplot(frame, aes(tree_size_inequality_vol, 
                               shannon_vertical, 
                               color = DOY,
                               fill = DOY,
@@ -138,7 +150,10 @@ TSI_SEIv <- ggplot(frame, aes(tree_size_inequality,
   geom_point(shape = 21, colour = "grey", alpha = 0.2) +
   stat_ma_line(method = "SMA",
                se = FALSE,
-               size = 0.5) +
+               linewidth = 0.5) +
+  stat_ma_eq(label.x = "right",
+             label.y = "bottom",
+             size = text_size) +
   scale_color_carto_c("Day of the Year", 
                       type = "diverging", 
                       palette = "Fall",
@@ -148,14 +163,14 @@ TSI_SEIv <- ggplot(frame, aes(tree_size_inequality,
                      palette = "Fall",
                      limits = c(95, 305),
                      breaks = c(100, 200, 300)) +
-  scale_y_continuous(limits = c(0, 1.03), expand = c(0, 0), n.breaks = 3) +
-  coord_cartesian(expand = FALSE) +
+  scale_y_continuous(expand = c(0, 0), n.breaks = 3) +
+  coord_cartesian(ylim = c(0, 1.03), expand = FALSE) +
   xlab(" ") +
   ylab(" ")  +
   theme_bw(base_size = tamano) +
   th + gui
 
-TSI_SEIh <- ggplot(frame, aes(tree_size_inequality, 
+TSI_SEIh <- ggplot(frame, aes(tree_size_inequality_vol, 
                               shannon_horizontal, 
                               color = DOY,
                               fill = DOY,
@@ -163,7 +178,10 @@ TSI_SEIh <- ggplot(frame, aes(tree_size_inequality,
   geom_point(shape = 21, colour = "grey", alpha = 0.2) +
   stat_ma_line(method = "SMA",
                se = FALSE,
-               size = 0.5) +
+               linewidth = 0.5) +
+  stat_ma_eq(label.x = "left",
+             label.y = "bottom",
+             size = text_size) +
   scale_color_carto_c("Day of the Year", 
                       type = "diverging", 
                       palette = "Fall",
@@ -180,7 +198,7 @@ TSI_SEIh <- ggplot(frame, aes(tree_size_inequality,
   theme_bw(base_size = tamano) +
   th + gui
 
-TSI_fractal <- ggplot(frame, aes(tree_size_inequality, 
+TSI_fractal <- ggplot(frame, aes(tree_size_inequality_vol, 
                                  Slope_N, 
                                  color = DOY,
                                  fill = DOY,
@@ -188,7 +206,10 @@ TSI_fractal <- ggplot(frame, aes(tree_size_inequality,
   geom_point(shape = 21, colour = "grey", alpha = 0.2) +
   stat_ma_line(method = "SMA",
                se = FALSE,
-               size = 0.5) +
+               linewidth = 0.5) +
+  stat_ma_eq(label.x = "left",
+             label.y = "bottom",
+             size = text_size) +
   scale_color_carto_c("Day of the Year", 
                       type = "diverging", 
                       palette = "Fall",
@@ -198,18 +219,16 @@ TSI_fractal <- ggplot(frame, aes(tree_size_inequality,
                      palette = "Fall",
                      limits = c(95, 305),
                      breaks = c(100, 200, 300)) +
-  coord_cartesian(ylim = c(0.15, 0.9), expand = FALSE) +
+  coord_cartesian(ylim = c(0.15, 0.85), expand = FALSE) +
   xlab("Tree size inequality") +
   ylab(" ")  +
   theme_bw(base_size = tamano) +
   th + gui
 
-
-
 #Merge panels
-Figure_1 <- ggarrange(bio_SEIv, TSI_SEIv, 
-                      bio_SEIh, TSI_SEIh, 
-                      bio_fractal, TSI_fractal,
+Figure_1 <- ggarrange(vol_SEIv, TSI_SEIv, 
+                      vol_SEIh, TSI_SEIh, 
+                      vol_fractal, TSI_fractal,
                       ncol = 2, nrow = 3,  align = "hv", 
                       widths = c(2, 2), 
                       heights = c(2, 2, 2),
@@ -218,11 +237,11 @@ Figure_1 <- ggarrange(bio_SEIv, TSI_SEIv,
                                         color = "black", 
                                         face = "plain", 
                                         family = NULL),
-                      label.x = 0.20,
-                      label.y = 0.99,
+                      label.x = 0.13,
+                      label.y = 0.95,
                       common.legend = TRUE)
 #Export figure
-tiff("Figure_1.tif", width = 140, height = 140, units = "mm", res = 600)
+jpeg("Figure_1.jpeg", width = 210, height = 210, units = "mm", res = 600)
 
 Figure_1
 

@@ -15,6 +15,7 @@ library(rcartocolor)
 library(ggplot2)
 library(scales)
 library(ggpubr)
+options(scipen = 99999)
 
 #' -----------------------------------------------------------------------------
 #' Working path
@@ -39,7 +40,6 @@ pheno$plot <- as.character(pheno$plot)
 # Merge metrics of interest
 frame <- merge(pheno, diversity, by = "plot", all.x = TRUE, all.y = FALSE)
 
-
 # Plot details
 tamano <- 12
 tamano2 <- 8
@@ -49,17 +49,22 @@ th <- theme(plot.background = element_blank(),
             panel.grid.minor = element_blank(), 
             #axis.text.x = element_text(color = "black", size = tamano2),
             #axis.text.y = element_text(color = "black", size = tamano2),
-            plot.margin = margin(4, 4, 0, 0, "pt"),
+            plot.margin = margin(4, 4, 0, 1.5, "pt"),
             legend.position= c("top"), 
             legend.direction = "horizontal", 
             legend.background = element_rect(fill = "transparent"), 
             legend.box.background = element_blank())
+gui <- guides(fill = guide_colourbar(barwidth = 15, 
+                                     barheight = 0.7, 
+                                     title.position = "top",
+                                     title.hjust = 0.5))
 
 # Biomass
 
-bio_SEIv <- ggplot(frame, aes(biomass/1000, 
-                              CV_SEI_vertical)) +
-  geom_point(shape = 21, colour = "black", fill = "grey", alpha = 0.8) +
+bio_SEIv <- ggplot(frame, aes(volumen/1000000, 
+                              CV_SEI_vertical,
+                              fill = PA)) +
+  geom_point(shape = 21, colour = "grey", alpha = 0.8) +
   stat_ma_line(method = "SMA",
                se = TRUE,
                size = 0.5,
@@ -69,18 +74,27 @@ bio_SEIv <- ggplot(frame, aes(biomass/1000,
              label.x = "left",
              label.y = "bottom",
              size = text_size) +
+  scale_fill_carto_c("Proportion of Angiosperms", 
+                     type = "diverging", 
+                     palette = "Earth",
+                     direction = -1,
+                     limits = c(0, 1),
+                     breaks = c(0.0, 0.5, 1.0)) +
+  coord_cartesian(xlim = c(0.012, 0.7), 
+                  ylim = c(0.009, 0.48), 
+                  expand = TRUE) +
   scale_x_continuous(trans = log10_trans()) +
   scale_y_continuous(trans = log10_trans()) +
-  coord_cartesian(expand = FALSE) +
   annotation_logticks(sides = "bl") +
   xlab(" ") +
   ylab(expression({}*italic(CV)~~SEI[vertical]))  +
   theme_bw(base_size = tamano) +
-  th
+  th + gui
 
-bio_SEIh <- ggplot(frame, aes(biomass/1000, 
-                              CV_SEI_horizontal)) +
-  geom_point(shape = 21, colour = "black", fill = "grey", alpha = 0.8) +
+bio_SEIh <- ggplot(frame, aes(volumen/1000000, 
+                              CV_SEI_horizontal,
+                              fill = PA)) +
+  geom_point(shape = 21, colour = "grey", alpha = 0.8) +
   stat_ma_line(method = "SMA",
                se = TRUE,
                size = 0.5,
@@ -89,19 +103,28 @@ bio_SEIh <- ggplot(frame, aes(biomass/1000,
              method = "SMA",
              label.x = "left",
              label.y = "bottom",
-             size = text_size) + 
+             size = text_size) +
+  scale_fill_carto_c("Proportion of Angiosperms", 
+                     type = "diverging", 
+                     palette = "Earth",
+                     direction = -1,
+                     limits = c(0, 1),
+                     breaks = c(0.0, 0.5, 1.0)) +
+  coord_cartesian(xlim = c(0.012, 0.7), 
+                  ylim = c(0.0003, 0.055),
+                  expand = TRUE) +
   scale_x_continuous(trans = log10_trans()) +
   scale_y_continuous(trans = log10_trans()) +
-  coord_cartesian(ylim = c(0.00036, 0.06), expand = FALSE) +
   annotation_logticks(sides = "bl") +
   xlab(" ") +
   ylab(expression({}*italic(CV)~~SEI[horizontal]))  +
   theme_bw(base_size = tamano) +
-  th
+  th + gui
 
-bio_fractal <- ggplot(frame, aes(biomass/1000, 
-                                 CV_Slope_N)) +
-  geom_point(shape = 21, colour = "black", fill = "grey", alpha = 0.8) +
+bio_fractal <- ggplot(frame, aes(volumen/1000000, 
+                                 CV_Slope_N,
+                                 fill = PA)) +
+  geom_point(shape = 21, colour = "grey", alpha = 0.8) +
   stat_ma_line(method = "SMA",
                se = TRUE,
                size = 0.5,
@@ -111,64 +134,60 @@ bio_fractal <- ggplot(frame, aes(biomass/1000,
              label.x = "left",
              label.y = "bottom",
              size = text_size) +
+  scale_fill_carto_c("Proportion of Angiosperms", 
+                     type = "diverging", 
+                     palette = "Earth",
+                     direction = -1,
+                     limits = c(0, 1),
+                     breaks = c(0.0, 0.5, 1.0)) +
+  coord_cartesian(xlim = c(0.012, 0.7), 
+                  ylim = c(0.0035, 0.3401),
+                  expand = TRUE) +
   scale_x_continuous(trans = log10_trans()) +
   scale_y_continuous(trans = log10_trans()) +
-  coord_cartesian(ylim = c(0.00036, 0.3405), expand = FALSE) +
   annotation_logticks(sides = "bl") +
-  xlab("Above-ground biomass (kg)") +
+  xlab(expression(paste("Wood volume (m"^3, ")"))) +
   ylab(expression({}*italic(CV)~~{}*italic(D)[b]))  +
   theme_bw(base_size = tamano) +
-  th
-
-
+  th + gui
 
 # Tree size inequality
 
-TSI_SEIv <- ggplot(frame, aes(tree_size_inequality, 
-                              CV_SEI_vertical)) +
-  geom_point(shape = 21, colour = "black", fill = "grey", alpha = 0.8) +
-  stat_ma_line(method = "SMA",
-               se = TRUE,
-               size = 0.5,
-               colour = "black") +
+TSI_SEIv <- ggplot(frame, aes(tree_size_inequality_vol, 
+                              CV_SEI_vertical,
+                              fill = PA)) +
+  geom_point(shape = 21, colour = "grey", alpha = 0.8) +
+  #stat_ma_line(method = "SMA",
+  #             se = TRUE,
+  #             size = 0.5,
+  #             colour = "black") +
   stat_ma_eq(use_label(c("eq", "R2")),
              method = "SMA",
              label.x = "left",
              label.y = "bottom",
              size = text_size) +
-  #scale_x_continuous(trans = log10_trans()) +
+  scale_fill_carto_c("Proportion of Angiosperms", 
+                     type = "diverging", 
+                     palette = "Earth",
+                     direction = -1,
+                     limits = c(0, 1),
+                     breaks = c(0.0, 0.5, 1.0)) +
+  coord_cartesian(xlim = c(0.2, 0.8),
+                  ylim = c(0.009, 0.48), 
+                  expand = TRUE) +
+  scale_x_continuous(breaks = c(0.2, 0.5, 0.8),
+                     labels = c(0.2, 0.5, 0.8)) +
   scale_y_continuous(trans = log10_trans()) +
-  coord_cartesian(expand = FALSE) +
   annotation_logticks(sides = "l") +
   xlab(" ") +
   ylab(" ")  +
   theme_bw(base_size = tamano) +
-  th
+  th + gui
 
-TSI_SEIh <- ggplot(frame, aes(tree_size_inequality, 
-                              CV_SEI_horizontal)) +
-  geom_point(shape = 21, colour = "black", fill = "grey", alpha = 0.8) +
-  stat_ma_line(method = "SMA",
-               se = TRUE,
-               size = 0.5,
-               colour = "black") +
-  stat_ma_eq(use_label(c("eq", "R2")),
-             method = "SMA",
-             label.x = "right",
-             label.y = "bottom",
-             size = text_size) + 
-  #scale_x_continuous(trans = log10_trans()) +
-  scale_y_continuous(trans = log10_trans()) +
-  coord_cartesian(ylim = c(0.00036, 0.06), expand = FALSE) +
-  annotation_logticks(sides = "l") +
-  xlab(" ") +
-  ylab(" ")  +
-  theme_bw(base_size = tamano) +
-  th
-
-TSI_fractal <- ggplot(frame, aes(tree_size_inequality, 
-                                 CV_Slope_N)) +
-  geom_point(shape = 21, colour = "black", fill = "grey", alpha = 0.8) +
+TSI_SEIh <- ggplot(frame, aes(tree_size_inequality_vol, 
+                              CV_SEI_horizontal,
+                              fill = PA)) +
+  geom_point(shape = 21, colour = "grey", alpha = 0.8) +
   stat_ma_line(method = "SMA",
                se = TRUE,
                size = 0.5,
@@ -178,14 +197,53 @@ TSI_fractal <- ggplot(frame, aes(tree_size_inequality,
              label.x = "right",
              label.y = "bottom",
              size = text_size) +
-  #scale_x_continuous(trans = log10_trans()) +
+  scale_fill_carto_c("Proportion of Angiosperms", 
+                     type = "diverging", 
+                     palette = "Earth",
+                     direction = -1,
+                     limits = c(0, 1),
+                     breaks = c(0.0, 0.5, 1.0)) +
+  coord_cartesian(xlim = c(0.2, 0.8), 
+                  ylim = c(0.0003, 0.055),
+                  expand = TRUE) +
+  scale_x_continuous(breaks = c(0.2, 0.5, 0.8),
+                     labels = c(0.2, 0.5, 0.8)) +
   scale_y_continuous(trans = log10_trans()) +
-  coord_cartesian(ylim = c(0.00036, 0.3405), expand = FALSE) +
+  xlab(" ") +
+  ylab(" ")  +
+  theme_bw(base_size = tamano) +
+  th + gui
+
+TSI_fractal <- ggplot(frame, aes(tree_size_inequality_vol, 
+                                 CV_Slope_N,
+                                 fill = PA)) +
+  geom_point(shape = 21, colour = "grey", alpha = 0.8) +
+  #stat_ma_line(method = "SMA",
+  #             se = TRUE,
+  #             size = 0.5,
+  #             colour = "black") +
+  stat_ma_eq(use_label(c("eq", "R2")),
+             method = "SMA",
+             label.x = "right",
+             label.y = "bottom",
+             size = text_size) +
+  scale_fill_carto_c("Proportion of Angiosperms", 
+                     type = "diverging", 
+                     palette = "Earth",
+                     direction = -1,
+                     limits = c(0, 1),
+                     breaks = c(0.0, 0.5, 1.0)) +
+  coord_cartesian(xlim = c(0.2, 0.8),
+                  ylim = c(0.0035, 0.3401),
+                  expand = TRUE) +
+  scale_x_continuous(breaks = c(0.2, 0.5, 0.8),
+                     labels = c(0.2, 0.5, 0.8)) +
+  scale_y_continuous(trans = log10_trans()) +
   annotation_logticks(sides = "l") +
   xlab("Tree size inequality") +
   ylab(" ")  +
   theme_bw(base_size = tamano) +
-  th
+  th + gui
 
 
 #Merge panels
@@ -200,11 +258,11 @@ Figure_2 <- ggarrange(bio_SEIv, TSI_SEIv,
                                         color = "black", 
                                         face = "plain", 
                                         family = NULL),
-                      label.x = 0.25,
-                      label.y = 0.99,
+                      label.x = 0.18,
+                      label.y = 0.97,
                       common.legend = TRUE)
 #Export figure
-tiff("Figure_2.tif", width = 140, height = 140, units = "mm", res = 600)
+jpeg("Figure_2.jpeg", width = 210, height = 210, units = "mm", res = 600)
 
 Figure_2
 
