@@ -55,7 +55,7 @@ vertical_metrics <- function(point_cloud,
   #sub_frame$LAIe <- sum(LAD$lad)
   
   sub_frame$SEI_vertical <- entropy(z_above, by = z_res, zmax = max(z_above))
-  sub_frame$FDH_vertical <- FDH_vertical(z_above, by = z_res)
+  sub_frame$FHD_vertical <- FHD_vertical(z_above, by = z_res)
   sub_frame$VCI <- VCI(z_above, zmax = 10, by = z_res)
   sub_frame$gini <- gini(Z = pc$Z, ground = z_min)
   
@@ -87,7 +87,7 @@ gini <- function(Z, ground) {
   
 }
 
-FDH_vertical <- function(z, by = 0.25) {
+FHD_vertical <- function(z, by = 0.25) {
   
   # Get max
   zmax = max(z)
@@ -97,9 +97,9 @@ FDH_vertical <- function(z, by = 0.25) {
   
   # Compute the p for each bin
   hist <- hist(z, breaks = bk, plot = F)$count
+  hist <- hist + 1
   hist <- hist/sum(hist)
-  
-  FDH <- -sum(hist*log10(hist)) / log10(zmax)
+  FDH <- -sum(hist*log(hist))
   
   return(FDH)
 }

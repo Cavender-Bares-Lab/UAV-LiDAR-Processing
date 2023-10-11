@@ -29,7 +29,7 @@ horizontal_metrics <- function(point_cloud, xy_res = 0.25) {
   sub_frame <- data.table(npixels = length(metrics),
                           mean_maximun_height = mean(metrics),
                           SEI_horizontal = shannon(metrics) / shannon(rep(1, length(metrics))),
-                          FDH_horizontal = shannon(metrics) * log10(max(metrics)),
+                          FHD_horizontal = shannon(metrics),
                           rumple = rumple_index(metrics_raster$height))
   
   #Clean residuals
@@ -47,6 +47,6 @@ f <- function(x) { list(height = quantile(x, 0.99)) }
 #Shannon function
 shannon <- function(n_points) {
   p.i <- n_points/sum(n_points)
-  H <- (-1) * sum(p.i * log10(p.i))
+  H <- (-1) * sum(p.i * log(p.i))
   return(H)
 }

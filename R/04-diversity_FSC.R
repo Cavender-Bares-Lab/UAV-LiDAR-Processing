@@ -15,6 +15,7 @@ library(ggplot2)
 #' Working path
 
 root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+root_path <- "F:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' File reading and merging
@@ -24,9 +25,11 @@ diversity <- fread(paste0(root_path, "/diversity.csv"))
 
 # FSC
 FSC <- fread(paste0(root_path, "/FSC_results.csv"))
+FSC <- subset(FSC, Type == "Small")
+colnames(FSC)[3] <- "plot"
 
 # Merge files
-data <- merge(diversity, FSC, by = c("plot"), all.x = TRUE, all.y = TRUE)
+data <- merge(diversity, FSC, by = c("plot"), all.x = FALSE, all.y = TRUE)
 fwrite(data, paste0(root_path, "/master_file.csv")) #Manual checking
 data <- fread(paste0(root_path, "/master_file.csv"))
 
@@ -38,12 +41,12 @@ hist(data$area)
 data <- subset(data, area <= 150)
 
 # Long time planted trees
-hist(data$year_mean)
-data <- subset(data, year_mean <= 2018)
+#hist(data$year_mean)
+#data <- subset(data, year_mean <= 2018)
 
 # Remove plots with few trees
-hist(data$ntrees)
-data <- data[ntrees >= 85,]
+#hist(data$ntrees)
+#data <- data[ntrees >= 85,]
 
 # Get day of the year and just 2022
 data[, DOY := yday(data$date)]

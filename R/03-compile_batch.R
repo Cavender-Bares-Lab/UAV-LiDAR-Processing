@@ -7,6 +7,7 @@
 #' -----------------------------------------------------------------------------
 #' Libraries
 library(data.table)
+library(sf)
 
 #-------------------------------------------------------------------------------
 #' Arguments
@@ -17,15 +18,17 @@ library(data.table)
 #' @example 
 
 path <-  "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+path <- "F:/Projects/LiDAR/data"
 path_in <- paste0(path, "/FSC")
+path_gpkg <- paste0(path, "/GIS_new/2022-04-10_FAB2.gpkg")
 path_out <- paste0(path, "/FSC_results.csv")
 
-compile_results(path_in, path_out)
+compile_results(path_in, gpkg, path_out)
 
 #-------------------------------------------------------------------------------
 #' Function
 
-compile_results <- function(path_in, path_out) {
+compile_results <- function(path_in, path_gpkg, path_out) {
   
   files <- list.files(path_in, ".csv")
   
@@ -51,56 +54,23 @@ compile_results <- function(path_in, path_out) {
   #Re-arrange
   results <- results[, .SD, .SDcols = c(((cols-1):cols), (1:(cols-2)))]
   
+  # Read gpkg to merge
+  limits_gpkg <- st_read(dsn = path_gpkg)
+  limits_gpkg <- subset(limits_gpkg, Type != "GCP")
+  names(limits_gpkg)[1:2] <- c("Plot", "SR")
+  
+  gpkg_frame <- as.data.table(as.data.frame(limits_gpkg))
+  gpkg_frame <- gpkg_frame[, .SD, .SDcols = c(1:4, 6:17, 19:20)]
+  
+  # Merge results
+  final <- merge(gpkg_frame, 
+                 results, 
+                 by = c("Plot", "Type", "Modified"), 
+                 all.x = TRUE,
+                 all.y = TRUE)
+  
+  
   #Export
   fwrite(results, path_out)
   
 }
-
-################################################################################
-#' @title Mergin plot information with derived metrics
-################################################################################
-
-#' @description It merge the results from stand metrics with the plot information
-#' 
-#' @return A .csv file
-
-#' -----------------------------------------------------------------------------
-#' Libraries
-library(data.table)
-library(sf) 
-
-#' -----------------------------------------------------------------------------
-#' Arguments
-#' @param path_metrics Path and name of the .las file to process.
-#' @param path_gpkg Path and name (without extension) of files to export.
-#' @param resolution Resolution of the digital models.
-
-path_metrics <- "/home/antonio/Documents/LiDAR/L5/FAB2/FAB2_LiDAR-metrics.csv"
-path_gpkg <- "data/less/FAB2_less.gpkg"
-out_path <- "/home/antonio/Documents/LiDAR/L5/FAB2/FAB2_meta.csv"
-
-#' -----------------------------------------------------------------------------
-#' Function
-
-merge_information <- function(path_metrics, path_gpkg) {
-  
-  #Metrics
-  metrics <- fread(path_metrics)
-  
-  #Read gpkp
-  limits_gpkg <- st_read(dsn = path_gpkg)
-  area <- round(st_area(limits_gpkg), 2)
-  limits <- as.data.table(limits_gpkg)
-  limits$area <- as.numeric(area)
-  limits <- subset(limits, PRESENT == 1)
-  limits <- limits[, c("Plot", "Species.Richness", "Treatment", "Species.List", "area")]
-  
-  #Merge 
-  frame <- merge(limits, metrics, by = "Plot")
-  
-  #Export
-  fwrite(frame, out_path)
-  
-}
-
-

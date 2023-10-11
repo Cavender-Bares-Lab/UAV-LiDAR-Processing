@@ -96,7 +96,7 @@ batch_metrics <- function(path_pc, path_gpkg, output_name, threads) {
     area <- st_area(limit)
     
     # Logic to process
-    size_above <- (length(plot_pc$Z[plot_pc$Z >= 0.25]) / points) < 0.1
+    size_above <- (length(plot_pc$Z[plot_pc$Z >= 0.25]) / points) < 0.05
     
     if(size_above == TRUE) {
       
@@ -148,12 +148,12 @@ batch_metrics <- function(path_pc, path_gpkg, output_name, threads) {
       rm(list = c("v_metrics", "h_metrics", "fractal", "plot_pc", "size_above",
                   "limit", "Plot", "Type", "Modified", "points", "area"))
       gc()
-
+      
       return(NA)
       
     }
   }
-
+  
   # Parallel
   pbmclapply(1:stands, 
              FUN = get_metrics, 
@@ -171,7 +171,8 @@ batch_metrics <- function(path_pc, path_gpkg, output_name, threads) {
 
 # FAB2 ----------------------------------
 root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
-threads <- 24
+root_path <- "F:/Projects/LiDAR/data"
+threads <- 2
 
 # 2022-04-10
 path_pc <- paste0(root_path, "/L2/", "2022-04-10_FAB2.laz")
@@ -219,34 +220,40 @@ batch_metrics(path_pc, path_gpkg, output_name, threads)
 path_pc <- paste0(root_path, "/L2/", "2022-10-24_FAB2.laz")
 path_gpkg <- paste0(root_path, "/GIS_new/", "2022-10-24_FAB2.gpkg")
 output_name <- paste0(root_path, "/FSC/", "2022-10-24_FAB2_FSC_")
+batch_metrics(path_pc, path_gpkg, output_name, threads)
 
 # 2023-04-13
 path_pc <- paste0(root_path, "/L2/", "2023-04-13_FAB2.laz")
 path_gpkg <- paste0(root_path, "/GIS_new/", "2023-04-13_FAB2.gpkg")
 output_name <- paste0(root_path, "/FSC/", "2023-04-13_FAB2_FSC_")
+batch_metrics(path_pc, path_gpkg, output_name, threads)
 
 # 2023-04-26
 path_pc <- paste0(root_path, "/L2/", "2023-04-26_FAB2.laz")
 path_gpkg <- paste0(root_path, "/GIS_new/", "2023-04-26_FAB2.gpkg")
 output_name <- paste0(root_path, "/FSC/", "2023-04-26_FAB2_FSC_")
+batch_metrics(path_pc, path_gpkg, output_name, threads)
 
 # 2023-05-26
 path_pc <- paste0(root_path, "/L2/", "2023-05-26_FAB2.laz")
 path_gpkg <- paste0(root_path, "/GIS_new/", "2023-05-26_FAB2.gpkg")
 output_name <- paste0(root_path, "/FSC/", "2023-05-26_FAB2_FSC_")
+batch_metrics(path_pc, path_gpkg, output_name, threads)
 
 # 2023-07-29
 path_pc <- paste0(root_path, "/L2/", "2023-07-29_FAB2.laz")
 path_gpkg <- paste0(root_path, "/GIS_new/", "2023-07-29_FAB2.gpkg")
 output_name <- paste0(root_path, "/FSC/", "2023-07-29_FAB2_FSC_")
+batch_metrics(path_pc, path_gpkg, output_name, threads)
 
 # 2023-08-22
 path_pc <- paste0(root_path, "/L2/", "2023-08-22_FAB2.laz")
 path_gpkg <- paste0(root_path, "/GIS_new/", "2023-08-22_FAB2.gpkg")
 output_name <- paste0(root_path, "/FSC/", "2023-08-22_FAB2_FSC_")
+batch_metrics(path_pc, path_gpkg, output_name, threads)
 
 # 2023-09-12
 path_pc <- paste0(root_path, "/L2/", "2023-09-12_FAB2.laz")
 path_gpkg <- paste0(root_path, "/GIS_new/", "2023-09-12_FAB2.gpkg")
 output_name <- paste0(root_path, "/FSC/", "2023-09-12_FAB2_FSC_")
-
+batch_metrics(path_pc, path_gpkg, output_name, threads)
