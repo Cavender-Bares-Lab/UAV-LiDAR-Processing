@@ -35,6 +35,9 @@ vertical_metrics <- function(point_cloud,
                    Y = point_cloud$Y,
                    Z = point_cloud$Z)
   
+  #Above points
+  z_above <- pc[Z >= z_min, Z]
+  
   #Basic grid metrics
   sub_frame <- data.table(height = quantile(pc$Z, 0.99),
                           height_cv = sd(z_above)/mean(z_above),
@@ -42,36 +45,28 @@ vertical_metrics <- function(point_cloud,
                           kurtosis = kurtosis(pc$Z))
   
   #Vertical profiles
-  LAD <- LAD(pc$Z, dz = z_res, k = 1.0, z0 = z_min)
+  #LAD <- LAD(pc$Z, dz = z_res, k = 1.0, z0 = z_min)
   #gpag <- gap_fraction_profile(pc$Z, dz = z_res, z0 = z_min)
-  LAD$z <- round(LAD$z, 1)
+  #LAD$z <- round(LAD$z, 1)
   #gpag$z <- round(gpag$z, 1)
-  
-  #Above points
-  z_above <- pc[Z >= 0.25, Z]
-  
+
   #Metrics from vertical profiles
-  sub_frame$nprofiles <- nrow(LAD)
-  sub_frame$LAIe <- sum(LAD$lad)
-  sub_frame$vci <- VCI(z_above, zmax = z_max, by = z_res)
-  sub_frame$entropy <- entropy(z_above, by = z_res, zmax = max(z_above))
+  #sub_frame$nprofiles <- nrow(LAD)
+  #sub_frame$LAIe <- sum(LAD$lad)
+  
+  sub_frame$SEI_vertical <- entropy(z_above, by = z_res, zmax = max(z_above))
+  sub_frame$FDH_vertical <- FDH_vertical(z_above, by = z_res)
+  sub_frame$VCI <- VCI(z_above, zmax = 10, by = z_res)
   sub_frame$gini <- gini(Z = pc$Z, ground = z_min)
-  sub_frame$FDH_vertical <- shannon(z_above) * log10(max(z_above))
+  
   
   #Clean residuals
-  rm(list = c("pc", "z_above", "LAD"))
+  rm(list = c("pc", "z_above")) #"LAD"
   gc()
   
   #Return
   return(sub_frame)
   
-}
-
-#Shannon function
-shannon <- function(n_points) {
-  p.i <- n_points/sum(n_points)
-  H <- (-1) * sum(p.i * log10(p.i))
-  return(H)
 }
 
 #Gini
@@ -90,4 +85,21 @@ gini <- function(Z, ground) {
   
   return(gc)
   
+}
+
+FDH_vertical <- function(z, by = 0.25) {
+  
+  # Get max
+  zmax = max(z)
+  
+  # Define the number of x meters bins from 0 to zmax (rounded to the next integer)
+  bk <- seq(0.25, ceiling(zmax/by)*by, by)
+  
+  # Compute the p for each bin
+  hist <- hist(z, breaks = bk, plot = F)$count
+  hist <- hist/sum(hist)
+  
+  FDH <- -sum(hist*log10(hist)) / log10(zmax)
+  
+  return(FDH)
 }

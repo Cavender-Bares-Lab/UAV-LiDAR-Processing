@@ -22,12 +22,13 @@ horizontal_metrics <- function(point_cloud, xy_res = 0.25) {
   # Calculate grid metrics
   metrics_raster <- pixel_metrics(point_cloud, ~f(Z), res = xy_res) 
   metrics <- as.numeric(na.exclude(metrics_raster[]))
-  metrics[metrics <= 0] <- 0.001
+  metrics[metrics <= 0.25] <- NA
+  metrics <- metrics[!is.na(metrics)]
   
   #Basic grid metrics
   sub_frame <- data.table(npixels = length(metrics),
                           mean_maximun_height = mean(metrics),
-                          shannon_horizontal = shannon(metrics) / log10(length(metrics)),
+                          SEI_horizontal = shannon(metrics) / shannon(rep(1, length(metrics))),
                           FDH_horizontal = shannon(metrics) * log10(max(metrics)),
                           rumple = rumple_index(metrics_raster$height))
   

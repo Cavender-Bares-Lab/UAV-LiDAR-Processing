@@ -16,9 +16,9 @@ library(data.table)
 #-------------------------------------------------------------------------------
 #' @example 
 
-path <-  "/home/antonio/Documents/LiDAR/L5"
-path_in <- paste0(path, "/FAB2")
-path_out <- paste0(path, "/FAB2/LiDAR_results.csv")
+path <-  "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+path_in <- paste0(path, "/FSC")
+path_out <- paste0(path, "/FSC_results.csv")
 
 compile_results(path_in, path_out)
 

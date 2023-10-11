@@ -28,13 +28,14 @@ fractal_metrics <- function(point_cloud, z_min = 0.25) {
   #Remove ground
   pc <- pc[Z >= z_min]
   
-  min_dist <- 0.1
+  
   
   #Range size
-  ranges <- c(max(pc[,1]) - min(pc[,1]), max(pc[,2]) - min(pc[,2]), max(pc[,3]) - min(pc[,3]))
-  max.range <- ranges[which.max(ranges)] + 0.001
-  max.range <- max.range/4
-  edge_sizes <- seq(from = log10(c(max.range)), to = log10(min_dist), length.out = 10)
+  #ranges <- c(max(pc[,1]) - min(pc[,1]), max(pc[,2]) - min(pc[,2]), max(pc[,3]) - min(pc[,3]))
+  #max.range <- ranges[which.max(ranges)] + 0.001
+  max_dist <- 5
+  min_dist <- 0.1
+  edge_sizes <- seq(from = log10(c(max_dist)), to = log10(min_dist), length.out = 10)
   edge_sizes <- 10^edge_sizes
   
   #Add id
@@ -65,7 +66,7 @@ fractal_metrics <- function(point_cloud, z_min = 0.25) {
                         Rsq_H = H_model$r2[[1]][1])
   
   #Clean residuals
-  rm(list = c("pc", "min_dist", "ranges", "max.range", "edge_sizes", "fractals",
+  rm(list = c("pc", "min_dist", "max_dist", "edge_sizes", "fractals",
               "N_model", "H_model"))
   gc()
   
