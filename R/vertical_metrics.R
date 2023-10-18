@@ -14,18 +14,14 @@ library(sfheaders)
 #' -----------------------------------------------------------------------------
 #' Arguments
 #' @param point_cloud the normalized and rotated point cloud.
-#' @param k the coefficient of extinction.
-#' @param xy_res vertical resolution.
 #' @param z_res vertical resolution.
 #' @param z_min threshold for understory or floor points.
 #' @param z_max maximum height, useful for stacking profiles with different elevations. If NULL
 #' it uses the point with the heights elevation.
-#' @param limit_fOV degrees to limit the field of view. If NULL it uses all the points.
 
 #' -----------------------------------------------------------------------------
 #' Function
 vertical_metrics <- function(point_cloud, 
-                             k = 1, 
                              z_res = 0.25,
                              z_min = 0.25,
                              z_max = 10) {
@@ -39,67 +35,27 @@ vertical_metrics <- function(point_cloud,
   z_above <- pc[Z >= z_min, Z]
   
   #Basic grid metrics
-  sub_frame <- data.table(height = quantile(pc$Z, 0.99),
-                          height_cv = sd(z_above)/mean(z_above),
-                          skwewness = skewness(pc$Z),
-                          kurtosis = kurtosis(pc$Z))
+  sub_frame <- data.table(height = max(pc$Z),
+                          SEI_vertical = entropy(z_above, 
+                                                 by = z_res, 
+                                                 zmax = max(z_above)))
   
-  #Vertical profiles
-  #LAD <- LAD(pc$Z, dz = z_res, k = 1.0, z0 = z_min)
-  #gpag <- gap_fraction_profile(pc$Z, dz = z_res, z0 = z_min)
-  #LAD$z <- round(LAD$z, 1)
-  #gpag$z <- round(gpag$z, 1)
-
-  #Metrics from vertical profiles
-  #sub_frame$nprofiles <- nrow(LAD)
-  #sub_frame$LAIe <- sum(LAD$lad)
+  # Define the number of x meters bins from 0 to zmax (rounded to the next integer)
+  bk <- seq(z_res, ceiling(max(pc$Z)/z_res)*z_res, z_res)
   
-  sub_frame$SEI_vertical <- entropy(z_above, by = z_res, zmax = max(z_above))
-  sub_frame$FHD_vertical <- FHD_vertical(z_above, by = z_res)
-  sub_frame$VCI <- VCI(z_above, zmax = 10, by = z_res)
-  sub_frame$gini <- gini(Z = pc$Z, ground = z_min)
-  
+  # Compute the p for each bin
+  hist_count <- hist(z_above, breaks = bk, plot = F)$count
+  hist_count <- hist_count + 1 #In case of occlusion
+  hist_count <- hist_count/sum(hist_count)
+  sub_frame$vertical_hill0 <- hill(hist_count, 0)
+  sub_frame$vertical_hill1 <- hill(hist_count, 0.9999)
+  sub_frame$vertical_hill2 <- hill(hist_count, 2)
   
   #Clean residuals
-  rm(list = c("pc", "z_above")) #"LAD"
+  rm(list = c("pc", "z_above", "hist_count", "bk")) #"LAD"
   gc()
   
   #Return
   return(sub_frame)
   
-}
-
-#Gini
-gini <- function(Z, ground) {
-  
-  ## Valbuena R., Packalen P., Martín-Fernández S., Maltamo M. (2012) Diversity and 
-  ## equitability ordering profiles applied to the study of forest structure. 
-  ## Forest Ecology and Management 276: 185–195. \doi{10.1016/j.foreco.2012.03.036}
-  
-  z <- Z[Z > ground]
-  
-  n <- length(z)
-  x <- sort(z)
-  G <- 2 * sum(x * 1L:n)/sum(x) - (n + 1L)
-  gc <- G/(n - 1L)
-  
-  return(gc)
-  
-}
-
-FHD_vertical <- function(z, by = 0.25) {
-  
-  # Get max
-  zmax = max(z)
-  
-  # Define the number of x meters bins from 0 to zmax (rounded to the next integer)
-  bk <- seq(0.25, ceiling(zmax/by)*by, by)
-  
-  # Compute the p for each bin
-  hist <- hist(z, breaks = bk, plot = F)$count
-  hist <- hist + 1
-  hist <- hist/sum(hist)
-  FDH <- -sum(hist*log(hist))
-  
-  return(FDH)
 }

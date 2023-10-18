@@ -29,12 +29,12 @@ frame <- fread(paste0(root_path, "/master_clean.csv"))
 diversity <- fread(paste0(root_path, "/diversity.csv"))
 
 # Get phenological variability
-FSC <- frame[, c("plot", "DOY", "shannon_vertical", 
-                 "shannon_horizontal", "Slope_N")]
+FSC <- frame[, c("plot", "DOY", "SEI_vertical", 
+                 "SEI_horizontal", "Slope_Hill1")]
 
-pheno <- FSC[, .(CV_SEI_vertical = sd(shannon_vertical)/mean(shannon_vertical),
-                 CV_SEI_horizontal = sd(shannon_horizontal)/mean(shannon_horizontal),
-                 CV_Slope_N = sd(Slope_N)/mean(Slope_N)), by = "plot"]
+pheno <- FSC[, .(CV_SEI_vertical = sd(SEI_vertical)/mean(SEI_vertical),
+                 CV_SEI_horizontal = sd(SEI_horizontal)/mean(SEI_horizontal),
+                 CV_Slope_H = sd(Slope_Hill1)/mean(Slope_Hill1)), by = "plot"]
 pheno$plot <- as.character(pheno$plot)
 
 # Merge metrics of interest
@@ -61,13 +61,13 @@ gui <- guides(fill = guide_colourbar(barwidth = 15,
 
 # Biomass
 
-bio_SEIv <- ggplot(frame, aes(volumen/1000000, 
+bio_SEIv <- ggplot(frame, aes(volume/1000000, 
                               CV_SEI_vertical,
                               fill = PA)) +
   geom_point(shape = 21, colour = "grey", alpha = 0.8) +
   stat_ma_line(method = "SMA",
                se = TRUE,
-               size = 0.5,
+               linewidth = 0.5,
                colour = "black") +
   stat_ma_eq(use_label(c("eq", "R2")),
              method = "SMA",
@@ -80,9 +80,9 @@ bio_SEIv <- ggplot(frame, aes(volumen/1000000,
                      direction = -1,
                      limits = c(0, 1),
                      breaks = c(0.0, 0.5, 1.0)) +
-  coord_cartesian(xlim = c(0.012, 0.7), 
-                  ylim = c(0.009, 0.48), 
-                  expand = TRUE) +
+  #coord_cartesian(xlim = c(0.05, 0.76), 
+  #                ylim = c(0.009, 0.094), 
+  #                expand = TRUE) +
   scale_x_continuous(trans = log10_trans()) +
   scale_y_continuous(trans = log10_trans()) +
   annotation_logticks(sides = "bl") +
@@ -91,13 +91,13 @@ bio_SEIv <- ggplot(frame, aes(volumen/1000000,
   theme_bw(base_size = tamano) +
   th + gui
 
-bio_SEIh <- ggplot(frame, aes(volumen/1000000, 
+bio_SEIh <- ggplot(frame, aes(volume/1000000, 
                               CV_SEI_horizontal,
                               fill = PA)) +
   geom_point(shape = 21, colour = "grey", alpha = 0.8) +
   stat_ma_line(method = "SMA",
                se = TRUE,
-               size = 0.5,
+               linewidth = 0.5,
                colour = "black") +
   stat_ma_eq(use_label(c("eq", "R2")),
              method = "SMA",
@@ -110,9 +110,9 @@ bio_SEIh <- ggplot(frame, aes(volumen/1000000,
                      direction = -1,
                      limits = c(0, 1),
                      breaks = c(0.0, 0.5, 1.0)) +
-  coord_cartesian(xlim = c(0.012, 0.7), 
-                  ylim = c(0.0003, 0.055),
-                  expand = TRUE) +
+  #coord_cartesian(xlim = c(0.05, 0.76), 
+  #                ylim = c(0.0002, 0.013),
+  #                expand = TRUE) +
   scale_x_continuous(trans = log10_trans()) +
   scale_y_continuous(trans = log10_trans()) +
   annotation_logticks(sides = "bl") +
@@ -121,13 +121,13 @@ bio_SEIh <- ggplot(frame, aes(volumen/1000000,
   theme_bw(base_size = tamano) +
   th + gui
 
-bio_fractal <- ggplot(frame, aes(volumen/1000000, 
-                                 CV_Slope_N,
+bio_fractal <- ggplot(frame, aes(sp_Hill0, 
+                                 CV_Slope_H,
                                  fill = PA)) +
   geom_point(shape = 21, colour = "grey", alpha = 0.8) +
   stat_ma_line(method = "SMA",
                se = TRUE,
-               size = 0.5,
+               linewidth = 0.5,
                colour = "black") +
   stat_ma_eq(use_label(c("eq", "R2")),
              method = "SMA",
@@ -140,14 +140,14 @@ bio_fractal <- ggplot(frame, aes(volumen/1000000,
                      direction = -1,
                      limits = c(0, 1),
                      breaks = c(0.0, 0.5, 1.0)) +
-  coord_cartesian(xlim = c(0.012, 0.7), 
-                  ylim = c(0.0035, 0.3401),
-                  expand = TRUE) +
-  scale_x_continuous(trans = log10_trans()) +
-  scale_y_continuous(trans = log10_trans()) +
+  #coord_cartesian(xlim = c(0.05, 0.76), 
+  #                ylim = c(0.0022, 0.1080),
+  #                expand = TRUE) +
+  #scale_x_continuous(trans = log10_trans()) +
+  #scale_y_continuous(trans = log10_trans()) +
   annotation_logticks(sides = "bl") +
   xlab(expression(paste("Wood volume (m"^3, ")"))) +
-  ylab(expression({}*italic(CV)~~{}*italic(D)[b]))  +
+  ylab(expression({}*italic(CV)~~{}*italic(D)[I]))  +
   theme_bw(base_size = tamano) +
   th + gui
 
@@ -157,10 +157,10 @@ TSI_SEIv <- ggplot(frame, aes(tree_size_inequality_vol,
                               CV_SEI_vertical,
                               fill = PA)) +
   geom_point(shape = 21, colour = "grey", alpha = 0.8) +
-  #stat_ma_line(method = "SMA",
-  #             se = TRUE,
-  #             size = 0.5,
-  #             colour = "black") +
+  stat_ma_line(method = "SMA",
+               se = TRUE,
+               linewidth = 0.5,
+               colour = "black") +
   stat_ma_eq(use_label(c("eq", "R2")),
              method = "SMA",
              label.x = "left",
@@ -172,9 +172,9 @@ TSI_SEIv <- ggplot(frame, aes(tree_size_inequality_vol,
                      direction = -1,
                      limits = c(0, 1),
                      breaks = c(0.0, 0.5, 1.0)) +
-  coord_cartesian(xlim = c(0.2, 0.8),
-                  ylim = c(0.009, 0.48), 
-                  expand = TRUE) +
+  #coord_cartesian(xlim = c(0.2, 0.82),
+  #                ylim = c(0.009, 0.094), 
+  #                expand = TRUE) +
   scale_x_continuous(breaks = c(0.2, 0.5, 0.8),
                      labels = c(0.2, 0.5, 0.8)) +
   scale_y_continuous(trans = log10_trans()) +
@@ -190,7 +190,7 @@ TSI_SEIh <- ggplot(frame, aes(tree_size_inequality_vol,
   geom_point(shape = 21, colour = "grey", alpha = 0.8) +
   stat_ma_line(method = "SMA",
                se = TRUE,
-               size = 0.5,
+               linewidth = 0.5,
                colour = "black") +
   stat_ma_eq(use_label(c("eq", "R2")),
              method = "SMA",
@@ -203,9 +203,9 @@ TSI_SEIh <- ggplot(frame, aes(tree_size_inequality_vol,
                      direction = -1,
                      limits = c(0, 1),
                      breaks = c(0.0, 0.5, 1.0)) +
-  coord_cartesian(xlim = c(0.2, 0.8), 
-                  ylim = c(0.0003, 0.055),
-                  expand = TRUE) +
+  #coord_cartesian(xlim = c(0.2, 0.82), 
+  #                ylim = c(0.0002, 0.013),
+  #                expand = TRUE) +
   scale_x_continuous(breaks = c(0.2, 0.5, 0.8),
                      labels = c(0.2, 0.5, 0.8)) +
   scale_y_continuous(trans = log10_trans()) +
@@ -215,13 +215,13 @@ TSI_SEIh <- ggplot(frame, aes(tree_size_inequality_vol,
   th + gui
 
 TSI_fractal <- ggplot(frame, aes(tree_size_inequality_vol, 
-                                 CV_Slope_N,
+                                 CV_Slope_H,
                                  fill = PA)) +
   geom_point(shape = 21, colour = "grey", alpha = 0.8) +
-  #stat_ma_line(method = "SMA",
-  #             se = TRUE,
-  #             size = 0.5,
-  #             colour = "black") +
+  stat_ma_line(method = "SMA",
+               se = TRUE,
+               linewidth = 0.5,
+               colour = "black") +
   stat_ma_eq(use_label(c("eq", "R2")),
              method = "SMA",
              label.x = "right",
@@ -233,9 +233,9 @@ TSI_fractal <- ggplot(frame, aes(tree_size_inequality_vol,
                      direction = -1,
                      limits = c(0, 1),
                      breaks = c(0.0, 0.5, 1.0)) +
-  coord_cartesian(xlim = c(0.2, 0.8),
-                  ylim = c(0.0035, 0.3401),
-                  expand = TRUE) +
+  #coord_cartesian(xlim = c(0.2, 0.82),
+  #                ylim = c(0.0022, 0.1080),
+  #                expand = TRUE) +
   scale_x_continuous(breaks = c(0.2, 0.5, 0.8),
                      labels = c(0.2, 0.5, 0.8)) +
   scale_y_continuous(trans = log10_trans()) +
@@ -258,7 +258,7 @@ Figure_2 <- ggarrange(bio_SEIv, TSI_SEIv,
                                         color = "black", 
                                         face = "plain", 
                                         family = NULL),
-                      label.x = 0.18,
+                      label.x = 0.20,
                       label.y = 0.97,
                       common.legend = TRUE)
 #Export figure

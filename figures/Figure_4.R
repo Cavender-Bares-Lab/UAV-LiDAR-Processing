@@ -28,12 +28,12 @@ frame <- fread(paste0(root_path, "/master_clean.csv"))
 diversity <- fread(paste0(root_path, "/diversity_reshaped.csv"))
 
 # Get phenological variability
-FSC <- frame[, c("plot", "PA", "RGR", "AWP", "DOY", "shannon_vertical", 
-                 "shannon_horizontal", "Slope_N")]
+FSC <- frame[, c("plot", "PA", "RGR", "AWP", "DOY", "SEI_vertical", 
+                 "SEI_horizontal", "Slope_H")]
 
-pheno <- FSC[, .(CV_SEI_vertical = sd(shannon_vertical)/mean(shannon_vertical),
-                 CV_SEI_horizontal = sd(shannon_horizontal)/mean(shannon_horizontal),
-                 CV_Slope_N = sd(Slope_N)/mean(Slope_N),
+pheno <- FSC[, .(CV_SEI_vertical = sd(SEI_vertical)/mean(SEI_vertical),
+                 CV_SEI_horizontal = sd(SEI_horizontal)/mean(SEI_horizontal),
+                 CV_Slope_H = sd(Slope_H)/mean(Slope_H),
                  PA = mean(PA),
                  RGR = mean(RGR),
                  AWP = mean(AWP)), by = "plot"]
@@ -92,7 +92,7 @@ PSV_SEIv <- ggplot(frame, aes(PSV,
                   expand = TRUE) +
   scale_x_continuous(breaks = c(0.0, 0.5, 1.0), 
                      labels = c(0.0, 0.5, 1.0)) +
-  scale_y_continuous(trans = log10_trans()) +
+  #scale_y_continuous(trans = log10_trans()) +
   annotation_logticks(sides = "l") +
   xlab(" ") +
   ylab(expression({}*italic(CV)~~SEI[vertical]))  +
@@ -123,7 +123,7 @@ PSV_SEIh <- ggplot(frame, aes(PSV,
                   expand = TRUE) +
   scale_x_continuous(breaks = c(0.0, 0.5, 1.0), 
                      labels = c(0.0, 0.5, 1.0)) +
-  scale_y_continuous(trans = log10_trans()) +
+  #scale_y_continuous(trans = log10_trans()) +
   annotation_logticks(sides = "l") +
   xlab(" ") +
   ylab(expression({}*italic(CV)~~SEI[horizontal]))  +
@@ -132,7 +132,7 @@ PSV_SEIh <- ggplot(frame, aes(PSV,
   facet_grid("Horizontal" ~ type)
 
 PSV_trid <-ggplot(frame, aes(PSV, 
-                  CV_Slope_N,
+                  CV_Slope_H,
                   fill = PA)) +
   geom_point(shape = 21, colour = "grey", alpha = 0.8) +
   stat_ma_line(method = "SMA",
@@ -155,7 +155,7 @@ PSV_trid <-ggplot(frame, aes(PSV,
                   expand = TRUE) +
   scale_x_continuous(breaks = c(0.0, 0.5, 1.0), 
                      labels = c(0.0, 0.5, 1.0)) +
-  scale_y_continuous(trans = log10_trans()) +
+  #scale_y_continuous(trans = log10_trans()) +
   annotation_logticks(sides = "l") +
   xlab("Species variability") +
   ylab(expression({}*italic(CV)~~{}*italic(D)[b]))  +

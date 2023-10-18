@@ -21,12 +21,13 @@ options(scipen = 99999)
 #' Working path
 
 root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
-root_path <- "F:/Projects/LiDAR/data"
+#root_path <- "F:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Load data
 
 frame <- fread(paste0(root_path, "/master_clean.csv"))
+#frame[PA == 1, plot_type == "Angiosperms"]
 
 # Plot details
 tamano <- 12
@@ -50,18 +51,21 @@ gui <- guides(fill = guide_colourbar(barwidth = 15,
 
 # Biomass
 
-vol_SEIv <- ggplot(frame, aes(volumen/1000000, 
-                              shannon_vertical, 
+vol_SEIv <- ggplot(frame, aes(volume/1000000, 
+                              exp(FHD_vertical) * log(height), 
                               color = DOY,
                               fill = DOY,
                               gruop = as.factor(DOY))) +
   geom_point(shape = 21, colour = "grey", alpha = 0.2) +
-  stat_ma_line(method = "SMA",
-               se = FALSE,
-               linewidth = 0.5) +
-  stat_ma_eq(label.x = "right",
-             label.y = "bottom",
-             size = text_size) +
+  stat_poly_line(method = "lm",
+                 se = FALSE,
+                 formula = y ~ poly(x, 2, raw = TRUE),
+                 linewidth = 0.5) +
+  stat_poly_eq(method = "lm",
+               formula = y ~ poly(x, 2, raw = TRUE),
+               label.x = "right",
+               label.y = "bottom",
+               size = text_size) +
   scale_color_carto_c("Day of the Year", 
                       type = "diverging", 
                       palette = "Fall",
@@ -71,27 +75,31 @@ vol_SEIv <- ggplot(frame, aes(volumen/1000000,
                      palette = "Fall",
                      limits = c(95, 305),
                      breaks = c(100, 200, 300)) +
+  #coord_cartesian(ylim = c(0.2, 1.0), expand = TRUE) +
   scale_x_continuous(trans = log10_trans()) +
-  scale_y_continuous(expand = c(0, 0), n.breaks = 3) +
-  coord_cartesian(ylim = c(0, 1.03), expand = FALSE) +
+  #scale_y_continuous(n.breaks = 3, breaks = c(0.2, 0.6, 1.0), 
+  #                   labels = c("0.20", "0.60", "1.00")) +
   annotation_logticks(sides = "b") +
   xlab(" ") +
   ylab(expression(SEI[vertical]))  +
   theme_bw(base_size = tamano) +
   th + gui
 
-vol_SEIh <- ggplot(frame, aes(volumen/1000000, 
-                              shannon_horizontal, 
+vol_SEIh <- ggplot(frame, aes(volume/1000000, 
+                              exp(FHD_horizontal), 
                               color = DOY,
                               fill = DOY,
                               gruop = as.factor(DOY))) +
   geom_point(shape = 21, colour = "grey", alpha = 0.2) +
-  stat_ma_line(method = "SMA",
-               se = FALSE,
-               linewidth = 0.5) +
-  stat_ma_eq(label.x = "right",
-             label.y = "bottom",
-             size = text_size) +
+  stat_poly_line(method = "lm",
+                 se = FALSE,
+                 formula = y ~ poly(x, 2, raw = TRUE),
+                 linewidth = 0.5) +
+  stat_poly_eq(method = "lm",
+               formula = y ~ poly(x, 2, raw = TRUE),
+               label.x = "right",
+               label.y = "bottom",
+               size = text_size) +
   scale_color_carto_c("Day of the Year", 
                       type = "diverging", 
                       palette = "Fall",
@@ -101,27 +109,31 @@ vol_SEIh <- ggplot(frame, aes(volumen/1000000,
                      palette = "Fall",
                      limits = c(95, 305),
                      breaks = c(100, 200, 300)) +
+  #coord_cartesian(ylim = c(0.96, 1.00), expand = TRUE) +
   scale_x_continuous(trans = log10_trans()) +
-  scale_y_continuous(n.breaks = 3) +
-  coord_cartesian(ylim = c(0.8, 1.03), expand = FALSE) +
+  scale_y_continuous(trans = log10_trans()) +
+  #scale_y_continuous(n.breaks = 3) +
   annotation_logticks(sides = "b") +
   xlab(" ") +
   ylab(expression(SEI[horizontal]))  +
   theme_bw(base_size = tamano) +
   th + gui
 
-vol_fractal <- ggplot(frame, aes(volumen/1000000, 
-                                 Slope_N, 
+vol_fractal <- ggplot(frame, aes(volume/1000000, 
+                                 Slope_Hill1^exp(FHD_vertical), 
                                  color = DOY,
                                  fill = DOY,
                                  gruop = as.factor(DOY))) +
-  geom_point(shape = 21, colour = "grey", alpha = 0.2) +
-  stat_ma_line(method = "SMA",
-               se = FALSE,
-               linewidth = 0.5) +
-  stat_ma_eq(label.x = "right",
-             label.y = "bottom",
-             size = text_size) +
+  geom_point(aes(size = ntrees), shape = 21, colour = "grey", alpha = 0.2) +
+  stat_poly_line(method = "lm",
+                 se = FALSE,
+                 formula = y ~ poly(x, 2, raw = TRUE),
+                 linewidth = 0.5) +
+  stat_poly_eq(method = "lm",
+               formula = y ~ poly(x, 2, raw = TRUE),
+               label.x = "right",
+               label.y = "bottom",
+               size = text_size) +
   scale_color_carto_c("Day of the Year", 
                       type = "diverging", 
                       palette = "Fall",
@@ -131,11 +143,12 @@ vol_fractal <- ggplot(frame, aes(volumen/1000000,
                      palette = "Fall",
                      limits = c(95, 305),
                      breaks = c(100, 200, 300)) +
+  #coord_cartesian(ylim = c(0.40, 0.85), expand = TRUE) +
   scale_x_continuous(trans = log10_trans()) +
+  scale_y_continuous(n.breaks = 3) +
   annotation_logticks(sides = "b") +
-  coord_cartesian(ylim = c(0.15, 0.85), expand = FALSE) +
   xlab(expression(paste("Wood volume (m"^3, ")"))) +
-  ylab(expression({}*italic(D)[b]))  +
+  ylab(expression({}*italic(D)[I]))  +
   theme_bw(base_size = tamano) +
   th + gui
 
@@ -143,17 +156,20 @@ vol_fractal <- ggplot(frame, aes(volumen/1000000,
 # Tree size inequality
 
 TSI_SEIv <- ggplot(frame, aes(tree_size_inequality_vol, 
-                              shannon_vertical, 
+                              SEI_vertical, 
                               color = DOY,
                               fill = DOY,
                               gruop = as.factor(DOY))) +
   geom_point(shape = 21, colour = "grey", alpha = 0.2) +
-  stat_ma_line(method = "SMA",
-               se = FALSE,
-               linewidth = 0.5) +
-  stat_ma_eq(label.x = "right",
-             label.y = "bottom",
-             size = text_size) +
+  stat_poly_line(method = "lm",
+                 se = FALSE,
+                 formula = y ~ poly(x, 2, raw = TRUE),
+                 linewidth = 0.5) +
+  stat_poly_eq(method = "lm",
+               formula = y ~ poly(x, 2, raw = TRUE),
+               label.x = "right",
+               label.y = "bottom",
+               size = text_size) +
   scale_color_carto_c("Day of the Year", 
                       type = "diverging", 
                       palette = "Fall",
@@ -163,25 +179,30 @@ TSI_SEIv <- ggplot(frame, aes(tree_size_inequality_vol,
                      palette = "Fall",
                      limits = c(95, 305),
                      breaks = c(100, 200, 300)) +
-  scale_y_continuous(expand = c(0, 0), n.breaks = 3) +
-  coord_cartesian(ylim = c(0, 1.03), expand = FALSE) +
+  scale_x_continuous(n.breaks = 4) +
+  coord_cartesian(xlim = c(0.2, 0.82), ylim = c(0.2, 1.0), expand = TRUE) +
+  scale_y_continuous(n.breaks = 3, breaks = c(0.2, 0.6, 1.0), 
+                     labels = c("0.20", "0.60", "1.00")) +
   xlab(" ") +
   ylab(" ")  +
   theme_bw(base_size = tamano) +
   th + gui
 
 TSI_SEIh <- ggplot(frame, aes(tree_size_inequality_vol, 
-                              shannon_horizontal, 
+                              SEI_horizontal, 
                               color = DOY,
                               fill = DOY,
                               gruop = as.factor(DOY))) +
   geom_point(shape = 21, colour = "grey", alpha = 0.2) +
-  stat_ma_line(method = "SMA",
-               se = FALSE,
-               linewidth = 0.5) +
-  stat_ma_eq(label.x = "left",
-             label.y = "bottom",
-             size = text_size) +
+  stat_poly_line(method = "lm",
+                 se = FALSE,
+                 formula = y ~ poly(x, 2, raw = TRUE),
+                 linewidth = 0.5) +
+  stat_poly_eq(method = "lm",
+               formula = y ~ poly(x, 2, raw = TRUE),
+               label.x = "left",
+               label.y = "bottom",
+               size = text_size) +
   scale_color_carto_c("Day of the Year", 
                       type = "diverging", 
                       palette = "Fall",
@@ -191,25 +212,29 @@ TSI_SEIh <- ggplot(frame, aes(tree_size_inequality_vol,
                      palette = "Fall",
                      limits = c(95, 305),
                      breaks = c(100, 200, 300)) +
+  coord_cartesian(xlim = c(0.2, 0.82), ylim = c(0.96, 1.00), expand = TRUE) +
+  scale_x_continuous(n.breaks = 4) +
   scale_y_continuous(n.breaks = 3) +
-  coord_cartesian(ylim = c(0.8, 1.03), expand = FALSE) +
   xlab(" ") +
   ylab(" ")  +
   theme_bw(base_size = tamano) +
   th + gui
 
 TSI_fractal <- ggplot(frame, aes(tree_size_inequality_vol, 
-                                 Slope_N, 
+                                 Slope_Hill1, 
                                  color = DOY,
                                  fill = DOY,
                                  gruop = as.factor(DOY))) +
   geom_point(shape = 21, colour = "grey", alpha = 0.2) +
-  stat_ma_line(method = "SMA",
-               se = FALSE,
-               linewidth = 0.5) +
-  stat_ma_eq(label.x = "left",
-             label.y = "bottom",
-             size = text_size) +
+  stat_poly_line(method = "lm",
+                 se = FALSE,
+                 formula = y ~ poly(x, 2, raw = TRUE),
+                 linewidth = 0.5) +
+  stat_poly_eq(method = "lm",
+               formula = y ~ poly(x, 2, raw = TRUE),
+               label.x = "left",
+               label.y = "bottom",
+               size = text_size) +
   scale_color_carto_c("Day of the Year", 
                       type = "diverging", 
                       palette = "Fall",
@@ -219,7 +244,9 @@ TSI_fractal <- ggplot(frame, aes(tree_size_inequality_vol,
                      palette = "Fall",
                      limits = c(95, 305),
                      breaks = c(100, 200, 300)) +
-  coord_cartesian(ylim = c(0.15, 0.85), expand = FALSE) +
+  #coord_cartesian(xlim = c(0.2, 0.82), ylim = c(0.65, 0.85), expand = TRUE) +
+  scale_x_continuous(n.breaks = 4) +
+  scale_y_continuous(n.breaks = 3) +
   xlab("Tree size inequality") +
   ylab(" ")  +
   theme_bw(base_size = tamano) +

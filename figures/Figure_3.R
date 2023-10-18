@@ -25,16 +25,11 @@ root_path <- "F:/Projects/LiDAR/data"
 #' Load data
 
 diversity <- fread(paste0(root_path, "/diversity_reshaped.csv"))
-diversity$plot <- as.character(diversity$plot)
-
 frame <- fread(paste0(root_path, "/master_clean.csv"))
-var <- c("plot", "DOY", "shannon_vertical", "shannon_horizontal", "Slope_N")
-frame <- frame[, ..var]
-frame$plot <- as.character(frame$plot)
 
 data <- merge(diversity, 
               frame, 
-              by = "plot", 
+              by = "plot_new", 
               all.x = FALSE, 
               all.y = TRUE,
               allow.cartesian=TRUE)
@@ -70,7 +65,7 @@ gui <- guides(fill = guide_colourbar(barwidth = 15,
 # Diversity
 vertical <- ggplot(data, 
        aes(PSV, 
-           shannon_vertical,
+           SEI_vertical,
            color = DOY,
            fill = DOY,
            gruop = as.factor(DOY))) +
@@ -106,7 +101,7 @@ vertical <- ggplot(data,
 
 horizontal <- ggplot(data, 
        aes(PSV, 
-           shannon_horizontal,
+           FHD_horizontal,
            color = DOY,
            fill = DOY,
            gruop = as.factor(DOY))) +
@@ -144,7 +139,7 @@ horizontal <- ggplot(data,
 
 trid <- ggplot(data, 
        aes(PSV, 
-           Slope_N,
+           Slope_H,
            color = DOY,
            fill = DOY,
            gruop = as.factor(DOY))) +
@@ -152,10 +147,11 @@ trid <- ggplot(data,
              colour = "grey", 
              alpha = 0.2) +
   stat_smooth(method = 'lm', 
-              formula = y~poly(x,2), 
+              #formula = y~poly(x,2), 
               se = FALSE,
               linewidth = 0.5) +
   stat_poly_eq(size = text_size,
+               #formula = y~poly(x,2),
                label.x = "right",
                label.y = "bottom") +
   scale_color_carto_c("Day of the Year", 
@@ -168,14 +164,14 @@ trid <- ggplot(data,
                      limits = c(95, 305),
                      breaks = c(100, 200, 300)) +
   coord_cartesian(xlim = c(0, 1), 
-                  ylim = c(0.15, 0.85), 
+                  ylim = c(0.5, 0.85), 
                   expand = TRUE) +
   scale_x_continuous(breaks = c(0.0, 0.5, 1.0), 
                      labels = c(0.0, 0.5, 1.0)) +
   scale_y_continuous(breaks = c(0.2, 0.5, 0.8), 
                      labels = c(0.2, 0.5, 0.8)) +
   xlab("Species variability") +
-  ylab(expression({}*italic(D)[b]))  +
+  ylab(expression({}*italic(D)[I]))  +
   theme_bw(base_size = tamano) +
   th + gui +
   facet_grid("3D" ~ type)
@@ -197,3 +193,5 @@ jpeg("Figure_3.jpeg", width = 210, height = 210, units = "mm", res = 600)
 Figure_3
 
 dev.off()
+
+data[SR_real == 1, PSV := 0]

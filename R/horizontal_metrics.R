@@ -13,7 +13,7 @@ library(sfheaders)
 #' -----------------------------------------------------------------------------
 #' Arguments
 #' @param point_cloud the normalized and rotated point cloud.
-#' @param limits degrees to limit the field of view. If NULL it uses all the points.
+#' @param xy_res Resolution of the grid
 
 #' -----------------------------------------------------------------------------
 #' Function
@@ -28,9 +28,9 @@ horizontal_metrics <- function(point_cloud, xy_res = 0.25) {
   #Basic grid metrics
   sub_frame <- data.table(npixels = length(metrics),
                           mean_maximun_height = mean(metrics),
-                          SEI_horizontal = shannon(metrics) / shannon(rep(1, length(metrics))),
-                          FHD_horizontal = shannon(metrics),
-                          rumple = rumple_index(metrics_raster$height))
+                          horizontal_hill0 = hill(metrics, 0),
+                          horizontal_hill1 = hill(metrics, 0.9999),
+                          horizontal_hill2 = hill(metrics, 2))
   
   #Clean residuals
   rm(list = c("metrics", "metrics_raster"))
@@ -43,10 +43,3 @@ horizontal_metrics <- function(point_cloud, xy_res = 0.25) {
 
 # User-defined function
 f <- function(x) { list(height = quantile(x, 0.99)) }
-
-#Shannon function
-shannon <- function(n_points) {
-  p.i <- n_points/sum(n_points)
-  H <- (-1) * sum(p.i * log(p.i))
-  return(H)
-}

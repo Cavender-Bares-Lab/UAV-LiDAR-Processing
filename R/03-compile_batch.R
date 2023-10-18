@@ -20,7 +20,7 @@ library(sf)
 path <-  "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
 path <- "F:/Projects/LiDAR/data"
 path_in <- paste0(path, "/FSC")
-path_gpkg <- paste0(path, "/GIS_new/2022-04-10_FAB2.gpkg")
+path_gpkg <- paste0(path, "/GIS/2022-04-10_FAB2.gpkg")
 path_out <- paste0(path, "/FSC_results.csv")
 
 compile_results(path_in, gpkg, path_out)
@@ -56,21 +56,20 @@ compile_results <- function(path_in, path_gpkg, path_out) {
   
   # Read gpkg to merge
   limits_gpkg <- st_read(dsn = path_gpkg)
-  limits_gpkg <- subset(limits_gpkg, Type != "GCP")
+  limits_gpkg <- subset(limits_gpkg, Area != "GCP")
   names(limits_gpkg)[1:2] <- c("Plot", "SR")
   
   gpkg_frame <- as.data.table(as.data.frame(limits_gpkg))
-  gpkg_frame <- gpkg_frame[, .SD, .SDcols = c(1:4, 6:17, 19:20)]
+  gpkg_frame <- gpkg_frame[, .SD, .SDcols = c(1:17, 19:20)]
   
   # Merge results
   final <- merge(gpkg_frame, 
                  results, 
-                 by = c("Plot", "Type", "Modified"), 
+                 by = c("Plot", "plot_new"), 
                  all.x = TRUE,
                  all.y = TRUE)
   
-  
   #Export
-  fwrite(results, path_out)
+  fwrite(final, path_out)
   
 }

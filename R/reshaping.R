@@ -24,13 +24,13 @@ root_path <- "F:/Projects/LiDAR/data"
 frame <- fread(paste0(root_path, "/diversity.csv"))
 
 # Variables to select
-tax <- c("plot", "TD_faith", "TD_MPD", "TD_raoD", 
+tax <- c("plot", "SR_real", "TD_faith", "TD_MPD", "TD_raoD", 
          "TD_PSV", "TD_PSR", "TD_PSE", "TD_PSC")
 
-phy <- c("plot", "PD_faith", "PD_MPD", "PD_raoD", 
+phy <- c("plot", "SR_real", "PD_faith", "PD_MPD", "PD_raoD", 
          "PD_PSV",  "PD_PSR", "PD_PSE", "PD_PSC")
 
-func <- c("plot", "FD_faith", "FD_MPD", "FD_raoD", 
+func <- c("plot", "SR_real", "FD_faith", "FD_MPD", "FD_raoD", 
           "FD_PSV", "FD_PSR", "FD_PSE", "FD_PSC")
 
 # Variables extraction
@@ -39,9 +39,9 @@ phylogenetic <- frame[, ..phy]
 functional <- frame[, ..func]
 
 # Rename
-colnames(taxonomic) <- c("plot", "faith", "MPD", "raoD", "PSV", "PSR", "PSE", "PSC")
-colnames(phylogenetic) <- c("plot", "faith", "MPD", "raoD", "PSV", "PSR", "PSE", "PSC")
-colnames(functional) <- c("plot", "faith", "MPD", "raoD", "PSV", "PSR", "PSE", "PSC")
+colnames(taxonomic) <- c("plot", "SR_real", "faith", "MPD", "raoD", "PSV", "PSR", "PSE", "PSC")
+colnames(phylogenetic) <- c("plot", "SR_real", "faith", "MPD", "raoD", "PSV", "PSR", "PSE", "PSC")
+colnames(functional) <- c("plot", "SR_real", "faith", "MPD", "raoD", "PSV", "PSR", "PSE", "PSC")
 
 # Add column description
 taxonomic$type <- "Taxonomic"
