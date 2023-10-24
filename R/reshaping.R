@@ -24,13 +24,13 @@ root_path <- "F:/Projects/LiDAR/data"
 frame <- fread(paste0(root_path, "/diversity.csv"))
 
 # Variables to select
-tax <- c("plot", "SR_real", "TD_faith", "TD_MPD", "TD_raoD", 
+tax <- c("plot_new", "plot", "SR_real", "TD_faith", "TD_MPD", "TD_raoD", 
          "TD_PSV", "TD_PSR", "TD_PSE", "TD_PSC")
 
-phy <- c("plot", "SR_real", "PD_faith", "PD_MPD", "PD_raoD", 
+phy <- c("plot_new", "plot", "SR_real", "PD_faith", "PD_MPD", "PD_raoD", 
          "PD_PSV",  "PD_PSR", "PD_PSE", "PD_PSC")
 
-func <- c("plot", "SR_real", "FD_faith", "FD_MPD", "FD_raoD", 
+func <- c("plot_new", "plot", "SR_real", "FD_faith", "FD_MPD", "FD_raoD", 
           "FD_PSV", "FD_PSR", "FD_PSE", "FD_PSC")
 
 # Variables extraction
@@ -39,9 +39,9 @@ phylogenetic <- frame[, ..phy]
 functional <- frame[, ..func]
 
 # Rename
-colnames(taxonomic) <- c("plot", "SR_real", "faith", "MPD", "raoD", "PSV", "PSR", "PSE", "PSC")
-colnames(phylogenetic) <- c("plot", "SR_real", "faith", "MPD", "raoD", "PSV", "PSR", "PSE", "PSC")
-colnames(functional) <- c("plot", "SR_real", "faith", "MPD", "raoD", "PSV", "PSR", "PSE", "PSC")
+colnames(taxonomic) <- c("plot_new", "plot", "SR_real", "faith", "MPD", "raoD", "PSV", "PSR", "PSE", "PSC")
+colnames(phylogenetic) <- c("plot_new", "plot", "SR_real", "faith", "MPD", "raoD", "PSV", "PSR", "PSE", "PSC")
+colnames(functional) <- c("plot_new", "plot", "SR_real", "faith", "MPD", "raoD", "PSV", "PSR", "PSE", "PSC")
 
 # Add column description
 taxonomic$type <- "Taxonomic"
@@ -51,6 +51,11 @@ functional$type <- "Functional"
 #Merge and export
 diversity_reshape <- rbind(taxonomic, phylogenetic, functional)
 diversity_reshape$plot <- as.character(diversity_reshape$plot)
+diversity_reshape[is.na(MPD), MPD := 0]
+diversity_reshape[is.na(PSV), PSV := 0]
+diversity_reshape[is.na(PSR), PSR := 0]
+diversity_reshape[is.na(PSE), PSE := 0]
+diversity_reshape[is.na(PSC), PSC := 0]
 fwrite(diversity_reshape, paste0(root_path, "/diversity_reshaped.csv"))
 
 #' -----------------------------------------------------------------------------

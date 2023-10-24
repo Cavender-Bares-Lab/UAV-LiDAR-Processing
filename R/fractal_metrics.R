@@ -44,55 +44,34 @@ fractal_metrics <- function(point_cloud, z_min = 0.25) {
   fractals <- fractals[Edge.X != 0.25,]
   
   #Get model
-  Hill0_model <- sma(formula = log(Hill0) ~ log(1/(fractals$Edge.X^3)),
+  Hill0_model <- sma(formula = log(Hill0) ~ log(1/(fractals$Edge.X)),
                      data = fractals, 
                      method=c("SMA"))
   
-  Hill1_model <- sma(formula = log(Hill1) ~ log(1/(fractals$Edge.X^3)),
+  Hill1_model <- sma(formula = log(Hill1) ~ log(1/(fractals$Edge.X)),
                      data = fractals, 
                      method=c("SMA"))
   
-  Hill2_model <- sma(formula = log(Hill2) ~ log(1/(fractals$Edge.X^3)),
+  Hill2_model <- sma(formula = log(Hill2) ~ log(1/(fractals$Edge.X)),
                      data = fractals, 
                      method=c("SMA"))
-  
-  ENL0_model <- sma(formula = log(ENL_Hill0) ~ log(1/(fractals$Edge.X^3)),
-                 data = fractals, 
-                 method=c("SMA"))
-  
-  ENL1_model <- sma(formula = log(ENL_Hill1) ~ log(1/(fractals$Edge.X^3)),
-                 data = fractals, 
-                 method=c("SMA"))
-  
-  ENL2_model <- sma(formula = log(ENL_Hill2) ~ log(1/(fractals$Edge.X^3)),
-                    data = fractals, 
-                    method=c("SMA"))
   
   results <- data.table(Intercept_Hill0 = Hill0_model$coef[[1]]$`coef(SMA)`[1],
                         Intercept_Hill1 = Hill1_model$coef[[1]]$`coef(SMA)`[1],
                         Intercept_Hill2 = Hill2_model$coef[[1]]$`coef(SMA)`[1],
-                        Intercept_ENL0 = ENL0_model$coef[[1]]$`coef(SMA)`[1],
-                        Intercept_ENL1 = ENL1_model$coef[[1]]$`coef(SMA)`[1],
-                        Intercept_ENL2 = ENL2_model$coef[[1]]$`coef(SMA)`[1],
                         Slope_Hill0 = Hill0_model$coef[[1]]$`coef(SMA)`[2],
                         Slope_Hill1 = Hill1_model$coef[[1]]$`coef(SMA)`[2],
                         Slope_Hill2 = Hill2_model$coef[[1]]$`coef(SMA)`[2],
-                        Slope_ENL0 = ENL0_model$coef[[1]]$`coef(SMA)`[2],
-                        Slope_ENL1 = ENL1_model$coef[[1]]$`coef(SMA)`[2],
-                        Slope_ENL2 = ENL2_model$coef[[1]]$`coef(SMA)`[2],
                         Rsq_Hill0 = Hill0_model$r2[[1]][1],
                         Rsq_Hill1 = Hill2_model$r2[[1]][1],
                         Rsq_Hill2 = Hill1_model$r2[[1]][1],
-                        Rsq_ENL0 = ENL0_model$r2[[1]][1],
-                        Rsq_ENL1 = ENL1_model$r2[[1]][1],
-                        Rsq_ENL2 = ENL2_model$r2[[1]][1],
-                        ENL_25 = ENL_25$ENL_Hill0[1],
-                        ENL_25 = ENL_25$ENL_Hill1[1],
-                        ENL_25 = ENL_25$ENL_Hill2[1])
+                        ENL_25_Hill0 = ENL_25$ENL_Hill0[1],
+                        ENL_25_Hill1 = ENL_25$ENL_Hill1[1],
+                        ENL_25_Hill2 = ENL_25$ENL_Hill2[1])
   
   #Clean residuals
   rm(list = c("pc", "min_dist", "max_dist", "edge_sizes", "fractals", "ENL_25",
-              "ENL0_model", "ENL1_model", "ENL2_model", "Hill0_model", "Hill1_model", "Hill2_model"))
+              "Hill0_model", "Hill1_model", "Hill2_model"))
   gc()
   
   #Export

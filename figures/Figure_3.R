@@ -24,12 +24,20 @@ root_path <- "F:/Projects/LiDAR/data"
 #' -----------------------------------------------------------------------------
 #' Load data
 
-diversity <- fread(paste0(root_path, "/diversity_reshaped.csv"))
 frame <- fread(paste0(root_path, "/master_clean.csv"))
+frame[PA == 1, plot_type := "Deciduous"]
+frame[PA == 0, plot_type := "Evergreen"]
+frame[PA > 0 & PA < 1, plot_type := "Mixture"]
+frame$height_hill0 <- exp(frame$Intercept_Hill0 + (log(1/frame$mean_maximun_height)*frame$Slope_Hill0))
+frame$height_hill1 <- exp(frame$Intercept_Hill1 + (log(1/frame$mean_maximun_height)*frame$Slope_Hill1))
+frame$height_hill2 <- exp(frame$Intercept_Hill2 + (log(1/frame$mean_maximun_height)*frame$Slope_Hill2))
+
+diversity <- fread(paste0(root_path, "/diversity_reshaped.csv"))
+
 
 data <- merge(diversity, 
               frame, 
-              by = "plot_new", 
+              by = c("plot_new"), 
               all.x = FALSE, 
               all.y = TRUE,
               allow.cartesian=TRUE)
@@ -63,22 +71,22 @@ gui <- guides(fill = guide_colourbar(barwidth = 15,
 #faith MPD PSV PSR 
 
 # Diversity
-vertical <- ggplot(data, 
+ggplot(data, 
        aes(PSV, 
-           SEI_vertical,
+           height_hill1,
            color = DOY,
            fill = DOY,
            gruop = as.factor(DOY))) +
-  geom_point(shape = 21, 
-             colour = "grey", 
+  geom_point(aes(shape = plot_type), 
+             fill = "grey", 
              alpha = 0.2) +
   stat_smooth(method='lm', 
-              formula = y ~ poly(x,2), 
+              formula = y ~ x, 
               se = FALSE,
               linewidth = 0.5) +
   stat_poly_eq(size = text_size,
                label.x = "right",
-               label.y = "bottom") +
+               label.y = "top") +
   scale_color_carto_c("Day of the Year", 
                       type = "diverging", 
                       palette = "Fall",
@@ -88,16 +96,11 @@ vertical <- ggplot(data,
                      palette = "Fall",
                      limits = c(95, 305),
                      breaks = c(100, 200, 300)) +
-  coord_cartesian(xlim = c(0, 1), 
-                  ylim = c(0, 1),
-                  expand = TRUE) +
-  scale_x_continuous(breaks = c(0, 0.5, 1.0), labels = c(0, 0.5, 1.0)) +
-  scale_y_continuous(breaks = c(0.0, 0.5, 1.0), labels = c(0.0, 0.5, 1.0)) +
   xlab(" ") +
   ylab(expression(SEI[vertical]))  +
   theme_bw(base_size = tamano) +
   th + gui +
-  facet_grid("Vertical" ~ type)
+  facet_grid(. ~ type)
 
 horizontal <- ggplot(data, 
        aes(PSV, 

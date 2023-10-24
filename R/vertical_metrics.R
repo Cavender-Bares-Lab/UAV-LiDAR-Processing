@@ -36,6 +36,7 @@ vertical_metrics <- function(point_cloud,
   
   #Basic grid metrics
   sub_frame <- data.table(height = max(pc$Z),
+                          height90 = quantile(pc$Z, 0.9),
                           SEI_vertical = entropy(z_above, 
                                                  by = z_res, 
                                                  zmax = max(z_above)))

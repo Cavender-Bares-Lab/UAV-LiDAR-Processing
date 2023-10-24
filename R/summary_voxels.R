@@ -30,7 +30,6 @@ summary_voxels <- function(voxels, edge_length = NULL) {
     voxels <- voxels$voxels
   }
   
-  volumen <- Edge.length[1]*Edge.length[2]*Edge.length[3]
   profile <- voxels[, .N, by = Z]
   
   frame <- data.table(Edge.X = Edge.length[1], 

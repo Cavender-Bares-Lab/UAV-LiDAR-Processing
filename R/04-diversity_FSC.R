@@ -54,9 +54,6 @@ remove <- remove[N == 8]
 data <- merge(data, remove[, 1], by = c("plot_new"), all.x = FALSE, all.y = TRUE)
 data[, .N, by = c("plot_new")]
 
-# Remove other plots
-data <- data[plot != "61",]
-
 #Export clean data
 fwrite(data, paste0(root_path, "/master_clean.csv")) #Manual checking
 data <- fread(paste0(root_path, "/master_clean.csv"))
