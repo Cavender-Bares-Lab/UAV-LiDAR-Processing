@@ -24,15 +24,24 @@ library(lefse)
 #' Working path
 
 root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
-root_path <- "F:/Projects/LiDAR/data"
+#root_path <- "F:/Projects/LiDAR/data"
+
+#' -----------------------------------------------------------------------------
+#' Functions
+
+hill <- function(n_points, q) {
+  p <- n_points/sum(n_points)
+  return((sum(p^q)^(1 / (1 - q))))
+}
 
 #' -----------------------------------------------------------------------------
 #' Processing
 
 # Load data
-data <- fread(paste0(root_path, "/fab2_allometry2.csv"))
+data <- fread(paste0(root_path, "/Jeannine_info/fab2_allometry.csv"))
 
-# Transform to date and get year
+# Define date
+data$measurement_date <- as.Date(data$measurement_date, format= "%m/%d/%Y")
 data$measurement_date <- as.IDate(data$measurement_date)
 data$measurement_year <- year(data$measurement_date)
 
@@ -51,76 +60,205 @@ data[plot == "1019-153", plot := "1019_153"]
 
 #Removing columns
 data <- data[, c("year_planted", 
-         "species_richness", 
-         "species", 
-         "treatment", 
-         "Area_m2",
-         "block",
-         "plot",
-         "row",
-         "column",
-         "position",
-         "survey",
-         "measurement_date",
-         "deadmissing",
-         "V.conoid_conoidoid_infill",
-         "Biomass.conoid_conoidoid_infill")]
+                 "species_richness", 
+                 "species", 
+                 "treatment", 
+                 "Area_m2",
+                 "block",
+                 "plot",
+                 "row",
+                 "column",
+                 "position",
+                 "individual_id",
+                 "survey",
+                 "measurement_date",
+                 "measurement_year",
+                 "deadmissing",
+                 "V.conoid_conoidoid_infill",
+                 "Biomass.conoid_conoidoid_infill")]
+
+#-------------------------------------------------------------------------------
+# Work on small plots and 2022 data 
+
+frame_small <- subset(data, Area_m2 == 100)
+
+# Rename row and columns
+frame_small[row == 11, row := 1]
+frame_small[row == 12, row := 2]
+frame_small[row == 13, row := 3]
+frame_small[row == 14, row := 4]
+frame_small[row == 15, row := 5]
+frame_small[row == 16, row := 6]
+frame_small[row == 17, row := 7]
+frame_small[row == 18, row := 8]
+frame_small[row == 19, row := 9]
+frame_small[row == 20, row := 10]
+
+frame_small[column == 11, column := 1]
+frame_small[column == 12, column := 2]
+frame_small[column == 13, column := 3]
+frame_small[column == 14, column := 4]
+frame_small[column == 15, column := 5]
+frame_small[column == 16, column := 6]
+frame_small[column == 17, column := 7]
+frame_small[column == 18, column := 8]
+frame_small[column == 19, column := 9]
+frame_small[column == 20, column := 10]
+
+# Remove edges
+frame_small <- frame_small[column != 1,]
+frame_small <- frame_small[column != 10,]
+frame_small <- frame_small[row != 1,]
+frame_small <- frame_small[row != 10,]
+
+# Rename plot for new merge with large plots
+frame_small$plot_new <- frame_small$plot
+
+#-------------------------------------------------------------------------------
+# Work on large plots and 2022 data
+
+frame_large <- subset(data, Area_m2 == 400)
+
+# Rename plot for new merge with small plots
+frame_large$plot_new <- "0"
+frame_large[row >= 1 & row <= 10 & column >= 1 & column <= 10, plot_new := paste0(plot, "a")]
+frame_large[row >= 1 & row <= 10 & column >= 11 & column <= 20, plot_new := paste0(plot, "b")]
+frame_large[row >= 11 & row <= 20 & column >= 1 & column <= 10, plot_new := paste0(plot, "c")]
+frame_large[row >= 11 & row <= 20 & column >= 11 & column <= 20, plot_new := paste0(plot, "d")]
+
+# Rename row and columns
+frame_large[row == 11, row := 1]
+frame_large[row == 12, row := 2]
+frame_large[row == 13, row := 3]
+frame_large[row == 14, row := 4]
+frame_large[row == 15, row := 5]
+frame_large[row == 16, row := 6]
+frame_large[row == 17, row := 7]
+frame_large[row == 18, row := 8]
+frame_large[row == 19, row := 9]
+frame_large[row == 20, row := 10]
+
+frame_large[column == 11, column := 1]
+frame_large[column == 12, column := 2]
+frame_large[column == 13, column := 3]
+frame_large[column == 14, column := 4]
+frame_large[column == 15, column := 5]
+frame_large[column == 16, column := 6]
+frame_large[column == 17, column := 7]
+frame_large[column == 18, column := 8]
+frame_large[column == 19, column := 9]
+frame_large[column == 20, column := 10]
+
+# Remove edges
+frame_large <- frame_large[column != 1,]
+frame_large <- frame_large[column != 10,]
+frame_large <- frame_large[row != 1,]
+frame_large <- frame_large[row != 10,]
+
+#-------------------------------------------------------------------------------
+# Merge small and large plots
+
+plots <- rbind(frame_small, frame_large)
 
 #-------------------------------------------------------------------------------
 # Estimation of plot volume growth from 2021 to 2022.
 
-frame <- subset(data, year(measurement_date) >= 2021)
-frame$year <- year(frame$measurement_date)
+# Reshape 2021
+plots_2021 <- subset(data, year(measurement_date) == 2021)
+plots_2021 <- plots_2021[, c("individual_id", "deadmissing", 
+                             "measurement_date", "V.conoid_conoidoid_infill")]
+plots_2021 <- plots_2021[deadmissing != "Yes", ]
+plots_2021 <- plots_2021[, c(1, 3, 4)]
+colnames(plots_2021)[2:3] <- c("date_2021", "volume_2021")
 
-# Select years
-y2021 <- subset(frame, year == 2021)
-y2021 <- y2021[, c("block", "plot", "row", "column", "V.conoid_conoidoid_infill")]
-y2022 <- subset(frame, year == 2022)
-y2022 <- y2022[, c("block", "plot", "row", "column", "V.conoid_conoidoid_infill")]
+# Reshape 2022
+plots_2022 <- subset(plots, year(measurement_date) == 2022)
+plots_2022 <- plots_2022[, c("plot", "plot_new", "individual_id", "deadmissing", 
+                             "measurement_date", "V.conoid_conoidoid_infill")]
+plots_2022 <- plots_2022[deadmissing != "Yes", ]
+plots_2022 <- plots_2022[, c(1:3, 5:6)]
+colnames(plots_2022)[4:5] <- c("date_2022", "volume_2022")
 
-colnames(y2021)[5] <- "y2021"
-colnames(y2022)[5] <- "y2022"
+# Merge years
+plot_growth <- merge(plots_2021, plots_2022, by = c("individual_id"),
+                     all.x = FALSE, all.y = FALSE)
 
-# Merge years of observations
-frame <- merge(y2021, y2022, by = c("block", "plot", "row", "column"), all.x = TRUE, all.y = TRUE)
-frame <- na.exclude(frame)
+# Estimate Annual Woody Productivity
+plot_growth$AWP <- (log(plot_growth$volume_2022) - log(plot_growth$volume_2021)) /
+  ((plot_growth$date_2022 - plot_growth$date_2021)/365)
 
-# Get relative growth rate
-growth <- frame[, .(y2021 = sum(y2021, na.rm = TRUE),
-                    y2022 = sum(y2022, na.rm = TRUE)),
-                by = "plot"]
-
-growth$RGR <- ((growth$y2022 - growth$y2021)/growth$y2021)*100
-growth[is.infinite(RGR) == TRUE, RGR := NA]
-growth$AWP <- growth$y2022 - growth$y2021
-growth[is.infinite(AWP) == TRUE, AWP := NA]
-
-growth <- growth[, c("plot", "RGR", "AWP")]
+# Get summary per plot
+plot_growth_summary <- plot_growth[, .(total_growth_volume = sum(AWP),
+                                       min_growth_volume = min(AWP),
+                                       max_growth_volume = max(AWP),
+                                       mean_growth_volume = mean(AWP),
+                                       sd_growth_volume = sd(AWP)), 
+                                   by = c("plot", "plot_new")]
 
 #-------------------------------------------------------------------------------
 # Summary of metrics by plot.
 
 # Select 2022 inventory
-data <- subset(data, year(measurement_date) == 2022)
+plots <- subset(plots, year(measurement_date) == 2022)
 
-plot_summary <- data[deadmissing == "No", 
-                     .(SR_real = length(unique(species)),
-                       year_mean = mean(year_planted),
-                       year_cv = sd(year_planted)/mean(year_planted), 
-                       ntrees = .N, 
-                       biomass = sum(Biomass.conoid_conoidoid_infill, na.rm = TRUE),
-                       volumen = sum(V.conoid_conoidoid_infill, na.rm = TRUE),
-                       tree_size_inequality_bio = Gini(Biomass.conoid_conoidoid_infill,
-                                                   na.rm = TRUE, unbiased = TRUE,
-                                                   conf.level=0.95, type = "basic")[1],
-                       tree_size_inequality_vol = Gini(V.conoid_conoidoid_infill,
-                                                       na.rm = TRUE, unbiased = TRUE,
-                                                       conf.level=0.95, type = "basic")[1]),
-                     
-                       by = "plot"]
+# Get summary
+plot_summary <- plots[deadmissing == "No", 
+                      .(SR_real = length(unique(species)),
+                        year_mean = mean(year_planted),
+                        year_cv = sd(year_planted)/mean(year_planted), 
+                        ntrees = .N, 
+                        volume = sum(V.conoid_conoidoid_infill, na.rm = TRUE),
+                        tree_size_inequality_vol = Gini(V.conoid_conoidoid_infill,
+                                                        na.rm = TRUE, unbiased = TRUE,
+                                                        conf.level=0.95, type = "basic")[1],
+                        vol_Hill0 = hill(V.conoid_conoidoid_infill, 0),
+                        vol_Hill1 = hill(V.conoid_conoidoid_infill, 0.999),
+                        vol_Hill2 = hill(V.conoid_conoidoid_infill, 2)),
+                      by = c("plot", "plot_new")]
 
-complete <- merge(plot_summary, growth, 
-                  by = "plot", 
+complete <- merge(plot_summary, plot_growth_summary, 
+                  by = c("plot", "plot_new"), 
+                  all.x = TRUE, 
+                  all.y = TRUE)
+
+#-------------------------------------------------------------------------------
+# Get proportion of angiosperms
+traits <- fread(paste0(root_path, "/traits.csv"))
+traits <- traits[, c(5, 11)]
+species <- species_summary[, c(1, 2, 3, 5)]
+colnames(species)[3] <- "Species"
+
+proportions <- merge(traits, species, by = "Species", all.x = TRUE, all.y = TRUE)
+p <- proportions[, sum(volume), by = c("plot", "plot_new", "Gymnosperm")]
+colnames(p)[4] <- "volume"
+proportions <- data.frame(plot = "1", plot_new = "1", PA = 0)
+unique_plots <- unique(p$plot_new)
+
+for(i in 1:length(unique_plots)) {
+  
+  sub <- subset(p, plot_new == unique_plots[i])
+  
+  if(nrow(sub) == 1) {
+    if(sub$Gymnosperm[1] == "N") {
+      proportions[i, 1] <- sub$plot[1]
+      proportions[i, 2] <- sub$plot_new[1]
+      proportions[i, 3] <- 1.00
+    } else {
+      proportions[i, 1] <- sub$plot[1]
+      proportions[i, 2] <- sub$plot_new[1]
+      proportions[i, 3] <- 0.00
+    }
+  } else {
+    gym <- sub[Gymnosperm == "Y", volume]
+    ang <- sub[Gymnosperm == "N", volume]
+    proportions[i, 1] <- sub$plot[1]
+    proportions[i, 2] <- sub$plot_new[1]
+    proportions[i, 3] <- ang/(gym + ang)
+  }
+}
+
+complete <- merge(complete, proportions, 
+                  by = c("plot", "plot_new"), 
                   all.x = TRUE, 
                   all.y = TRUE)
 
@@ -128,69 +266,30 @@ complete <- merge(plot_summary, growth,
 # Summary of metrics by species in the plot.
 
 # Reshaping
-species_summary <- data[deadmissing == "No", .(ntrees = .N,
-                                               biomass = sum(Biomass.conoid_conoidoid_infill, na.rm = TRUE),
-                                               volumen = sum(V.conoid_conoidoid_infill, na.rm = TRUE)),
-                        by = c("plot", "species")]
+species_summary <- plots[deadmissing == "No", .(ntrees = .N,
+                                                volume = sum(V.conoid_conoidoid_infill, na.rm = TRUE)),
+                         by = c("plot", "plot_new", "species")]
 
-# Function
-shannon <- function(sp) {
-  p.i <- sp/sum(sp)
-  H <- (-1) * sum(p.i * log10(p.i))
-  return(H)
-}
-
-# Get shannon per plot
-feature_plot <- species_summary[, .(H_bio = shannon(biomass),
-                                    H_normalized_bio = shannon(biomass)/shannon(rep(1, length(biomass))),
-                                    H_vol = shannon(volumen),
-                                    H_normalized_vol = shannon(volumen)/shannon(rep(1, length(volumen)))),
-                                by = "plot"]
+# Get Shannon per plot
+feature_plot <- species_summary[, .(sp_Hill0 = hill(volume, 0),
+                                    sp_Hill1 = hill(volume, 0.999),
+                                    sp_Hill2 = hill(volume, 2)),
+                                by = c("plot", "plot_new")]
 
 complete <- merge(complete, feature_plot, 
-                  by = "plot", 
+                  by = c("plot", "plot_new"),
                   all.x = TRUE, 
                   all.y = TRUE)
 
 fwrite(complete, "diversity.csv")
 
-#-------------------------------------------------------------------------------
-# Get proportion of angiosperms
-traits <- fread(paste0(root_path, "/traits.csv"))
-traits <- traits[, c(5, 11)]
-species <- species_summary[, c(1,2,5)]
-colnames(species)[2] <- "Species"
+#' -----------------------------------------------------------------------------
+#' Biomass data per species
 
-proportions <- merge(traits, species, by = "Species", all.x = TRUE, all.y = TRUE)
-p <- proportions[, sum(volumen), by = c("plot", "Gymnosperm")]
-colnames(p)[3] <- "volumen"
-proportions <- data.frame(plot = "1", PA = 0)
-unique_plots <- unique(p$plot)
-
-for(i in 1:length(unique_plots)) {
-  
-  sub <- subset(p, plot == unique_plots[i])
-  
-  if(nrow(sub) == 1) {
-    if(sub$Gymnosperm[1] == "N") {
-      proportions[i, 1] <- unique_plots[i]
-      proportions[i, 2] <- 1.00
-    } else {
-      proportions[i, 1] <- unique_plots[i]
-      proportions[i, 2] <- 0.00
-    }
-  } else {
-    gym <- sub[Gymnosperm == "Y", volumen]
-    ang <- sub[Gymnosperm == "N", volumen]
-    proportions[i, 1] <- unique_plots[i]
-    proportions[i, 2] <- ang/(gym + ang)
-  }
-}
-
-complete <- merge(complete, proportions, 
-                  by = "plot", 
-                  all.x = TRUE, 
-                  all.y = TRUE)
+community <- species_summary[, c("plot_new", "volume", "species")]
+community$species <- chartr(" ", "_", community$species)
+community <- sample2matrix(community)
+master_matrix <- decostand(community, method = "total") 
 
 #' -----------------------------------------------------------------------------
 #' Taxonomic data cleaning
@@ -201,6 +300,11 @@ rownames(species) <- species_names
 taxonomic <- taxa2dist(species, varstep=TRUE)
 taxonomic <- hclust(taxonomic)
 plot(taxonomic, hang = -1)
+
+# Diversity
+hill0_taxa <- hill_taxa(comm = master_matrix, q = 0)
+hill1_taxa <- hill_taxa(comm = master_matrix, q = 1)
+hill2_taxa <- hill_taxa(comm = master_matrix, q = 2)
 
 #' -----------------------------------------------------------------------------
 #' Phylogenetic data cleaning
@@ -221,6 +325,12 @@ tol = 1e-9
 phylo$edge.length[phylo$edge.length <= 0] <- tol
 is.ultrametric(phylo)
 
+# Hill phylo
+
+hill0_phylo <- hill_phylo(comm = master_matrix, tree = phylo, q = 0)
+hill1_phylo <- hill_phylo(comm = master_matrix, tree = phylo, q = 1)
+hill0_phylo <- hill_phylo(comm = master_matrix, tree = phylo, q = 2)
+
 #' -----------------------------------------------------------------------------
 #' Functional data cleaning
 
@@ -229,23 +339,20 @@ species <- fread(paste0(root_path, "/traits.csv"))
 species_names <- species$species
 traits <- as.matrix(species[, c("Wood_Density",
                                 "LMA",
-                                "Leaf_habit_Decid=0",
                                 "HT_quantile",
                                 "CR_quantile",
-                                "slenderness_quantile")])
+                                "slenderness_quantile",
+                                "RGR",
+                                "shade_tolerance")])
 rownames(traits) <- species_names
 traits <- as.matrix(scale(traits, center = TRUE, scale = TRUE))
 functional <- hclust(dist(traits))
 plot(functional, hang = -1)
 
-#' -----------------------------------------------------------------------------
-#' Biomass data 
+hill0_func <- hill_func(comm = master_matrix, traits = traits, q = 0)
+hill1_func <- hill_func(comm = master_matrix, traits = traits, q = 1)
+hill2_func <- hill_func(comm = master_matrix, traits = traits, q = 2)
 
-community <- species_summary[, c("plot", "volumen", "species")]
-community$species <- chartr(" ", "_", community$species)
-community <- sample2matrix(community)
-master_matrix <- decostand(community, method = "hellinger") 
-master_matrix <- community
 
 #' -----------------------------------------------------------------------------
 #' Diversity metrics
@@ -367,7 +474,7 @@ FD_PSC <- psc(functional_matched$comm,
 
 # Capture diversity in a frame
 
-diversity <- data.table(plot = rownames(community),
+diversity <- data.table(plot_new = rownames(community),
                         TD_faith = TD_faith,
                         PD_faith = PD_faith,
                         FD_faith = FD_faith,
@@ -390,7 +497,7 @@ diversity <- data.table(plot = rownames(community),
                         PD_PSC = PD_PSC,
                         FD_PSC = FD_PSC)
 
-complete <- merge(complete, diversity, by = "plot", all.x = TRUE, all.y = TRUE)
+complete <- merge(complete, diversity, by = "plot_new", all.x = TRUE, all.y = TRUE)
 fwrite(complete, paste0(root_path, "/diversity.csv"))
 
 

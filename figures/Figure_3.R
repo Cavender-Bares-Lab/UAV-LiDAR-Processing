@@ -28,9 +28,6 @@ frame <- fread(paste0(root_path, "/master_clean.csv"))
 frame[PA == 1, plot_type := "Deciduous"]
 frame[PA == 0, plot_type := "Evergreen"]
 frame[PA > 0 & PA < 1, plot_type := "Mixture"]
-frame$height_hill0 <- exp(frame$Intercept_Hill0 + (log(1/frame$mean_maximun_height)*frame$Slope_Hill0))
-frame$height_hill1 <- exp(frame$Intercept_Hill1 + (log(1/frame$mean_maximun_height)*frame$Slope_Hill1))
-frame$height_hill2 <- exp(frame$Intercept_Hill2 + (log(1/frame$mean_maximun_height)*frame$Slope_Hill2))
 
 diversity <- fread(paste0(root_path, "/diversity_reshaped.csv"))
 
@@ -72,8 +69,8 @@ gui <- guides(fill = guide_colourbar(barwidth = 15,
 
 # Diversity
 ggplot(data, 
-       aes(PSV, 
-           height_hill1,
+       aes(PSR, 
+           Slope_Hill0,
            color = DOY,
            fill = DOY,
            gruop = as.factor(DOY))) +
@@ -85,8 +82,8 @@ ggplot(data,
               se = FALSE,
               linewidth = 0.5) +
   stat_poly_eq(size = text_size,
-               label.x = "right",
-               label.y = "top") +
+               label.x = "left",
+               label.y = "bottom") +
   scale_color_carto_c("Day of the Year", 
                       type = "diverging", 
                       palette = "Fall",
@@ -96,11 +93,13 @@ ggplot(data,
                      palette = "Fall",
                      limits = c(95, 305),
                      breaks = c(100, 200, 300)) +
+  #scale_x_continuous(trans = log10_trans()) +
+  #scale_y_continuous(trans = log10_trans()) +
   xlab(" ") +
   ylab(expression(SEI[vertical]))  +
   theme_bw(base_size = tamano) +
   th + gui +
-  facet_grid(. ~ type)
+  facet_grid(. ~ type, scales = "free_x")
 
 horizontal <- ggplot(data, 
        aes(PSV, 
