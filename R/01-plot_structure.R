@@ -1,9 +1,8 @@
 ################################################################################
-#' @title Cleaning of field inventories and estimation of diversity metrics
+#' @title Cleaning of field inventories and estimation of plot metrics
 ################################################################################
 
-#' @description Data cleaning for the plot biomass files and estimate diversity 
-#' features
+#' @description Data cleaning for extracting plot forest structure metrics
 #' 
 #' @return A .csv file
 
@@ -11,20 +10,12 @@
 #' Libraries
 
 library(data.table)
-library(picante)
-library(Taxonstand)
-library(V.PhyloMaker)
-library(vegan)
-library(DescTools)
-library(phytools)
-library(ape)
-library(lefse)
 
 #' -----------------------------------------------------------------------------
 #' Working path
 
-root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
-#root_path <- "F:/Projects/LiDAR/data"
+#root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+root_path <- "F:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Functions
@@ -184,7 +175,7 @@ plot_growth <- merge(plots_2021, plots_2022, by = c("individual_id"),
                      all.x = FALSE, all.y = FALSE)
 
 # Estimate Annual Woody Productivity
-plot_growth$AWP <- (plot_growth$volume_2022 - plot_growth$volume_2021) /
+plot_growth$AWP <- (log(plot_growth$volume_2022) - log(plot_growth$volume_2021)) /
   ((plot_growth$date_2022 - plot_growth$date_2021)/365)
 
 # Get summary per plot
@@ -208,9 +199,6 @@ plot_summary <- plots[deadmissing == "No",
                         year_cv = sd(year_planted)/mean(year_planted), 
                         ntrees = .N, 
                         volume = sum(V.conoid_conoidoid_infill, na.rm = TRUE),
-                        tree_size_inequality_vol = Gini(V.conoid_conoidoid_infill,
-                                                        na.rm = TRUE, unbiased = TRUE,
-                                                        conf.level=0.95, type = "basic")[1],
                         vol_Hill0 = hill(V.conoid_conoidoid_infill, 0),
                         vol_Hill1 = hill(V.conoid_conoidoid_infill, 0.999),
                         vol_Hill2 = hill(V.conoid_conoidoid_infill, 2)),
@@ -222,7 +210,18 @@ complete <- merge(plot_summary, plot_growth_summary,
                   all.y = TRUE)
 
 #-------------------------------------------------------------------------------
-# Get proportion of angiosperms
+# Summary of metrics by species in the plot.
+
+# Reshaping
+species_summary <- plots[deadmissing == "No", .(ntrees = .N,
+                                                volume = sum(V.conoid_conoidoid_infill, na.rm = TRUE)),
+                         by = c("plot", "plot_new", "species")]
+
+# Export species summary 
+fwrite(species_summary, paste0(root_path, "species_summary.csv"))
+
+#-------------------------------------------------------------------------------
+# Get proportion of deciduous 
 traits <- fread(paste0(root_path, "/traits.csv"))
 traits <- traits[, c(5, 11)]
 species <- species_summary[, c(1, 2, 3, 5)]
@@ -262,235 +261,8 @@ complete <- merge(complete, proportions,
                   all.x = TRUE, 
                   all.y = TRUE)
 
-#-------------------------------------------------------------------------------
-# Summary of metrics by species in the plot.
+# Export structural attributes
+fwrite(complete, paste0(root_path, "structural_attributes.csv"))
 
-# Reshaping
-species_summary <- plots[deadmissing == "No", .(ntrees = .N,
-                                                volume = sum(V.conoid_conoidoid_infill, na.rm = TRUE)),
-                        by = c("plot", "plot_new", "species")]
-
-# Function
-shannon <- function(sp) {
-  p.i <- sp/sum(sp)
-  H <- (-1) * sum(p.i * log(p.i))
-  return(H)
-}
-
-# Get Shannon per plot
-feature_plot <- species_summary[, .(H_vol = shannon(volume),
-                                    H_normalized_vol = shannon(volume)/shannon(rep(1, length(volume))),
-                                    sp_Hill0 = hill(volume, 0),
-                                    sp_Hill1 = hill(volume, 0.999),
-                                    sp_Hill2 = hill(volume, 2)),
-                                by = c("plot", "plot_new")]
-
-complete <- merge(complete, feature_plot, 
-                  by = c("plot", "plot_new"),
-                  all.x = TRUE, 
-                  all.y = TRUE)
-
-fwrite(complete, "diversity.csv")
-
-#' -----------------------------------------------------------------------------
-#' Biomass data per species
-
-community <- species_summary[, c("plot_new", "volume", "species")]
-community$species <- chartr(" ", "_", community$species)
-community <- sample2matrix(community)
-master_matrix <- decostand(community, method = "hellinger") 
-
-#' -----------------------------------------------------------------------------
-#' Taxonomic data cleaning
-species <- fread(paste0(root_path, "/traits.csv"))
-species_names <- species$species
-species <- as.matrix(species[, c(1:5)])
-rownames(species) <- species_names
-taxonomic <- taxa2dist(species, varstep=TRUE)
-taxonomic <- hclust(taxonomic)
-plot(taxonomic, hang = -1)
-
-#' -----------------------------------------------------------------------------
-#' Phylogenetic data cleaning
-
-# Read and select species
-species <- fread(paste0(root_path, "/traits.csv"))
-species <- species[, c(6,4,3)]
-colnames(species) <- c("species", "family", "genus")
-
-# Get tree
-hypotheses <- phylo.maker(species, scenarios = "S3")
-
-# Resolve Multichotomies
-phylo <- multi2di(hypotheses$scenario.3)
-is.binary.phylo(phylo) #Test for Binary Tree
-is.ultrametric(phylo) #Test if a Tree is Ultrametric
-tol = 1e-9
-phylo$edge.length[phylo$edge.length <= 0] <- tol
-is.ultrametric(phylo)
-
-#' -----------------------------------------------------------------------------
-#' Functional data cleaning
-
-# Read and select species
-species <- fread(paste0(root_path, "/traits.csv"))
-species_names <- species$species
-traits <- as.matrix(species[, c("Wood_Density",
-                                "LMA",
-                                "HT_quantile",
-                                "CR_quantile",
-                                "slenderness_quantile",
-                                "RGR",
-                                "shade_tolerance")])
-rownames(traits) <- species_names
-traits <- as.matrix(scale(traits, center = TRUE, scale = TRUE))
-functional <- hclust(dist(traits))
-plot(functional, hang = -1)
-
-#' -----------------------------------------------------------------------------
-#' Diversity metrics
-
-# Standardize formats to phylo
-taxonomic <- as.phylo(taxonomic)
-taxonomic$edge.length[taxonomic$edge.length <= 0] <- tol
-phylogenetic <- phylo
-functional <- as.phylo(functional)
-functional$edge.length[functional$edge.length <= 0] <- tol
-
-# Maching with communities
-taxonomic_matched <- match.phylo.comm(phy = taxonomic,
-                                      comm = master_matrix)
-
-phylogenetic_matched <- match.phylo.comm(phy = phylogenetic,
-                                         comm = master_matrix)
-
-functional_matched <- match.phylo.comm(phy = functional,
-                                       comm = master_matrix)
-
-# Plot
-
-plot(taxonomic_matched$phy)
-plot(phylogenetic_matched$phy)
-plot(functional_matched$phy)
-
-# Faiths index
-
-TD_faith <- pd(taxonomic_matched$comm, taxonomic_matched$phy)$PD
-
-PD_faith <- pd(phylogenetic_matched$comm, phylogenetic_matched$phy)$PD
-
-FD_faith <- pd(functional_matched$comm, functional_matched$phy)$PD
-
-# Faith diversity
-TD_faith <- pd(taxonomic_matched$comm, 
-               taxonomic_matched$phy, 
-               include.root = TRUE)$PD
-
-PD_faith <- pd(phylogenetic_matched$comm, 
-               phylogenetic_matched$phy, 
-               include.root = TRUE)$PD
-
-FD_faith <- pd(functional_matched$comm, 
-               functional_matched$phy, 
-               include.root = TRUE)$PD
-
-# Standardized effect size of MPD
-
-TD_MPD <- ses.mpd(taxonomic_matched$comm, 
-                  cophenetic(taxonomic_matched$phy), 
-                  null.model = "taxa.labels", 
-                  runs = 99,
-                  abundance.weighted = TRUE)
-
-PD_MPD <- ses.mpd(phylogenetic_matched$comm, 
-                  cophenetic(phylogenetic_matched$phy), 
-                  null.model = "taxa.labels", 
-                  runs = 99,
-                  abundance.weighted = TRUE)
-
-FD_MPD <- ses.mpd(functional_matched$comm, 
-                  cophenetic(functional_matched$phy), 
-                  null.model = "taxa.labels", 
-                  runs = 99,
-                  abundance.weighted = TRUE)
-
-# Rao's quadratic entropy
-TD_raoD <- raoD(taxonomic_matched$comm, taxonomic_matched$phy)$Dkk
-
-PD_raoD <- raoD(phylogenetic_matched$comm, phylogenetic_matched$phy)$Dkk
-
-FD_raoD <- raoD(functional_matched$comm, functional_matched$phy)$Dkk
-
-# Species variability
-
-TD_PSV <- psv(taxonomic_matched$comm, 
-              taxonomic_matched$phy)$PSVs
-
-PD_PSV <- psv(phylogenetic_matched$comm, 
-              phylogenetic_matched$phy)$PSVs
-
-FD_PSV <- psv(functional_matched$comm, 
-              functional_matched$phy)$PSVs
-
-# Species richness
-
-TD_PSR <- psr(taxonomic_matched$comm, 
-              taxonomic_matched$phy)$PSR
-
-PD_PSR <- psr(phylogenetic_matched$comm, 
-              phylogenetic_matched$phy)$PSR
-
-FD_PSR <- psr(functional_matched$comm, 
-              functional_matched$phy)$PSR
-
-# Species evenness
-
-TD_PSE <- pse(taxonomic_matched$comm, 
-              taxonomic_matched$phy)$PSEs
-
-PD_PSE <- pse(phylogenetic_matched$comm, 
-              phylogenetic_matched$phy)$PSEs
-
-FD_PSE <- pse(functional_matched$comm, 
-              functional_matched$phy)$PSEs
-
-# Species clustering
-
-TD_PSC <- psc(taxonomic_matched$comm, 
-              taxonomic_matched$phy)$PSCs
-
-PD_PSC <- psc(phylogenetic_matched$comm, 
-              phylogenetic_matched$phy)$PSCs
-
-FD_PSC <- psc(functional_matched$comm, 
-              functional_matched$phy)$PSCs
-
-# Capture diversity in a frame
-
-diversity <- data.table(plot_new = rownames(community),
-                        TD_faith = TD_faith,
-                        PD_faith = PD_faith,
-                        FD_faith = FD_faith,
-                        TD_MPD = TD_MPD$mpd.obs,
-                        PD_MPD = PD_MPD$mpd.obs,
-                        FD_MPD = FD_MPD$mpd.obs,
-                        TD_raoD = TD_raoD,
-                        PD_raoD = PD_raoD,
-                        FD_raoD = FD_raoD,
-                        TD_PSV = TD_PSV,
-                        PD_PSV = PD_PSV,
-                        FD_PSV = FD_PSV,
-                        TD_PSR = TD_PSR,
-                        PD_PSR = PD_PSR,
-                        FD_PSR = FD_PSR,
-                        TD_PSE = TD_PSE,
-                        PD_PSE = PD_PSE,
-                        FD_PSE = FD_PSE,
-                        TD_PSC = TD_PSC,
-                        PD_PSC = PD_PSC,
-                        FD_PSC = FD_PSC)
-
-complete <- merge(complete, diversity, by = "plot_new", all.x = TRUE, all.y = TRUE)
-fwrite(complete, paste0(root_path, "/diversity.csv"))
 
 
