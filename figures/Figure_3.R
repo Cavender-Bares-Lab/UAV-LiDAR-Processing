@@ -18,7 +18,7 @@ library(ggpubr)
 #' -----------------------------------------------------------------------------
 #' Working path
 
-root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+#root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
 root_path <- "F:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
@@ -29,22 +29,24 @@ frame[PA == 1, plot_type := "Deciduous"]
 frame[PA == 0, plot_type := "Evergreen"]
 frame[PA > 0 & PA < 1, plot_type := "Mixture"]
 
-diversity <- fread(paste0(root_path, "/diversity_reshaped.csv"))
+#' -----------------------------------------------------------------------------
+#' Reshape frame
 
+taxa <- frame[, c("DOY", "hill1_taxa", "Slope_Hill1", "Intercept_Hill1", "plot_type")]
+phylo <- frame[, c("DOY", "hill1_phylo", "Slope_Hill1", "Intercept_Hill1", "plot_type")]
+funct <- frame[, c("DOY", "hill1_qDTM", "Slope_Hill1", "Intercept_Hill1", "plot_type")]
 
-data <- merge(diversity, 
-              frame, 
-              by = c("plot_new"), 
-              all.x = FALSE, 
-              all.y = TRUE,
-              allow.cartesian=TRUE)
+colnames(taxa)[2] <- "hill1"
+colnames(phylo)[2] <- "hill1"
+colnames(funct)[2] <- "hill1"
 
-# Factor orders
+taxa$type <- "Taxonomic"
+phylo$type <- "Phylogenetic"
+funct$type <- "Functional" 
+
+data <- rbind(taxa, phylo, funct)
 data$type <- as.factor(data$type)
-data$type <- factor(data$type, 
-                    levels = c("Taxonomic", 
-                               "Phylogenetic", 
-                               "Functional"))
+data$type <- factor(data$type, levels = c("Taxonomic", "Phylogenetic", "Functional"))
 
 # Plot details
 tamano <- 12
@@ -55,11 +57,16 @@ th <- theme(plot.background = element_blank(),
             panel.grid.minor = element_blank(), 
             axis.text.x = element_text(color = "black"),
             axis.text.y = element_text(color = "black"),
-            plot.margin = margin(4, 4, 0, 1.5, "pt"),
+            plot.margin = margin(4, 4, 0, 1, "pt"),
             legend.position= c("top"), 
             legend.direction = "horizontal", 
             legend.background = element_rect(fill = "transparent"), 
-            legend.box.background = element_blank())
+            legend.box.background = element_blank(),
+            strip.background = element_rect(color="black", 
+                                            fill="black", 
+                                            linewidth=1.5, 
+                                            linetype="solid"),
+            strip.text = element_text(color = "white"))
 gui <- guides(fill = guide_colourbar(barwidth = 15, 
                                      barheight = 0.7, 
                                      title.position = "top",
@@ -69,8 +76,48 @@ gui <- guides(fill = guide_colourbar(barwidth = 15,
 
 # Diversity
 ggplot(data, 
-       aes(PSR, 
-           Slope_Hill0,
+       aes(hill1, 
+           Slope_Hill1,
+           color = DOY,
+           fill = DOY,
+           gruop = as.factor(DOY))) +
+  geom_point(aes(shape = plot_type), colour = "grey", alpha = 0.1) +
+  stat_poly_line(method = "lm",
+                 se = FALSE,
+                 formula = y ~ x,
+                 linewidth = 0.5) +
+  stat_poly_eq(method = "lm",
+               formula = y ~ x,
+               label.x = "right",
+               label.y = "bottom",
+               size = text_size) +
+  scale_shape_manual("Plot composition", values = c(21, 24, 22),
+                     guide = guide_legend(override.aes = list(size = 2,
+                                                              colour = "black",
+                                                              alpha = 1),
+                                          title.position = "top",
+                                          title.hjust = 0.5)) +
+  scale_color_carto_c("Day of the Year", 
+                      type = "diverging", 
+                      palette = "Fall",
+                      guide = "none") +
+  scale_fill_carto_c("Day of the Year", 
+                     type = "diverging", 
+                     palette = "Fall",
+                     limits = c(95, 305),
+                     breaks = c(100, 200, 300)) +
+  coord_cartesian(ylim = c(1.5, 2.5), expand = TRUE) +
+  #scale_x_continuous(trans = log10_trans()) +
+  #scale_y_continuous(trans = log10_trans()) +
+  xlab(" ") +
+  ylab(bquote(italic(d)[italic(D)]))  +
+  theme_bw(base_size = tamano) +
+  th + gui +
+  facet_grid(. ~ type, scales = "free_x")
+
+ggplot(data, 
+       aes(hill1, 
+           exp(Intercept_Hill1),
            color = DOY,
            fill = DOY,
            gruop = as.factor(DOY))) +
@@ -93,90 +140,14 @@ ggplot(data,
                      palette = "Fall",
                      limits = c(95, 305),
                      breaks = c(100, 200, 300)) +
+  #coord_cartesian(ylim = c(1.5, 2.5), expand = TRUE) +
   #scale_x_continuous(trans = log10_trans()) +
-  #scale_y_continuous(trans = log10_trans()) +
+  scale_y_continuous(trans = log10_trans()) +
   xlab(" ") +
-  ylab(expression(SEI[vertical]))  +
+  ylab(bquote(italic(d)[italic(D)]))  +
   theme_bw(base_size = tamano) +
   th + gui +
   facet_grid(. ~ type, scales = "free_x")
-
-horizontal <- ggplot(data, 
-       aes(PSV, 
-           FHD_horizontal,
-           color = DOY,
-           fill = DOY,
-           gruop = as.factor(DOY))) +
-  geom_point(shape = 21, 
-             colour = "grey", 
-             alpha = 0.2) +
-  stat_smooth(method='lm', 
-              formula = y~poly(x,2), 
-              se = FALSE,
-              linewidth = 0.5) +
-  stat_poly_eq(size = text_size,
-               label.x = "right",
-               label.y = "bottom") +
-  scale_color_carto_c("Day of the Year", 
-                      type = "diverging", 
-                      palette = "Fall",
-                      guide = "none") +
-  scale_fill_carto_c("Day of the Year", 
-                     type = "diverging", 
-                     palette = "Fall",
-                     limits = c(95, 305),
-                     breaks = c(100, 200, 300)) +
-  coord_cartesian(xlim = c(0, 1), 
-                  ylim = c(0.8, 1.0), 
-                  expand = TRUE) +
-  scale_x_continuous(breaks = c(0, 0.5, 1.0), 
-                     labels = c(0, 0.5, 1.0)) +
-  scale_y_continuous(breaks = c(0.8, 0.9, 1.0), 
-                     labels = c(0.8, 0.9, 1.0)) +
-  xlab(" ") +
-  ylab(expression(SEI[horizontal]))  +
-  theme_bw(base_size = tamano) +
-  th + gui +
-  facet_grid("Horizontal" ~ type)
-
-trid <- ggplot(data, 
-       aes(PSV, 
-           Slope_H,
-           color = DOY,
-           fill = DOY,
-           gruop = as.factor(DOY))) +
-  geom_point(shape = 21, 
-             colour = "grey", 
-             alpha = 0.2) +
-  stat_smooth(method = 'lm', 
-              #formula = y~poly(x,2), 
-              se = FALSE,
-              linewidth = 0.5) +
-  stat_poly_eq(size = text_size,
-               #formula = y~poly(x,2),
-               label.x = "right",
-               label.y = "bottom") +
-  scale_color_carto_c("Day of the Year", 
-                      type = "diverging", 
-                      palette = "Fall",
-                      guide = "none") +
-  scale_fill_carto_c("Day of the Year", 
-                     type = "diverging", 
-                     palette = "Fall",
-                     limits = c(95, 305),
-                     breaks = c(100, 200, 300)) +
-  coord_cartesian(xlim = c(0, 1), 
-                  ylim = c(0.5, 0.85), 
-                  expand = TRUE) +
-  scale_x_continuous(breaks = c(0.0, 0.5, 1.0), 
-                     labels = c(0.0, 0.5, 1.0)) +
-  scale_y_continuous(breaks = c(0.2, 0.5, 0.8), 
-                     labels = c(0.2, 0.5, 0.8)) +
-  xlab("Species variability") +
-  ylab(expression({}*italic(D)[I]))  +
-  theme_bw(base_size = tamano) +
-  th + gui +
-  facet_grid("3D" ~ type)
 
 
 #Merge panels

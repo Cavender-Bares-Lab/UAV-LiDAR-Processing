@@ -35,12 +35,13 @@ devtools::source_url("https://github.com/ShanKothari/DecomposingFD/blob/master/R
 #' Processing
 
 # Load data
-species_summary <- fread(paste0(root_path, "species_summary.csv"))
+species_summary <- fread(paste0(root_path, "/species_summary.csv"))
 
 #' -----------------------------------------------------------------------------
 #' Biomass data per species
 
 community <- species_summary[, c("plot_new", "volume", "species")]
+community$volume <- log(community$volume + 1)
 community$species <- chartr(" ", "_", community$species)
 community <- sample2matrix(community)
 master_matrix <- decostand(community, method = "total") 
@@ -83,7 +84,7 @@ match <- match.phylo.comm(phy = phylo,
 # Hill phylo
 diversity$hill0_phylo <- hill_phylo(comm = match$comm, tree = match$phy, q = 0)
 diversity$hill1_phylo <- hill_phylo(comm = match$comm, tree = match$phy, q = 1)
-diversity$hill0_phylo <- hill_phylo(comm = match$comm, tree = match$phy, q = 2)
+diversity$hill2_phylo <- hill_phylo(comm = match$comm, tree = match$phy, q = 2)
 
 #' -----------------------------------------------------------------------------
 #' Basic Functional diversity
@@ -94,8 +95,8 @@ species_names <- species$species
 traits <- as.matrix(species[, c("Wood_Density",
                                 "LMA",
                                 "HT_quantile",
-                                "CR_quantile",
-                                "slenderness_quantile",
+                                #"CR_quantile",
+                                #"slenderness_quantile",
                                 "RGR",
                                 "shade_tolerance")])
 rownames(traits) <- species_names

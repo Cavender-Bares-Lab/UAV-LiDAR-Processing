@@ -120,13 +120,13 @@ plot_cv_fract <- ggplot(cv_frac, aes(volume/1000000,
                label.x = "left",
                label.y = "bottom",
                size = text_size) +
-  scale_fill_carto_c("Proportion of Angiosperms", 
+  scale_fill_carto_c("Proportion of deciduous trees", 
                      type = "diverging", 
                      palette = "Earth",
                      direction = -1,
                      limits = c(0, 1),
                      breaks = c(0.0, 0.5, 1.0)) +
-  coord_cartesian(xlim = c(0.0137, 0.462), ylim = c(-0.005, 0.105), expand = TRUE) +
+  coord_cartesian(xlim = c(0.03, 0.462), ylim = c(-0.005, 0.105), expand = TRUE) +
   scale_x_continuous(trans = log10_trans()) +
   scale_y_continuous(breaks = c(0.00, 0.05, 0.10), 
                      labels = c("0.00", "0.05", "0.10")) +
@@ -152,13 +152,13 @@ plot_cv_inter <- ggplot(cv_inter, aes(volume/1000000,
                label.x = "left",
                label.y = "bottom",
                size = text_size) +
-  scale_fill_carto_c("Proportion of Angiosperms", 
+  scale_fill_carto_c("Proportion of deciduous trees", 
                      type = "diverging", 
                      palette = "Earth",
                      direction = -1,
                      limits = c(0, 1),
                      breaks = c(0.0, 0.5, 1.0)) +
-  coord_cartesian(xlim = c(0.0137, 0.462), ylim = c(0.03, 0.36), expand = TRUE) +
+  coord_cartesian(xlim = c(0.03, 0.462), ylim = c(0.03, 0.36), expand = TRUE) +
   scale_x_continuous(trans = log10_trans()) +
   scale_y_continuous(breaks = c(0.10, 0.20, 0.30), 
                      labels = c("0.10", "0.20", "0.30")) +
@@ -193,12 +193,12 @@ fract_comp <- ggplot(cv_frac, aes(volume/1000000,
   scale_colour_manual("Plot composition", values = colours_panel, guide = FALSE) +
   scale_fill_manual("Plot composition", values = colours_panel, guide = FALSE) +
   scale_shape_manual("Plot composition", values = c(21, 24, 22),
-                     guide = guide_legend(override.aes = list(size = 2,
+                     guide = guide_legend(override.aes = list(size = 3,
                                                               alpha = 1,
                                                               fill = colours_panel),
                                           title.position = "top",
                                           title.hjust = 0.5)) +
-  coord_cartesian(xlim = c(0.0137, 0.462), ylim = c(-0.005, 0.105), expand = TRUE) +
+  coord_cartesian(xlim = c(0.03, 0.462), ylim = c(-0.005, 0.105), expand = TRUE) +
   scale_x_continuous(trans = log10_trans()) +
   scale_y_continuous(breaks = c(0.00, 0.05, 0.10), 
                      labels = c("0.00", "0.05", "0.10")) +
@@ -230,12 +230,12 @@ int_comp <- ggplot(cv_inter, aes(volume/1000000,
   scale_colour_manual("Plot composition", values = colours_panel, guide = FALSE) +
   scale_fill_manual("Plot composition", values = colours_panel, guide = FALSE) +
   scale_shape_manual("Plot composition", values = c(21, 24, 22),
-                     guide = guide_legend(override.aes = list(size = 2,
+                     guide = guide_legend(override.aes = list(size = 3,
                                                               alpha = 1,
                                                               fill = colours_panel),
                                           title.position = "top",
                                           title.hjust = 0.5)) +
-  coord_cartesian(xlim = c(0.0137, 0.462), ylim = c(0.03, 0.36), expand = TRUE) +
+  coord_cartesian(xlim = c(0.03, 0.462), ylim = c(0.03, 0.36), expand = TRUE) +
   scale_x_continuous(trans = log10_trans()) +
   scale_y_continuous(breaks = c(0.10, 0.20, 0.30), 
                      labels = c("0.10", "0.20", "0.30")) +

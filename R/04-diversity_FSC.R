@@ -9,26 +9,30 @@
 #' -----------------------------------------------------------------------------
 #' Libraries
 library(data.table)
-library(ggplot2)
 
 #' -----------------------------------------------------------------------------
 #' Working path
 
-root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
-#root_path <- "F:/Projects/LiDAR/data"
+#root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+root_path <- "F:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' File reading and merging
 
+# Forest structural complexity
+FSC <- fread(paste0(root_path, "/FSC_results.csv"))
+colnames(FSC)[1] <- "plot"
+FSC <- FSC[, c(2, 20, 24:25, 26:27, 37:45)]
+
+# Forest structure
+structure <- fread(paste0(root_path, "/structural_attributes.csv"))
+
 # Diversity
 diversity <- fread(paste0(root_path, "/diversity.csv"))
 
-# FSC
-FSC <- fread(paste0(root_path, "/FSC_results.csv"))
-colnames(FSC)[1] <- "plot"
-
 # Merge files
-data <- merge(diversity, FSC, by = c("plot", "plot_new"), all.x = TRUE, all.y = TRUE)
+data <- merge(structure, diversity, by = c("plot_new"), all.x = TRUE, all.y = TRUE)
+data <- merge(data, FSC, by = c("plot_new"), all.x = TRUE, all.y = TRUE)
 fwrite(data, paste0(root_path, "/master_file.csv")) #Manual checking
 data <- fread(paste0(root_path, "/master_file.csv"))
 
@@ -37,11 +41,11 @@ data <- fread(paste0(root_path, "/master_file.csv"))
 
 # Long time planted trees
 hist(data$year_mean)
-data <- subset(data, year_mean <= 2019)
+data <- subset(data, year_mean <= 2018)
 
 # Remove plots with few trees
 hist(data$ntrees)
-#data <- data[ntrees >= 85,]
+data <- data[ntrees >= 57,]
 
 # Get day of the year and just 2022
 data <- data[!is.na(date), ]
@@ -57,3 +61,4 @@ data[, .N, by = c("plot_new")]
 #Export clean data
 fwrite(data, paste0(root_path, "/master_clean.csv")) #Manual checking
 data <- fread(paste0(root_path, "/master_clean.csv"))
+
