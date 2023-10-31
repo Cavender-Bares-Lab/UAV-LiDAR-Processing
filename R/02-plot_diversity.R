@@ -18,8 +18,8 @@ library(hillR)
 #' -----------------------------------------------------------------------------
 #' Working path
 
-#root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
-root_path <- "F:/Projects/LiDAR/data"
+root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+#root_path <- "F:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Functions
@@ -151,8 +151,56 @@ colnames(FTD_hill2) <- paste0("hill2_", colnames(FTD_hill2))
 diversity <- cbind(diversity, FTD_hill0, FTD_hill1, FTD_hill2)
 
 #' -----------------------------------------------------------------------------
-#' Export diversity frame
+#' Get the species variability
 
+#' Taxonomic data cleaning
+species <- fread(paste0(root_path, "/traits.csv"))
+species_names <- species$species
+species <- as.matrix(species[, c(1:5)])
+rownames(species) <- species_names
+taxonomic <- taxa2dist(species, varstep=TRUE)
+taxonomic <- hclust(taxonomic)
+plot(taxonomic, hang = -1)
+
+#' Functional data cleaning
+functional <- hclust(trait_distance)
+plot(functional, hang = -1)
+
+# Standardize formats to phylo
+taxonomic <- as.phylo(taxonomic)
+taxonomic$edge.length[taxonomic$edge.length <= 0] <- tol
+phylogenetic <- phylo
+functional <- as.phylo(functional)
+functional$edge.length[functional$edge.length <= 0] <- tol
+
+# Maching with communities
+taxonomic_matched <- match.phylo.comm(phy = taxonomic,
+                                      comm = master_matrix)
+
+phylogenetic_matched <- match.phylo.comm(phy = phylogenetic,
+                                         comm = master_matrix)
+
+functional_matched <- match.phylo.comm(phy = functional,
+                                       comm = master_matrix)
+
+# Plot
+plot(taxonomic_matched$phy)
+plot(phylogenetic_matched$phy)
+plot(functional_matched$phy)
+
+# Species variability
+TD_PSV <- psv(taxonomic_matched$comm, 
+              taxonomic_matched$phy)$PSVs
+
+PD_PSV <- psv(phylogenetic_matched$comm, 
+              phylogenetic_matched$phy)$PSVs
+
+FD_PSV <- psv(functional_matched$comm, 
+              functional_matched$phy)$PSVs
+
+diversity <- cbind(diversity, TD_PSV, PD_PSV, FD_PSV)
+
+# Export
 fwrite(diversity, paste0(root_path, "/diversity.csv"))
 
 

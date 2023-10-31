@@ -27,22 +27,23 @@ vertical_metrics <- function(point_cloud,
                              z_max = 10) {
   
   #Create point cloud
-  pc <- data.table(X = point_cloud$X,
-                   Y = point_cloud$Y,
-                   Z = point_cloud$Z)
+  point_cloud <- data.table(X = point_cloud$X,
+                            Y = point_cloud$Y,
+                            Z = point_cloud$Z)
   
   #Above points
-  z_above <- pc[Z >= z_min, Z]
+  z_above <- point_cloud[Z >= z_min, Z]
+  mean_z <- mean(z_above)
   
   #Basic grid metrics
-  sub_frame <- data.table(height = max(pc$Z),
-                          height90 = quantile(pc$Z, 0.9),
+  sub_frame <- data.table(height = quantile(point_cloud$Z, 0.999),
                           SEI_vertical = entropy(z_above, 
                                                  by = z_res, 
-                                                 zmax = max(z_above)))
+                                                 zmax = max(z_above)),
+                          vertical_difference = sqrt(sum((z_above - mean_z)^2)))
   
   # Define the number of x meters bins from 0 to zmax (rounded to the next integer)
-  bk <- seq(z_res, ceiling(max(pc$Z)/z_res)*z_res, z_res)
+  bk <- seq(z_res, ceiling(max(point_cloud$Z)/z_res)*z_res, z_res)
   
   # Compute the p for each bin
   hist_count <- hist(z_above, breaks = bk, plot = F)$count
@@ -53,7 +54,7 @@ vertical_metrics <- function(point_cloud,
   sub_frame$vertical_hill2 <- hill(hist_count, 2)
   
   #Clean residuals
-  rm(list = c("pc", "z_above", "hist_count", "bk")) #"LAD"
+  rm(list = c("point_cloud", "z_above", "mean_z", "bk", "hist_count")) #"LAD"
   gc()
   
   #Return

@@ -13,8 +13,8 @@ library(data.table)
 #' -----------------------------------------------------------------------------
 #' Working path
 
-#root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
-root_path <- "F:/Projects/LiDAR/data"
+root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+#root_path <- "F:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' File reading and merging
@@ -22,7 +22,7 @@ root_path <- "F:/Projects/LiDAR/data"
 # Forest structural complexity
 FSC <- fread(paste0(root_path, "/FSC_results.csv"))
 colnames(FSC)[1] <- "plot"
-FSC <- FSC[, c(2, 20, 24:25, 26:27, 37:45)]
+FSC <- FSC[, c(2, 20, 25:47)]
 
 # Forest structure
 structure <- fread(paste0(root_path, "/structural_attributes.csv"))
@@ -41,11 +41,11 @@ data <- fread(paste0(root_path, "/master_file.csv"))
 
 # Long time planted trees
 hist(data$year_mean)
-data <- subset(data, year_mean <= 2018)
+data <- subset(data, year_mean <= 2019)
 
 # Remove plots with few trees
 hist(data$ntrees)
-data <- data[ntrees >= 57,]
+data <- data[ntrees >= 40,]
 
 # Get day of the year and just 2022
 data <- data[!is.na(date), ]
@@ -57,6 +57,10 @@ remove <- data[, .N, by = c("plot_new")]
 remove <- remove[N == 8]
 data <- merge(data, remove[, 1], by = c("plot_new"), all.x = FALSE, all.y = TRUE)
 data[, .N, by = c("plot_new")]
+
+# Remove plot
+data <- data[volume >= 0.01,]
+
 
 #Export clean data
 fwrite(data, paste0(root_path, "/master_clean.csv")) #Manual checking

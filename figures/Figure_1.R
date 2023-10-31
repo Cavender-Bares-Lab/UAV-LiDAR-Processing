@@ -20,54 +20,48 @@ options(scipen = 99999)
 #' -----------------------------------------------------------------------------
 #' Working path
 
-#root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
-root_path <- "F:/Projects/LiDAR/data"
+root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+#root_path <- "F:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Load data
 
 frame <- fread(paste0(root_path, "/master_clean.csv"))
-frame[PA == 1, plot_type := "Deciduous"]
-frame[PA == 0, plot_type := "Evergreen"]
+frame[PA == 1, plot_type := "Angiosperms"]
+frame[PA == 0, plot_type := "Gymnosperms"]
 frame[PA > 0 & PA < 1, plot_type := "Mixture"]
 
 #' -----------------------------------------------------------------------------
 #' Data reshaping
 
-reshaping <- frame
 
-reshaping_int <- reshaping[, c("plot_type", "DOY", "volume",
-                               "Intercept_Hill0", "Intercept_Hill1", "Intercept_Hill2")]
-reshaping_frac <- reshaping[, c("plot_type", "DOY", "volume",
-                               "Slope_Hill0", "Slope_Hill1", "Slope_Hill2")]
+vol <- frame[, c("DOY", "volume", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type")]
+AWP <- frame[, c("DOY", "total_AWP", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type")]
+sigmaAWPD <- frame[, c("DOY", "sd_AWP", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type")]
 
-reshaping_int <- melt(reshaping_int, id.vars = c("plot_type", "DOY", "volume"))
-reshaping_int$parameter <- "intercept"
-reshaping_frac <- melt(reshaping_frac, id.vars = c("plot_type", "DOY", "volume"))
-reshaping_frac$parameter <- "slope"
+vol$type <- "Stand volume"
+AWP$type <- "Stand productivity"
+sigmaAWPD$type <- "Growth variability" 
 
-reshaping <- rbind(reshaping_int, reshaping_frac)
-reshaping[variable == "Intercept_Hill0" | variable == "Slope_Hill0" | variable == "height_hill0", qhill := "q0"]
-reshaping[variable == "Intercept_Hill1" | variable == "Slope_Hill1" | variable == "height_hill1", qhill := "q1"]
-reshaping[variable == "Intercept_Hill2" | variable == "Slope_Hill2" | variable == "height_hill2", qhill := "q2"]
+colnames(vol)[2] <- "metric"
+colnames(AWP)[2] <- "metric"
+colnames(sigmaAWPD)[2] <- "metric"
 
-reshaping$qhill <- as.factor(reshaping$qhill)
-levels(reshaping$qhill) <- c(expression(paste(italic(q)," = 0")),
-                             expression(paste(italic(q)," = 1")),
-                             expression(paste(italic(q)," = 2")))
+data <- rbind(vol, AWP, sigmaAWPD)
+data$type <- as.factor(data$type)
+data$type <- factor(data$type, levels = c("Stand volume", "Stand productivity", "Growth variability"))
 
-reshaping_frac <- reshaping[parameter == "slope"]
-reshaping_frac$parameter <- as.factor(reshaping_frac$parameter)
-levels(reshaping_frac$parameter) <-  c("slope" = expression(italic('d')[italic(D)]))
+data_melt <- melt(data, 
+                  id.vars = c("DOY", "metric", "plot_type", "type"),
+                  measure.vars = c("Slope_Hill1", "Pgap", "mean_maximun_height"))
 
-reshaping_int <- reshaping[parameter == "intercept"]
-reshaping_int$parameter <- as.factor(reshaping_int$parameter)
-levels(reshaping_int$parameter) <-  c("intercept" = expression(ENV*italic(a)[italic(D)]))
 
+# ------------------------------------------------------------------------------
 # Plot details
 tamano <- 12
 tamano2 <- 10
 text_size <- 2.8
+
 th <- theme(plot.background = element_blank(), 
             panel.grid.major = element_blank(), 
             panel.grid.minor = element_blank(), 
@@ -83,119 +77,132 @@ th <- theme(plot.background = element_blank(),
                                             linewidth=1.5, 
                                             linetype="solid"),
             strip.text = element_text(color = "white"))
+
 gui <- guides(fill = guide_colourbar(barwidth = 15, 
                                      barheight = 0.7, 
                                      title.position = "top",
-                                     title.hjust = 0.5))
+                                     title.hjust = 0.5))  
 
-# Plot for fractals
+plot_comp <- scale_shape_manual("Plot composition", values = c(21, 24, 22),
+                                guide = guide_legend(override.aes = list(size = 2,
+                                                                         colour = "black",
+                                                                         alpha = 1),
+                                                     title.position = "top",
+                                                     title.hjust = 0.5)) 
 
-vol_fractal <- ggplot(reshaping_frac, 
-                      aes(x = volume/1000000,
-                          y = value, 
-                          color = DOY,
-                          fill = DOY,
-                          gruop = as.factor(DOY))) +
-  geom_point(aes(shape = plot_type), colour = "grey", alpha = 0.1) +
+doy_color <- scale_color_carto_c("Day of the Year", 
+                                 type = "diverging", 
+                                 palette = "Fall",
+                                 guide = "none")
+
+doy_fill <-   scale_fill_carto_c("Day of the Year", 
+                                 type = "diverging", 
+                                 palette = "Fall",
+                                 limits = c(95, 305),
+                                 breaks = c(100, 200, 300)) 
+
+alpha_point <- 0.15
+
+# ------------------------------------------------------------------------------
+# Panels
+db <- ggplot(data_melt[variable == "Slope_Hill1"], 
+             aes(x = metric,
+                 y = value, 
+                 color = DOY,
+                 fill = DOY,
+                 gruop = as.factor(DOY))) +
+  geom_point(aes(shape = plot_type), colour = "grey", alpha = alpha_point) +
   stat_poly_line(method = "lm",
                  se = FALSE,
+                 #formula = y ~ x,
                  formula = y ~ poly(x, 2, raw = TRUE),
                  linewidth = 0.5) +
   stat_poly_eq(method = "lm",
+               #formula = y ~ x,
                formula = y ~ poly(x, 2, raw = TRUE),
                label.x = "right",
                label.y = "bottom",
                size = text_size) +
-  scale_shape_manual("Plot composition", values = c(21, 24, 22),
-                     guide = guide_legend(override.aes = list(size = 2,
-                                                              colour = "black",
-                                                              alpha = 1),
-                                          title.position = "top",
-                                          title.hjust = 0.5)) +
-  scale_color_carto_c("Day of the Year", 
-                      type = "diverging", 
-                      palette = "Fall",
-                      guide = "none") +
-  scale_fill_carto_c("Day of the Year", 
-                     type = "diverging", 
-                     palette = "Fall",
-                     limits = c(95, 305),
-                     breaks = c(100, 200, 300)) +
-  coord_cartesian(xlim = c(0.03, 0.462), ylim = c(1.5, 2.5), expand = TRUE) +
+  plot_comp + doy_color + doy_fill + 
   scale_x_continuous(trans = log10_trans()) +
   scale_y_continuous(n.breaks = 3, breaks = c(1.50, 2.00, 2.50), 
                      labels = c("1.5", "2.0", "2.5")) +
   annotation_logticks(sides = "b") +
-  #xlab(expression(paste("Wood volume (m"^3, ")"))) +
-  xlab(" ") +
+  xlab(bquote(Wood~volume~(m^3))) + 
   ylab(bquote(italic(d)[italic(D)]))  +
   theme_bw(base_size = tamano) +
-  th + gui +
-  facet_grid(. ~ qhill, labeller = label_parsed)
+  th + gui + 
+  facet_grid("Structural Complexity" ~ type, scales = "free")
 
-# Plot for intercept
-
-vol_intercept <- ggplot(reshaping_int,
-                        aes(x = volume/1000000,
-                            y = exp(value),
-                            color = DOY,
-                            fill = DOY,
-                            gruop = as.factor(DOY))) +
-  geom_point(aes(shape = plot_type), colour = "grey", alpha = 0.1) +
+pgap <- ggplot(data_melt[variable == "Pgap"], 
+               aes(x = metric,
+                   y = value, 
+                   color = DOY,
+                   fill = DOY,
+                   gruop = as.factor(DOY))) +
+  geom_point(aes(shape = plot_type), colour = "grey", alpha = alpha_point) +
   stat_poly_line(method = "lm",
                  se = FALSE,
                  formula = y ~ x,
+                 #formula = y ~ poly(x, 2, raw = TRUE),
                  linewidth = 0.5) +
   stat_poly_eq(method = "lm",
                formula = y ~ x,
-               label.x = "right",
+               #formula = y ~ poly(x, 2, raw = TRUE),
+               label.x = "left",
                label.y = "bottom",
                size = text_size) +
-  scale_shape_manual("Plot composition", values = c(21, 24, 22),
-                     guide = guide_legend(override.aes = list(size = 2,
-                                                              colour = "black",
-                                                              alpha = 1),
-                                          title.position = "top",
-                                          title.hjust = 0.5)) +
-  scale_color_carto_c("Day of the Year", 
-                      type = "diverging", 
-                      palette = "Fall",
-                      guide = "none") +
-  scale_fill_carto_c("Day of the Year", 
-                     type = "diverging", 
-                     palette = "Fall",
-                     limits = c(95, 305),
-                     breaks = c(100, 200, 300)) +
-  coord_cartesian(xlim = c(0.03, 0.462), ylim = c(25, 530), expand = TRUE) +
+  plot_comp + doy_color + doy_fill + 
+  coord_cartesian(ylim = c(0, 1), expand = TRUE) +
   scale_x_continuous(trans = log10_trans()) +
-  scale_y_continuous(trans = log10_trans()) +
-  annotation_logticks(sides = "bl") +
-  xlab(expression(paste("Wood volume (m"^3, ")"))) +
-  #xlab(" ") +
-  ylab(bquote(ENV[italic(D)]))  +
+  scale_y_continuous(n.breaks = 3, breaks = c(0.0, 0.5, 1.0), 
+                     labels = c("0.0", "0.5", "1.0")) +
+  annotation_logticks(sides = "b") +
+  xlab(bquote(AWD[plot]~(m^3~y^-1))) + 
+  ylab(bquote(italic(P)[gap])) +
   theme_bw(base_size = tamano) +
-  th + gui +
-  facet_grid(. ~ qhill, labeller = label_parsed)
+  th + gui + 
+  facet_grid("Cover" ~ type, scales = "free")
+
+ch <- ggplot(data_melt[variable == "mean_maximun_height"], 
+             aes(x = metric,
+                 y = value, 
+                 color = DOY,
+                 fill = DOY,
+                 gruop = as.factor(DOY))) +
+  geom_point(aes(shape = plot_type), colour = "grey", alpha = alpha_point) +
+  stat_poly_line(method = "lm",
+                 se = FALSE,
+                 formula = y ~ x,
+                 #formula = y ~ poly(x, 2, raw = TRUE),
+                 linewidth = 0.5) +
+  stat_poly_eq(method = "lm",
+               formula = y ~ x,
+               #formula = y ~ poly(x, 2, raw = TRUE),
+               label.x = "left",
+               label.y = "top",
+               size = text_size) +
+  plot_comp + doy_color + doy_fill + 
+  coord_cartesian(ylim = c(0, 4.5), expand = TRUE) +
+  scale_x_continuous(trans = log10_trans()) +
+  scale_y_continuous(n.breaks = 3, breaks = c(0.0, 2.0, 4.0), 
+                     labels = c("0.0", "2.0", "4.0")) +
+  annotation_logticks(sides = "b") +
+  xlab(bquote(sigma*AWD[tree]~(m^3~y^-1))) + 
+  ylab(bquote(bar(italic(CH))~(m))) +
+  theme_bw(base_size = tamano) +
+  th + gui + 
+  facet_grid("Canopy height" ~ type, scales = "free")
 
 #-------------------------------------------------------------------------------
 #Merge panels
 
-Figure_1 <- ggarrange(vol_fractal, vol_intercept, #vol_hight,
-                      ncol = 1, nrow = 2,  align = "hv", 
-                      widths = c(2, 2), 
-                      heights = c(2, 2, 2),
-                      #labels = c("a", "b", "c", "d", "e", "f"), 
-                      #font.label = list(size = 14, 
-                      #                  color = "black", 
-                      #                  face = "plain", 
-                      #                  family = NULL),
-                      #label.x = 0.13,
-                      #label.y = 0.90,
+Figure_1 <- ggarrange(ch, pgap, db,
+                      ncol = 1, nrow = 3,  align = "hv", 
                       common.legend = TRUE)
 #Export figure
-jpeg("Figure_1.jpeg", width = 210, height = 150, units = "mm", res = 600)
+jpeg(paste0(root_path, "/Figure_1.jpeg"), width = 210, height = 210, units = "mm", res = 600)
 
 Figure_1
 
 dev.off()
-

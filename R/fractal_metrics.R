@@ -22,26 +22,24 @@ fractal_metrics <- function(point_cloud, z_min = 0.25) {
   
   
   #Point cloud stand
-  pc <- data.table(X = point_cloud$X, 
-                   Y = point_cloud$Y, 
-                   Z = point_cloud$Z)
+  point_cloud <- data.table(X = point_cloud$X, 
+                            Y = point_cloud$Y, 
+                            Z = point_cloud$Z)
   
   #Remove ground
-  pc <- pc[Z >= z_min]
+  point_cloud <- point_cloud[Z >= z_min]
   
   #Range size
-  max_dist <- 2.5
+  max_dist <- max(diff(range(point_cloud$X)), diff(range(point_cloud$Y)), diff(range(point_cloud$Z)))
+  max_dist <- max_dist/4
   min_dist <- 0.1
-  edge_sizes <- seq(from = log10(c(max_dist)), to = log10(min_dist), length.out = 10)
-  edge_sizes <- c(10^edge_sizes, 0.25)
+  edge_sizes <- seq(from = log10(c(max_dist)), to = log10(min_dist), length.out = 30)
+  edge_sizes <- c(10^edge_sizes)
   
   #Add id
-  fractals <- voxels_counting(pc, 
+  fractals <- voxels_counting(point_cloud, 
                               edge_sizes = edge_sizes, 
-                              min_size = min_dist, 
-                              length_out = 10)
-  ENL_25 <- fractals[Edge.X == 0.25,]
-  fractals <- fractals[Edge.X != 0.25,]
+                              min_size = min_dist)
   
   #Get model
   Hill0_model <- sma(formula = log(Hill0) ~ log(1/(fractals$Edge.X)),
@@ -64,13 +62,10 @@ fractal_metrics <- function(point_cloud, z_min = 0.25) {
                         Slope_Hill2 = Hill2_model$coef[[1]]$`coef(SMA)`[2],
                         Rsq_Hill0 = Hill0_model$r2[[1]][1],
                         Rsq_Hill1 = Hill2_model$r2[[1]][1],
-                        Rsq_Hill2 = Hill1_model$r2[[1]][1],
-                        ENL_25_Hill0 = ENL_25$ENL_Hill0[1],
-                        ENL_25_Hill1 = ENL_25$ENL_Hill1[1],
-                        ENL_25_Hill2 = ENL_25$ENL_Hill2[1])
+                        Rsq_Hill2 = Hill1_model$r2[[1]][1])
   
   #Clean residuals
-  rm(list = c("pc", "min_dist", "max_dist", "edge_sizes", "fractals", "ENL_25",
+  rm(list = c("point_cloud", "min_dist", "max_dist", "edge_sizes", "fractals",
               "Hill0_model", "Hill1_model", "Hill2_model"))
   gc()
   

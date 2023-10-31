@@ -20,158 +20,175 @@ library(ggpubr)
 #' Working path
 
 root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
-root_path <- "F:/Projects/LiDAR/data"
+#root_path <- "F:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Load data
+
 frame <- fread(paste0(root_path, "/master_clean.csv"))
-diversity <- fread(paste0(root_path, "/diversity_reshaped.csv"))
+frame[PA == 1, plot_type := "Deciduous"]
+frame[PA == 0, plot_type := "Evergreen"]
+frame[PA > 0 & PA < 1, plot_type := "Mixture"]
 
-# Get phenological variability
-FSC <- frame[, c("plot", "PA", "RGR", "AWP", "DOY", "SEI_vertical", 
-                 "SEI_horizontal", "Slope_H")]
+#' -----------------------------------------------------------------------------
+#' Reshape frame
 
-pheno <- FSC[, .(CV_SEI_vertical = sd(SEI_vertical)/mean(SEI_vertical),
-                 CV_SEI_horizontal = sd(SEI_horizontal)/mean(SEI_horizontal),
-                 CV_Slope_H = sd(Slope_H)/mean(Slope_H),
-                 PA = mean(PA),
-                 RGR = mean(RGR),
-                 AWP = mean(AWP)), by = "plot"]
-pheno$plot <- as.character(pheno$plot)
+taxa <- frame[, c("DOY", "TD_PSV", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "plot_new", "PA")]
+phylo <- frame[, c("DOY", "PD_PSV", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "plot_new", "PA")]
+funct <- frame[, c("DOY", "FD_PSV", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "plot_new", "PA")]
 
-# Merge metrics of interest
-frame <- merge(pheno, diversity, by = "plot", all.x = TRUE, all.y = FALSE)
+taxa$type <- "Taxonomic"
+phylo$type <- "Phylogenetic"
+funct$type <- "Functional" 
 
-# Factor orders
-frame$type <- as.factor(frame$type)
-frame$type <- factor(frame$type, levels = c("Taxonomic", 
-                                          "Phylogenetic", 
-                                          "Functional"))
+colnames(taxa)[2] <- "PSV"
+colnames(phylo)[2] <- "PSV"
+colnames(funct)[2] <- "PSV"
 
+data <- rbind(taxa, phylo, funct)
+data$type <- as.factor(data$type)
+data$type <- factor(data$type, levels = c("Taxonomic", "Phylogenetic", "Functional"))
+
+cv_metrics <- data[, .(CV_slope = sd(Slope_Hill1)/mean(Slope_Hill1),
+                       CV_ch = sd(mean_maximun_height)/mean(mean_maximun_height),
+                       CV_pgap = sd(Pgap)/mean(Pgap)), 
+                   by = c("plot_new", "PSV", "plot_type", "type", "PA")]
+cv_metrics <- cv_metrics[!is.na(PSV), ]
+
+cv_metrics <- melt(cv_metrics, 
+                  id.vars = c("plot_new", "plot_type", "type", "PSV", "PA"),
+                  measure.vars = c("CV_slope", "CV_ch", "CV_pgap"))
+
+# ------------------------------------------------------------------------------
 # Plot details
 tamano <- 12
-tamano2 <- 8
+tamano2 <- 10
 text_size <- 2.8
 th <- theme(plot.background = element_blank(), 
             panel.grid.major = element_blank(), 
             panel.grid.minor = element_blank(), 
-            #axis.text.x = element_text(color = "black", size = tamano2),
-            #axis.text.y = element_text(color = "black", size = tamano2),
-            plot.margin = margin(4, 4, 0, 1.5, "pt"),
+            axis.text.x = element_text(color = "black"),
+            axis.text.y = element_text(color = "black"),
+            plot.margin = margin(4, 4, 0, 1, "pt"),
             legend.position= c("top"), 
             legend.direction = "horizontal", 
             legend.background = element_rect(fill = "transparent"), 
-            legend.box.background = element_blank())
+            legend.box.background = element_blank(),
+            strip.background = element_rect(color="black", 
+                                            fill="black", 
+                                            linewidth=1.5, 
+                                            linetype="solid"),
+            strip.text = element_text(color = "white"))
 gui <- guides(fill = guide_colourbar(barwidth = 15, 
                                      barheight = 0.7, 
                                      title.position = "top",
                                      title.hjust = 0.5))
 
-#Plots
+plot_comp <- scale_shape_manual("Plot composition", values = c(21, 24, 22),
+                                guide = guide_legend(override.aes = list(size = 2,
+                                                                         colour = "black",
+                                                                         alpha = 1),
+                                                     title.position = "top",
+                                                     title.hjust = 0.5)) 
 
-PSV_SEIv <- ggplot(frame, aes(PSV,
-                  CV_SEI_vertical,
-                  fill = PA)) +
-  geom_point(shape = 21, colour = "grey", alpha = 0.8) +
-  stat_ma_line(method = "SMA",
-               se = TRUE,
-               size = 0.5,
-               colour = "black") +
-  stat_ma_eq(use_label(c("eq", "R2")),
-             method = "SMA",
-             label.x = "left",
-             label.y = "bottom",
-             size = text_size) +
-  scale_fill_carto_c("Proportion of Angiosperms", 
-                     type = "diverging", 
-                     palette = "Earth",
-                     direction = -1,
-                     limits = c(0, 1),
-                     breaks = c(0.0, 0.5, 1.0)) +
-  coord_cartesian(xlim = c(0, 1.0), 
-                  expand = TRUE) +
-  scale_x_continuous(breaks = c(0.0, 0.5, 1.0), 
-                     labels = c(0.0, 0.5, 1.0)) +
-  #scale_y_continuous(trans = log10_trans()) +
-  annotation_logticks(sides = "l") +
-  xlab(" ") +
-  ylab(expression({}*italic(CV)~~SEI[vertical]))  +
-  theme_bw(base_size = tamano) +
-  th + gui + 
-  facet_grid("Vertical" ~ type)
+colour_PA <- scale_fill_viridis("Proportion of Angiosperms",
+                                option = "D",
+                                direction = 1,
+                                limits = c(0, 1),
+                                breaks = c(0.0, 0.5, 1.0))
 
-PSV_SEIh <- ggplot(frame, aes(PSV, 
-                  CV_SEI_horizontal,
-                  fill = PA)) +
-  geom_point(shape = 21, colour = "grey", alpha = 0.8) +
+# ------------------------------------------------------------------------------
+# Plots
+cv_vol_dD <- ggplot(cv_metrics[variable == "CV_slope",], aes(PSV,
+                                    value,
+                                    fill = PA)) +
+  geom_point(aes(shape = plot_type), colour = "grey", alpha = 0.8) +
+  #geom_point(shape = 21, colour = "grey", alpha = 0.8) +
   stat_ma_line(method = "SMA",
-               se = TRUE,
-               size = 0.5,
-               colour = "black") +
+                 se = TRUE,
+                 formula = y ~ x,
+                 linewidth = 0.5,
+                 colour = "black") +
   stat_ma_eq(use_label(c("eq", "R2")),
-             method = "SMA",
-             label.x = "left",
-             label.y = "bottom",
-             size = text_size) +
-  scale_fill_carto_c("Proportion of Angiosperms", 
-                     type = "diverging", 
-                     palette = "Earth",
-                     direction = -1,
-                     limits = c(0, 1),
-                     breaks = c(0.0, 0.5, 1.0)) +
-  coord_cartesian(xlim = c(0, 1.0), 
-                  expand = TRUE) +
-  scale_x_continuous(breaks = c(0.0, 0.5, 1.0), 
-                     labels = c(0.0, 0.5, 1.0)) +
-  #scale_y_continuous(trans = log10_trans()) +
-  annotation_logticks(sides = "l") +
-  xlab(" ") +
-  ylab(expression({}*italic(CV)~~SEI[horizontal]))  +
-  theme_bw(base_size = tamano) +
-  th + gui + 
-  facet_grid("Horizontal" ~ type)
-
-PSV_trid <-ggplot(frame, aes(PSV, 
-                  CV_Slope_H,
-                  fill = PA)) +
-  geom_point(shape = 21, colour = "grey", alpha = 0.8) +
-  stat_ma_line(method = "SMA",
-               se = TRUE,
-               size = 0.5,
-               colour = "black") +
-  stat_ma_eq(use_label(c("eq", "R2")),
-             method = "SMA",
-             label.x = "left",
-             label.y = "bottom",
-             size = text_size) +
-  scale_fill_carto_c("Proportion of Angiosperms", 
-                     type = "diverging", 
-                     palette = "Earth",
-                     direction = -1,
-                     limits = c(0, 1),
-                     breaks = c(0.0, 0.5, 1.0)) +
-  coord_cartesian(xlim = c(0, 1.0),
-                  ylim = c(0.003, 0.34),
-                  expand = TRUE) +
-  scale_x_continuous(breaks = c(0.0, 0.5, 1.0), 
-                     labels = c(0.0, 0.5, 1.0)) +
-  #scale_y_continuous(trans = log10_trans()) +
+               method = "SMA",
+               formula = y ~ x,
+               label.x = "left",
+               label.y = "bottom",
+               size = text_size) +
+  plot_comp + colour_PA +
+  coord_cartesian(xlim = c(0.0, 1.0), ylim = c(0.002, 0.16), expand = TRUE) +
+  scale_x_continuous(breaks = c(0.0, 0.5, 1.0), labels = c("0.0", "0.5", "1.0")) +
+  scale_y_continuous(trans = log10_trans()) +
   annotation_logticks(sides = "l") +
   xlab("Species variability") +
-  ylab(expression({}*italic(CV)~~{}*italic(D)[b]))  +
+  ylab(bquote(italic(CV)~italic(d)[italic(D)]))  +
   theme_bw(base_size = tamano) +
   th + gui + 
-  facet_grid("3D" ~ type)
+  facet_grid("Structural Complexity" ~ type)
 
 
+cv_vol_Pgap <- ggplot(cv_metrics[variable == "CV_pgap",], aes(PSV,
+                                                value,
+                                                fill = PA)) +
+  geom_point(aes(shape = plot_type), colour = "grey", alpha = 0.8) +
+  stat_ma_line(method = "SMA",
+                 se = FALSE,
+                 formula = y ~ x,
+                 linewidth = 0.5,
+                 colour = "black",
+                 linetype = "dotted") +
+  stat_ma_eq(use_label(c("eq", "R2")),
+               method = "SMA",
+               formula = y ~ x,
+               label.x = "left",
+               label.y = "bottom",
+               size = text_size) +
+  plot_comp + colour_PA +
+  coord_cartesian(xlim = c(0.0, 1.0), ylim = c(0.046, 1.53), expand = TRUE) +
+  scale_x_continuous(breaks = c(0.0, 0.5, 1.0), labels = c("0.0", "0.5", "1.0")) +
+  scale_y_continuous(trans = log10_trans()) +
+  annotation_logticks(sides = "l") +
+  xlab(" ") +
+  ylab(bquote(italic(CV)~italic(P)[gap])) +
+  theme_bw(base_size = tamano) +
+  th + gui + 
+  facet_grid("Canopy height" ~ type)
+
+cv_vol_CH <-ggplot(cv_metrics[variable == "CV_ch",], aes(PSV,
+                                               value,
+                                               fill = PA)) +
+  geom_point(aes(shape = plot_type), colour = "grey", alpha = 0.8) +
+  stat_ma_line(method = "SMA",
+                 se = TRUE,
+                 formula = y ~ x,
+                 linewidth = 0.5,
+                 colour = "black") +
+  stat_ma_eq(use_label(c("eq", "R2")),
+               method = "SMA",
+               formula = y ~ x,
+               label.x = "left",
+               label.y = "bottom",
+               size = text_size) +
+  plot_comp + colour_PA +
+  coord_cartesian(xlim = c(0.0, 1.0), ylim = c(0.095, 0.57), expand = TRUE) +
+  scale_x_continuous(breaks = c(0.0, 0.5, 1.0), labels = c("0.0", "0.5", "1.0")) +
+  scale_y_continuous(trans = log10_trans()) +
+  annotation_logticks(sides = "l") +
+  xlab(" ") +
+  ylab(bquote(italic(CV)~bar(italic(CH)))) +
+  theme_bw(base_size = tamano) +
+  th + gui + 
+  facet_grid("Cover" ~ type)
+
+# ------------------------------------------------------------------------------
 #Merge panels
-Figure_4 <- ggarrange(PSV_SEIv,
-                      PSV_SEIh,
-                      PSV_trid,
+Figure_4 <- ggarrange(cv_vol_CH,
+                      cv_vol_Pgap,
+                      cv_vol_dD,
                       ncol = 1, nrow = 3,  align = "hv", 
                       common.legend = TRUE)
 #Export figure
-jpeg("Figure_4.jpeg", width = 210, height = 210, units = "mm", res = 600)
+jpeg(paste0(root_path, "/Figure_4.jpeg"), width = 210, height = 210, units = "mm", res = 600)
 
 Figure_4
 

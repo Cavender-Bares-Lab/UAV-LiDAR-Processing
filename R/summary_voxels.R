@@ -30,17 +30,12 @@ summary_voxels <- function(voxels, edge_length = NULL) {
     voxels <- voxels$voxels
   }
   
-  profile <- voxels[, .N, by = Z]
-  
   frame <- data.table(Edge.X = Edge.length[1], 
                       Edge.Y = Edge.length[2], 
                       Edge.Z = Edge.length[3], 
                       Hill0 = hill(voxels$N, 0),
                       Hill1 = hill(voxels$N, 0.9999),
-                      Hill2 = hill(voxels$N, 2), 
-                      ENL_Hill0 = hill(profile$N, 0),
-                      ENL_Hill1 = hill(profile$N, 0.999),
-                      ENL_Hill2 = hill(profile$N, 2))
+                      Hill2 = hill(voxels$N, 2))
   
   return(frame)
   

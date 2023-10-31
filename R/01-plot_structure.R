@@ -14,8 +14,8 @@ library(data.table)
 #' -----------------------------------------------------------------------------
 #' Working path
 
-#root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
-root_path <- "F:/Projects/LiDAR/data"
+root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+#root_path <- "F:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Functions
@@ -67,6 +67,9 @@ data <- data[, c("year_planted",
                  "deadmissing",
                  "V.conoid_conoidoid_infill",
                  "Biomass.conoid_conoidoid_infill")]
+
+# Transform volumen
+data$V.conoid_conoidoid_infill <- data$V.conoid_conoidoid_infill/1000000
 
 #-------------------------------------------------------------------------------
 # Work on small plots and 2022 data 
@@ -175,16 +178,20 @@ plot_growth <- merge(plots_2021, plots_2022, by = c("individual_id"),
                      all.x = FALSE, all.y = FALSE)
 
 # Estimate Annual Woody Productivity
-plot_growth$AWP <- (log(plot_growth$volume_2022) - log(plot_growth$volume_2021)) /
-  ((plot_growth$date_2022 - plot_growth$date_2021)/365)
+plot_growth$AWP <- (plot_growth$volume_2022 - plot_growth$volume_2021) /
+  ((plot_growth$date_2022 - plot_growth$date_2021)/365.25)
+
+plot_growth$RAWP <- ((plot_growth$volume_2022 - plot_growth$volume_2021)/plot_growth$volume_2021) /
+  ((plot_growth$date_2022 - plot_growth$date_2021)/365.25)
 
 # Get summary per plot
-plot_growth_summary <- plot_growth[, .(total_growth_volume = sum(AWP),
-                                       min_growth_volume = min(AWP),
-                                       max_growth_volume = max(AWP),
-                                       mean_growth_volume = mean(AWP),
-                                       sd_growth_volume = sd(AWP)), 
-                                   by = c("plot", "plot_new")]
+plot_growth_summary <- plot_growth[, .(total_AWP = sum(AWP),
+                                       mean_AWP = mean(AWP),
+                                       sd_AWP = sd(AWP),
+                                       total_RAWP = sum(RAWP),
+                                       mean_RAWP = mean(RAWP),
+                                       sd_RAWP = sd(RAWP)),
+                                       by = c("plot", "plot_new")]
 
 #-------------------------------------------------------------------------------
 # Summary of metrics by plot.
@@ -262,7 +269,7 @@ complete <- merge(complete, proportions,
                   all.y = TRUE)
 
 # Export structural attributes
-fwrite(complete, paste0(root_path, "structural_attributes.csv"))
+fwrite(complete, paste0(root_path, "/structural_attributes.csv"))
 
 
 
