@@ -34,22 +34,21 @@ frame[PA > 0 & PA < 1, plot_type := "Mixture"]
 #' -----------------------------------------------------------------------------
 #' Data reshaping
 
+AWP <- frame[, c("DOY", "total_AWP", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type")]
+meanAWPD <- frame[, c("DOY", "mean_AWP", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type")]
+sigmaAWPD <- frame[, c("DOY", "sd_AWP", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type")]
 
-vol <- frame[, c("DOY", "volume", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type")]
-vol_tree <- frame[, c("DOY", "vol_Hill1", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type")]
-vol_species <- frame[, c("DOY", "hill1_taxa", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type")]
+AWP$type <- "Annual wood productivity"
+meanAWPD$type <- "Tree growth (mean)"
+sigmaAWPD$type <- "Tree growth variability"
 
-vol$type <- "Plot volume"
-vol_tree$type <- "Tree volume diversity"
-vol_species$type <- "Species diversity (volume-weighted)" 
+colnames(AWP)[2] <- "metric"
+colnames(meanAWPD)[2] <- "metric"
+colnames(sigmaAWPD)[2] <- "metric"
 
-colnames(vol)[2] <- "metric"
-colnames(vol_tree)[2] <- "metric"
-colnames(vol_species)[2] <- "metric"
-
-data <- rbind(vol, vol_tree, vol_species)
+data <- rbind(AWP, meanAWPD, sigmaAWPD)
 data$type <- as.factor(data$type)
-data$type <- factor(data$type, levels = c("Plot volume", "Tree volume diversity", "Species diversity (volume-weighted)"))
+data$type <- factor(data$type, levels = c("Annual wood productivity", "Tree growth (mean)", "Tree growth variability"))
 
 data_melt <- melt(data, 
                   id.vars = c("DOY", "metric", "plot_type", "type"),
@@ -101,73 +100,13 @@ doy_fill <-   scale_fill_carto_c("Day of the Year",
                                  limits = c(95, 305),
                                  breaks = c(100, 200, 300)) 
 
-alpha_point <- 0.10
+alpha_point <- 0.15
 
 # ------------------------------------------------------------------------------
 # Panels
 db <- ggplot(data_melt[variable == "Slope_Hill1"], 
-             aes(x = metric,
-                 y = value, 
-                 color = DOY,
-                 fill = DOY,
-                 gruop = as.factor(DOY))) +
-  geom_point(aes(shape = plot_type), colour = "grey", alpha = alpha_point) +
-  stat_poly_line(method = "lm",
-                 se = FALSE,
-                 #formula = y ~ x,
-                 formula = y ~ poly(x, 2, raw = TRUE),
-                 linewidth = 0.5) +
-  stat_poly_eq(method = "lm",
-               #formula = y ~ x,
-               formula = y ~ poly(x, 2, raw = TRUE),
-               label.x = "right",
-               label.y = "bottom",
-               size = text_size) +
-  plot_comp + doy_color + doy_fill + 
-  scale_x_continuous(trans = log10_trans()) +
-  scale_y_continuous(n.breaks = 3, breaks = c(1.50, 2.00, 2.50), 
-                     labels = c("1.5", "2.0", "2.5")) +
-  annotation_logticks(sides = "b") +
-  xlab(bquote(Wood~volume~(m^3))) + 
-  ylab(bquote(italic(d)[italic(D)]))  +
-  theme_bw(base_size = tamano) +
-  th + gui + 
-  facet_grid("Structural Complexity" ~ type, scales = "free")
-
-pgap <- ggplot(data_melt[variable == "Pgap"], 
-               aes(x = metric,
-                   y = value, 
-                   color = DOY,
-                   fill = DOY,
-                   gruop = as.factor(DOY))) +
-  geom_point(aes(shape = plot_type), colour = "grey", alpha = alpha_point) +
-  stat_poly_line(method = "lm",
-                 se = FALSE,
-                 formula = y ~ x,
-                 #formula = y ~ poly(x, 2, raw = TRUE),
-                 linewidth = 0.5) +
-  stat_poly_eq(method = "lm",
-               formula = y ~ x,
-               #formula = y ~ poly(x, 2, raw = TRUE),
-               label.x = "left",
-               label.y = "bottom",
-               size = text_size) +
-  plot_comp + doy_color + doy_fill + 
-  coord_cartesian(ylim = c(0, 1), expand = TRUE) +
-  scale_x_continuous(trans = log10_trans()) +
-  scale_y_continuous(n.breaks = 3, breaks = c(0.0, 0.5, 1.0), 
-                     labels = c("0.0", "0.5", "1.0")) +
-  annotation_logticks(sides = "b") +
-  xlab(bquote(italic(D)[species~volume])) +
-  #xlab(bquote(AWD[plot]~(m^3~y^-1))) + 
-  ylab(bquote(italic(P)[gap])) +
-  theme_bw(base_size = tamano) +
-  th + gui + 
-  facet_grid("Cover" ~ type, scales = "free")
-
-ch <- ggplot(data_melt[variable == "mean_maximun_height"], 
-             aes(x = metric,
-                 y = value, 
+             aes(x = value,
+                 y = metric, 
                  color = DOY,
                  fill = DOY,
                  gruop = as.factor(DOY))) +
@@ -184,27 +123,85 @@ ch <- ggplot(data_melt[variable == "mean_maximun_height"],
                label.y = "top",
                size = text_size) +
   plot_comp + doy_color + doy_fill + 
-  coord_cartesian(ylim = c(0, 4.5), expand = TRUE) +
-  scale_x_continuous(trans = log10_trans()) +
-  scale_y_continuous(n.breaks = 3, breaks = c(0.0, 2.0, 4.0), 
-                     labels = c("0.0", "2.0", "4.0")) +
-  annotation_logticks(sides = "b") +
-  #xlab(bquote(sigma*AWD[tree]~(m^3~y^-1))) +
-  xlab(bquote(italic(D)[tree~volume])) +
-  ylab(bquote(bar(italic(CH))~(m))) +
+  scale_y_continuous(trans = log10_trans()) +
+  scale_x_continuous(n.breaks = 3, breaks = c(1.50, 2.00, 2.50), 
+                     labels = c("1.5", "2.0", "2.5")) +
+  annotation_logticks(sides = "l") +
+  ylab(bquote(AWD[plot]~(m^3~y^-1))) + 
+  xlab(bquote(italic(d)[italic(D)]))  +
   theme_bw(base_size = tamano) +
   th + gui + 
-  facet_grid("Canopy height" ~ type, scales = "free")
+  facet_grid(type ~ "Structural complexity", scales = "free")
+
+pgap <- ggplot(data_melt[variable == "Pgap"], 
+               aes(x = value,
+                   y = metric, 
+                   color = DOY,
+                   fill = DOY,
+                   gruop = as.factor(DOY))) +
+  geom_point(aes(shape = plot_type), colour = "grey", alpha = alpha_point) +
+  stat_poly_line(method = "lm",
+                 se = FALSE,
+                 formula = y ~ x,
+                 #formula = y ~ poly(x, 2, raw = TRUE),
+                 linewidth = 0.5) +
+  stat_poly_eq(method = "lm",
+               formula = y ~ x,
+               #formula = y ~ poly(x, 2, raw = TRUE),
+               label.x = "left",
+               label.y = "bottom",
+               size = text_size) +
+  plot_comp + doy_color + doy_fill + 
+  coord_cartesian(xlim = c(0, 1), expand = TRUE) +
+  scale_y_continuous(trans = log10_trans()) +
+  scale_x_continuous(n.breaks = 3, breaks = c(0.0, 0.5, 1.0), 
+                     labels = c("0.0", "0.5", "1.0")) +
+  annotation_logticks(sides = "l") +
+  ylab(bquote(mu*AWD[tree]~(m^3~y^-1))) + 
+  xlab(bquote(italic(P)[gap])) +
+  theme_bw(base_size = tamano) +
+  th + gui + 
+  facet_grid(type ~ "Cover", scales = "free")
+
+ch <- ggplot(data_melt[variable == "mean_maximun_height"], 
+             aes(x = value,
+                 y = metric, 
+                 color = DOY,
+                 fill = DOY,
+                 gruop = as.factor(DOY))) +
+  geom_point(aes(shape = plot_type), colour = "grey", alpha = alpha_point) +
+  stat_poly_line(method = "lm",
+                 se = FALSE,
+                 #formula = y ~ x,
+                 formula = y ~ poly(x, 2, raw = TRUE),
+                 linewidth = 0.5) +
+  stat_poly_eq(method = "lm",
+               #formula = y ~ x,
+               formula = y ~ poly(x, 2, raw = TRUE),
+               label.x = "right",
+               label.y = "bottom",
+               size = text_size) +
+  doy_fill + doy_color + plot_comp + 
+  coord_cartesian(xlim = c(0, 4.5), expand = TRUE) +
+  scale_y_continuous(trans = log10_trans()) +
+  scale_x_continuous(n.breaks = 3, breaks = c(0.0, 2.0, 4.0), 
+                     labels = c("0.0", "2.0", "4.0")) +
+  annotation_logticks(sides = "l") +
+  ylab(bquote(sigma*AWD[tree]~(m^3~y^-1))) + 
+  xlab(bquote(bar(italic(CH))~(m))) +
+  theme_bw(base_size = tamano) +
+  th + gui + 
+  facet_grid(type ~ "Canopy height", scales = "free")
 
 #-------------------------------------------------------------------------------
 #Merge panels
 
-Figure_1 <- ggarrange(ch, pgap, db,
-                      ncol = 1, nrow = 3,  align = "hv", 
+Figure_3 <- ggarrange(ch, pgap, db,
+                      ncol = 3, nrow = 1,  align = "hv", 
                       common.legend = TRUE)
 #Export figure
-jpeg(paste0(root_path, "/Figure_1.jpeg"), width = 210, height = 210, units = "mm", res = 600)
+jpeg(paste0(root_path, "/Figure_3.jpeg"), width = 210, height = 210, units = "mm", res = 600)
 
-Figure_1
+Figure_3
 
 dev.off()
