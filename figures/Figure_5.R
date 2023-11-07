@@ -32,25 +32,25 @@ frame[PA > 0 & PA < 1, plot_type := "Mixture"]
 #' -----------------------------------------------------------------------------
 #' Reshape frame
 
-taxa <- frame[, c("DOY", "hill0_taxa", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "plot_new", "PA")]
-phylo <- frame[, c("DOY", "hill0_phylo", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "plot_new", "PA")]
-funct <- frame[, c("DOY", "hill0_FD_q", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "plot_new", "PA")]
+taxa <- frame[, c("DOY", "TD_PSV", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "plot_new", "PA")]
+phylo <- frame[, c("DOY", "PD_PSV", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "plot_new", "PA")]
+funct <- frame[, c("DOY", "FD_PSV", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "plot_new", "PA")]
 
 taxa$type <- "Taxonomic"
 phylo$type <- "Phylogenetic"
 funct$type <- "Functional" 
 
-colnames(taxa)[2] <- "Diversity"
-colnames(phylo)[2] <- "Diversity"
-colnames(funct)[2] <- "Diversity"
+colnames(taxa)[2] <- "PSV"
+colnames(phylo)[2] <- "PSV"
+colnames(funct)[2] <- "PSV"
 
 data <- rbind(taxa, phylo, funct)
 data$type <- as.factor(data$type)
 data$type <- factor(data$type, levels = c("Taxonomic", "Phylogenetic", "Functional"))
 
 data_melt <- melt(data, 
-                  id.vars = c("DOY", "Diversity", "plot_type", "type"),
-                  measure.vars = c("Slope_Hill1", "Pgap", "mean_maximun_height"))
+     id.vars = c("DOY", "PSV", "plot_type", "type"),
+     measure.vars = c("Slope_Hill1", "Pgap", "mean_maximun_height"))
 
 # Plot details
 tamano <- 12
@@ -98,88 +98,81 @@ doy_fill <-   scale_fill_carto_c("Day of the Year",
 # ------------------------------------------------------------------------------
 # Diversity plots
 fractal <- ggplot(data_melt[variable == "Slope_Hill1",], 
-                  aes(x = Diversity, 
-                      y = value,
-                      color = DOY,
-                      fill = DOY,
-                      gruop = as.factor(DOY))) +
+       aes(x = PSV, 
+           y = value,
+           color = DOY,
+           fill = DOY,
+           gruop = as.factor(DOY))) +
   geom_point(aes(shape = plot_type), colour = "grey", alpha = 0.1) +
   stat_poly_line(method = "lm",
                  se = FALSE,
-                 formula = y ~ x,
-                 #formula = y ~ poly(x, 2, raw = TRUE),
+                 #formula = y ~ x,
+                 formula = y ~ poly(x, 2, raw = TRUE),
                  linewidth = 0.5) +
   stat_poly_eq(method = "lm",
-               formula = y ~ x,
-               #formula = y ~ poly(x, 2, raw = TRUE),
-               label.x = "left",
+               #formula = y ~ x,
+               formula = y ~ poly(x, 2, raw = TRUE),
+               label.x = "right",
                label.y = "bottom",
                size = text_size) +
   plot_comp + doy_color + doy_fill + 
-  coord_cartesian(ylim = c(1.40, 2.6), expand = TRUE) +
-  scale_x_continuous(n.breaks = 4) +
-  scale_y_continuous(n.breaks = 3, breaks = c(1.50, 2.00, 2.50), 
-                     labels = c("1.5", "2.0", "2.5")) +
-  xlab(bquote(Species~richness))  +
-  #xlab(bquote(Species~richness~(*^q=0*italic(D)])))  +
+  coord_cartesian(xlim = c(0, 1), ylim = c(1.40, 2.6), expand = TRUE) +
+  scale_x_continuous(breaks = c(0.0, 0.5, 1.0), labels = c("0.0", "0.5", "1.0")) +
+  xlab("Species variability") +
   ylab(bquote(italic(d)[italic(D)]))  +
   theme_bw(base_size = tamano) +
   th + gui +
   facet_grid("Structural complexity" ~ type, scales = "free")
 
 gap <- ggplot(data_melt[variable == "Pgap",], 
-              aes(x = Diversity, 
-                  y = 1 - value,
-                  color = DOY,
-                  fill = DOY,
-                  gruop = as.factor(DOY))) +
+       aes(x = PSV, 
+           y = 1 - value,
+           color = DOY,
+           fill = DOY,
+           gruop = as.factor(DOY))) +
   geom_point(aes(shape = plot_type), colour = "grey", alpha = 0.1) +
   stat_poly_line(method = "lm",
                  se = FALSE,
-                 formula = y ~ x,
-                 #formula = y ~ poly(x, 2, raw = TRUE),
+                 formula = y ~ poly(x, 2, raw = TRUE),
                  linewidth = 0.5) +
   stat_poly_eq(method = "lm",
-               formula = y ~ x,
-               #formula = y ~ poly(x, 2, raw = TRUE),
-               label.x = "left",
+               formula = y ~ poly(x, 2, raw = TRUE),
+               label.x = "right",
                label.y = "bottom",
                size = text_size) +
   plot_comp + doy_color + doy_fill + 
-  coord_cartesian(ylim = c(0, 1), expand = TRUE) +
-  scale_x_continuous(n.breaks = 4) +
-  scale_y_continuous(breaks = c(0.0, 0.5, 1.0), labels = c("0.0", "0.5", "1.0")) +
-  xlab(bquote(italic(FD)))  +
+  coord_cartesian(xlim = c(0, 1), ylim = c(0, 1), expand = TRUE) +
+  scale_x_continuous(breaks = c(0.0, 0.5, 1.0), labels = c("0.0", "0.5", "1.0")) +
+  xlab("Species variability") +
   ylab(bquote(italic(P)[cover]))  +
   theme_bw(base_size = tamano) +
   th + gui +
   facet_grid("Cover probability" ~ type, scales = "free")
 
 ch <- ggplot(data_melt[variable == "mean_maximun_height",], 
-             aes(x = Diversity, 
-                 y = value,
-                 color = DOY,
-                 fill = DOY,
-                 gruop = as.factor(DOY))) +
+       aes(x = PSV, 
+           y = value,
+           color = DOY,
+           fill = DOY,
+           gruop = as.factor(DOY))) +
   geom_point(aes(shape = plot_type), colour = "grey", alpha = 0.1) +
   stat_poly_line(method = "lm",
                  se = FALSE,
-                 formula = y ~ x,
-                 #formula = y ~ poly(x, 2, raw = TRUE),
+                 #formula = y ~ x,
+                 formula = y ~ poly(x, 2, raw = TRUE),
                  linewidth = 0.5) +
   stat_poly_eq(method = "lm",
-               formula = y ~ x,
-               #formula = y ~ poly(x, 2, raw = TRUE),
-               label.x = "left",
+               #formula = y ~ x,
+               formula = y ~ poly(x, 2, raw = TRUE),
+               label.x = "right",
                label.y = "bottom",
                size = text_size) +
   plot_comp + doy_color + doy_fill + 
-  #coord_cartesian(xlim = c(0, 1), expand = TRUE) +
-  scale_x_continuous(n.breaks = 4) +
-  #scale_x_continuous(breaks = c(0.0, 0.5, 1.0), labels = c("0.0", "0.5", "1.0")) +
+  coord_cartesian(xlim = c(0, 1), expand = TRUE) +
+  scale_x_continuous(breaks = c(0.0, 0.5, 1.0), labels = c("0.0", "0.5", "1.0")) +
   scale_y_continuous(trans = log10_trans()) +
-  #annotation_logticks(sides = "l") +
-  xlab(bquote(italic(PD)))  +
+  annotation_logticks(sides = "l") +
+  xlab("Species variability") +
   ylab(bquote(bar(italic(CH))~(m))) +
   theme_bw(base_size = tamano) +
   th + gui +
@@ -187,7 +180,7 @@ ch <- ggplot(data_melt[variable == "mean_maximun_height",],
 
 # ------------------------------------------------------------------------------
 #Merge panels
-Figure_3 <- ggarrange(ch, 
+Figure_5 <- ggarrange(ch, 
                       gap, 
                       fractal,
                       ncol = 1, nrow = 3,  align = "hv", 
@@ -197,7 +190,7 @@ Figure_3 <- ggarrange(ch,
                                         family = NULL),
                       common.legend = TRUE)
 #Export figure
-jpeg(paste0(root_path, "/Figure_3.jpeg"), width = 210, height = 210, units = "mm", res = 600)
+jpeg(paste0(root_path, "/Figure_5.jpeg"), width = 210, height = 210, units = "mm", res = 600)
 
 Figure_3
 

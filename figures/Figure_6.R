@@ -16,7 +16,6 @@ library(ggplot2)
 library(scales)
 library(ggpubr)
 library(ggpmisc)
-options(scipen = 99999)
 
 #' -----------------------------------------------------------------------------
 #' Working path
@@ -33,34 +32,35 @@ frame[PA == 0, plot_type := "Gymnosperms"]
 frame[PA > 0 & PA < 1, plot_type := "Mixture"]
 
 #' -----------------------------------------------------------------------------
-#' Data reshaping
+#' Reshape frame
 
-vol <- frame[, c("DOY", "volume", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "plot_new", "PA")]
-AWP <- frame[, c("DOY", "total_AWP", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "plot_new", "PA")]
-sigmaAWPD <- frame[, c("DOY", "sd_AWP", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "plot_new", "PA")]
+taxa <- frame[, c("DOY", "TD_PSV", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "plot_new", "PA")]
+phylo <- frame[, c("DOY", "PD_PSV", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "plot_new", "PA")]
+funct <- frame[, c("DOY", "FD_PSV", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "plot_new", "PA")]
 
-vol$type <- "Plot volume"
-AWP$type <- "Plot productivity"
-sigmaAWPD$type <- "Tree growth variability" 
+taxa$type <- "Taxonomic"
+phylo$type <- "Phylogenetic"
+funct$type <- "Functional" 
 
-colnames(vol)[2] <- "metric"
-colnames(AWP)[2] <- "metric"
-colnames(sigmaAWPD)[2] <- "metric"
+colnames(taxa)[2] <- "PSV"
+colnames(phylo)[2] <- "PSV"
+colnames(funct)[2] <- "PSV"
 
-data <- rbind(vol, AWP, sigmaAWPD)
+data <- rbind(taxa, phylo, funct)
 data$type <- as.factor(data$type)
-data$type <- factor(data$type, levels = c("Plot volume", "Plot productivity", "Tree growth variability"))
+data$type <- factor(data$type, levels = c("Taxonomic", "Phylogenetic", "Functional"))
 
 data$Pgap <- 1 - data$Pgap #Pcover
 
 cv_metrics <- data[, .(CV_slope = sd(Slope_Hill1)/mean(Slope_Hill1),
                        CV_ch = sd(mean_maximun_height)/mean(mean_maximun_height),
                        CV_pgap = sd(Pgap)/mean(Pgap)), 
-                   by = c("plot_new", "metric", "plot_type", "type", "PA")]
+                   by = c("plot_new", "PSV", "plot_type", "type", "PA")]
+cv_metrics <- cv_metrics[!is.na(PSV), ]
 
 cv_metrics <- melt(cv_metrics, 
-                   id.vars = c("plot_new", "plot_type", "type", "metric", "PA"),
-                   measure.vars = c("CV_slope", "CV_ch", "CV_pgap"))
+                  id.vars = c("plot_new", "plot_type", "type", "PSV", "PA"),
+                  measure.vars = c("CV_slope", "CV_ch", "CV_pgap"))
 
 # ------------------------------------------------------------------------------
 # Plot details
@@ -101,35 +101,37 @@ colour_PA <- scale_fill_viridis("Proportion of Angiosperms",
                                 breaks = c(0.0, 0.5, 1.0))
 
 # ------------------------------------------------------------------------------
-# Plot
-db <- ggplot(cv_metrics[variable == "CV_slope"], aes(metric,
-                                                     value,
-                                                     fill = PA)) +
+# Plots
+cv_vol_dD <- ggplot(cv_metrics[variable == "CV_slope",], aes(PSV,
+                                    value,
+                                    fill = PA)) +
   geom_point(aes(shape = plot_type), colour = "grey", alpha = 0.8) +
   stat_ma_line(method = "SMA",
-               se = TRUE,
-               formula = y ~ x,
-               linewidth = 0.5,
-               colour = "black") +
+                 se = TRUE,
+                 formula = y ~ x,
+                 linewidth = 0.5,
+                 colour = "black") +
   stat_ma_eq(use_label(c("eq", "R2")),
-             method = "SMA",
-             formula = y ~ x,
-             label.x = "right",
-             label.y = "top",
-             size = text_size) +
-  colour_PA + plot_comp + 
-  scale_x_continuous(trans = log10_trans()) +
+               method = "SMA",
+               formula = y ~ x,
+               label.x = "right",
+               label.y = "top",
+               size = text_size) +
+  plot_comp + colour_PA +
+  coord_cartesian(xlim = c(0.0, 1.0), ylim = c(0.002, 0.16), expand = TRUE) +
+  scale_x_continuous(breaks = c(0.0, 0.5, 1.0), labels = c("0.0", "0.5", "1.0")) +
   scale_y_continuous(trans = log10_trans()) +
-  annotation_logticks(sides = "bl") +
-  xlab(bquote(Wood~volume~(m^3))) + 
+  annotation_logticks(sides = "l") +
+  xlab("Species variability") +
   ylab(bquote(italic(CV)~italic(d)[italic(D)]))  +
   theme_bw(base_size = tamano) +
   th + gui + 
   facet_grid("Structural complexity" ~ type, scales = "free")
 
-pgap <- ggplot(cv_metrics[variable == "CV_pgap"], aes(metric,
-                                                      value,
-                                                      fill = PA)) +
+
+cv_vol_Pgap <- ggplot(cv_metrics[variable == "CV_pgap",], aes(PSV,
+                                                value,
+                                                fill = PA)) +
   geom_point(aes(shape = plot_type), colour = "grey", alpha = 0.8) +
   stat_ma_line(method = "SMA",
                se = TRUE,
@@ -142,36 +144,38 @@ pgap <- ggplot(cv_metrics[variable == "CV_pgap"], aes(metric,
              label.x = "right",
              label.y = "top",
              size = text_size) +
-  colour_PA + plot_comp +
-  scale_x_continuous(trans = log10_trans()) +
-  #scale_y_continuous(trans = log10_trans()) +
-  annotation_logticks(sides = "b") +
-  xlab(bquote(AWD[plot]~(m^3~y^-1))) + 
+  plot_comp + colour_PA +
+  coord_cartesian(xlim = c(0.0, 1.0), expand = TRUE) +
+  scale_x_continuous(breaks = c(0.0, 0.5, 1.0), labels = c("0.0", "0.5", "1.0")) +
+  scale_y_continuous(trans = log10_trans()) +
+  annotation_logticks(sides = "l") +
+  xlab(" ") +
   ylab(bquote(italic(CV)~italic(P)[cover])) +
   theme_bw(base_size = tamano) +
   th + gui + 
   facet_grid("Cover probability" ~ type, scales = "free")
 
-ch <- ggplot(cv_metrics[variable == "CV_ch"], aes(metric,
-                                                  value,
-                                                  fill = PA)) +
+cv_vol_CH <-ggplot(cv_metrics[variable == "CV_ch",], aes(PSV,
+                                               value,
+                                               fill = PA)) +
   geom_point(aes(shape = plot_type), colour = "grey", alpha = 0.8) +
   stat_ma_line(method = "SMA",
-               se = TRUE,
-               formula = y ~ x,
-               linewidth = 0.5,
-               colour = "black") +
+                 se = TRUE,
+                 formula = y ~ x,
+                 linewidth = 0.5,
+                 colour = "black") +
   stat_ma_eq(use_label(c("eq", "R2")),
-             method = "SMA",
-             formula = y ~ x,
-             label.x = "right",
-             label.y = "top",
-             size = text_size) +
-  colour_PA + plot_comp +
-  scale_x_continuous(trans = log10_trans()) +
+               method = "SMA",
+               formula = y ~ x,
+               label.x = "right",
+               label.y = "top",
+               size = text_size) +
+  plot_comp + colour_PA +
+  coord_cartesian(xlim = c(0.0, 1.0), ylim = c(0.095, 0.57), expand = TRUE) +
+  scale_x_continuous(breaks = c(0.0, 0.5, 1.0), labels = c("0.0", "0.5", "1.0")) +
   scale_y_continuous(trans = log10_trans()) +
-  annotation_logticks(sides = "bl") +
-  xlab(bquote(sigma*AWD[tree]~(m^3~y^-1))) + 
+  annotation_logticks(sides = "l") +
+  xlab(" ") +
   ylab(bquote(italic(CV)~bar(italic(CH))~(m))) +
   theme_bw(base_size = tamano) +
   th + gui + 
@@ -179,12 +183,15 @@ ch <- ggplot(cv_metrics[variable == "CV_ch"], aes(metric,
 
 # ------------------------------------------------------------------------------
 #Merge panels
-Figure_2 <- ggarrange(ch, pgap, db,
+Figure_6 <- ggarrange(cv_vol_CH,
+                      cv_vol_Pgap,
+                      cv_vol_dD,
                       ncol = 1, nrow = 3,  align = "hv", 
                       common.legend = TRUE)
 #Export figure
-jpeg(paste0(root_path, "/Figure_2.jpeg"), width = 210, height = 210, units = "mm", res = 600)
+jpeg(paste0(root_path, "/Figure_6.jpeg"), width = 210, height = 210, units = "mm", res = 600)
 
-Figure_2
+Figure_6
 
 dev.off()
+

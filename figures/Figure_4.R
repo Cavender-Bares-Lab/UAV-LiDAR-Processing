@@ -15,6 +15,7 @@ library(rcartocolor)
 library(ggplot2)
 library(scales)
 library(ggpubr)
+library(ggpmisc)
 
 #' -----------------------------------------------------------------------------
 #' Working path
@@ -23,7 +24,7 @@ root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
 #root_path <- "F:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
-#' Load data
+#' Working path
 
 frame <- fread(paste0(root_path, "/master_clean.csv"))
 frame[PA == 1, plot_type := "Angiosperms"]
@@ -33,17 +34,17 @@ frame[PA > 0 & PA < 1, plot_type := "Mixture"]
 #' -----------------------------------------------------------------------------
 #' Reshape frame
 
-taxa <- frame[, c("DOY", "TD_PSV", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "plot_new", "PA")]
-phylo <- frame[, c("DOY", "PD_PSV", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "plot_new", "PA")]
-funct <- frame[, c("DOY", "FD_PSV", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "plot_new", "PA")]
+taxa <- frame[, c("DOY", "hill0_taxa", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "plot_new", "PA")]
+phylo <- frame[, c("DOY", "hill0_phylo", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "plot_new", "PA")]
+funct <- frame[, c("DOY", "hill0_FD_q", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "plot_new", "PA")]
 
 taxa$type <- "Taxonomic"
 phylo$type <- "Phylogenetic"
 funct$type <- "Functional" 
 
-colnames(taxa)[2] <- "PSV"
-colnames(phylo)[2] <- "PSV"
-colnames(funct)[2] <- "PSV"
+colnames(taxa)[2] <- "Diversity"
+colnames(phylo)[2] <- "Diversity"
+colnames(funct)[2] <- "Diversity"
 
 data <- rbind(taxa, phylo, funct)
 data$type <- as.factor(data$type)
@@ -54,12 +55,11 @@ data$Pgap <- 1 - data$Pgap #Pcover
 cv_metrics <- data[, .(CV_slope = sd(Slope_Hill1)/mean(Slope_Hill1),
                        CV_ch = sd(mean_maximun_height)/mean(mean_maximun_height),
                        CV_pgap = sd(Pgap)/mean(Pgap)), 
-                   by = c("plot_new", "PSV", "plot_type", "type", "PA")]
-cv_metrics <- cv_metrics[!is.na(PSV), ]
+                   by = c("plot_new", "Diversity", "plot_type", "type", "PA")]
 
 cv_metrics <- melt(cv_metrics, 
-                  id.vars = c("plot_new", "plot_type", "type", "PSV", "PA"),
-                  measure.vars = c("CV_slope", "CV_ch", "CV_pgap"))
+                   id.vars = c("plot_new", "plot_type", "type", "Diversity", "PA"),
+                   measure.vars = c("CV_slope", "CV_ch", "CV_pgap"))
 
 # ------------------------------------------------------------------------------
 # Plot details
@@ -101,81 +101,84 @@ colour_PA <- scale_fill_viridis("Proportion of Angiosperms",
 
 # ------------------------------------------------------------------------------
 # Plots
-cv_vol_dD <- ggplot(cv_metrics[variable == "CV_slope",], aes(PSV,
-                                    value,
-                                    fill = PA)) +
+cv_vol_dD <- ggplot(cv_metrics[variable == "CV_slope",], aes(Diversity,
+                                                             value,
+                                                             fill = PA)) +
   geom_point(aes(shape = plot_type), colour = "grey", alpha = 0.8) +
-  stat_ma_line(method = "SMA",
-                 se = TRUE,
-                 formula = y ~ x,
-                 linewidth = 0.5,
-                 colour = "black") +
-  stat_ma_eq(use_label(c("eq", "R2")),
-               method = "SMA",
+  stat_poly_line(method = "lm",
+               se = FALSE,
                formula = y ~ x,
-               label.x = "right",
-               label.y = "top",
-               size = text_size) +
+               linewidth = 0.5,
+               colour = "black",
+               linetype = "dotted") +
+  stat_poly_eq(use_label(c("eq", "R2")),
+             method = "lm",
+             formula = y ~ x,
+             label.x = "right",
+             label.y = "bottom",
+             size = text_size) +
   plot_comp + colour_PA +
-  coord_cartesian(xlim = c(0.0, 1.0), ylim = c(0.002, 0.16), expand = TRUE) +
-  scale_x_continuous(breaks = c(0.0, 0.5, 1.0), labels = c("0.0", "0.5", "1.0")) +
+  #coord_cartesian(xlim = c(0.0, 1.0), ylim = c(0.002, 0.16), expand = TRUE) +
+  scale_x_continuous(n.breaks = 4) +
   scale_y_continuous(trans = log10_trans()) +
   annotation_logticks(sides = "l") +
-  xlab("Species variability") +
+  xlab("Species richness") +
   ylab(bquote(italic(CV)~italic(d)[italic(D)]))  +
   theme_bw(base_size = tamano) +
   th + gui + 
   facet_grid("Structural complexity" ~ type, scales = "free")
 
 
-cv_vol_Pgap <- ggplot(cv_metrics[variable == "CV_pgap",], aes(PSV,
-                                                value,
-                                                fill = PA)) +
+cv_vol_Pgap <- ggplot(cv_metrics[variable == "CV_pgap",], aes(Diversity,
+                                                              value,
+                                                              fill = PA)) +
   geom_point(aes(shape = plot_type), colour = "grey", alpha = 0.8) +
-  stat_ma_line(method = "SMA",
-               se = TRUE,
+  stat_poly_line(method = "lm",
+               se = FALSE,
                formula = y ~ x,
                linewidth = 0.5,
-               colour = "black") +
-  stat_ma_eq(use_label(c("eq", "R2")),
-             method = "SMA",
+               colour = "black",
+               linetype = "dotted") +
+  stat_poly_eq(use_label(c("eq", "R2")),
+             method = "lm",
              formula = y ~ x,
              label.x = "right",
-             label.y = "top",
+             label.y = "bottom",
              size = text_size) +
   plot_comp + colour_PA +
-  coord_cartesian(xlim = c(0.0, 1.0), expand = TRUE) +
-  scale_x_continuous(breaks = c(0.0, 0.5, 1.0), labels = c("0.0", "0.5", "1.0")) +
+  #coord_cartesian(xlim = c(0.0, 1.0), expand = TRUE) +
+  scale_x_continuous(n.breaks = 4) +
   scale_y_continuous(trans = log10_trans()) +
   annotation_logticks(sides = "l") +
   xlab(" ") +
-  ylab(bquote(italic(CV)~italic(P)[gap])) +
+  ylab(bquote(italic(CV)~italic(P)[cover])) +
   theme_bw(base_size = tamano) +
   th + gui + 
   facet_grid("Cover probability" ~ type, scales = "free")
 
-cv_vol_CH <-ggplot(cv_metrics[variable == "CV_ch",], aes(PSV,
-                                               value,
-                                               fill = PA)) +
+cv_vol_CH <-ggplot(cv_metrics[variable == "CV_ch",], aes(Diversity,
+                                                         value,
+                                                         fill = PA)) +
   geom_point(aes(shape = plot_type), colour = "grey", alpha = 0.8) +
-  stat_ma_line(method = "SMA",
-                 se = TRUE,
-                 formula = y ~ x,
-                 linewidth = 0.5,
-                 colour = "black") +
-  stat_ma_eq(use_label(c("eq", "R2")),
-               method = "SMA",
+  stat_poly_line(method = "lm",
+               se = FALSE,
                formula = y ~ x,
-               label.x = "right",
-               label.y = "top",
-               size = text_size) +
+               linewidth = 0.5,
+               colour = "black",
+               linetype = "dotted") +
+  stat_poly_eq(use_label(c("eq", "R2")),
+             method = "lm",
+             formula = y ~ x,
+             label.x = "right",
+             label.y = "bottom",
+             size = text_size) +
   plot_comp + colour_PA +
-  coord_cartesian(xlim = c(0.0, 1.0), ylim = c(0.095, 0.57), expand = TRUE) +
-  scale_x_continuous(breaks = c(0.0, 0.5, 1.0), labels = c("0.0", "0.5", "1.0")) +
+  #coord_cartesian(xlim = c(0.0, 1.0), ylim = c(0.095, 0.57), expand = TRUE) +
+  scale_x_continuous(n.breaks = 4) +
   scale_y_continuous(trans = log10_trans()) +
   annotation_logticks(sides = "l") +
   xlab(" ") +
-  ylab(bquote(italic(CV)~bar(italic(CH)))) +
+  ylab(bquote(italic(CV)~bar(italic(CH))~(m))) +
   theme_bw(base_size = tamano) +
   th + gui + 
   facet_grid("Canopy height" ~ type, scales = "free")
