@@ -28,20 +28,20 @@ root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
 #' Load data
 
 frame <- fread(paste0(root_path, "/master_clean.csv"))
-frame[PA == 1, plot_type := "Deciduous"]
-frame[PA == 0, plot_type := "Evergreen"]
+frame[PA == 1, plot_type := "Angiosperms"]
+frame[PA == 0, plot_type := "Gymnosperms"]
 frame[PA > 0 & PA < 1, plot_type := "Mixture"]
 
 #' -----------------------------------------------------------------------------
-#' Reshape frame
+#' Data reshaping
 
-vol <- frame[, c("DOY", "volume", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "PA", "plot_new")]
-AWP <- frame[, c("DOY", "total_AWP", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "PA", "plot_new")]
-sigmaAWPD <- frame[, c("DOY", "sd_AWP", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "PA", "plot_new")]
+vol <- frame[, c("DOY", "volume", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "plot_new", "PA")]
+AWP <- frame[, c("DOY", "total_AWP", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "plot_new", "PA")]
+sigmaAWPD <- frame[, c("DOY", "sd_AWP", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "plot_new", "PA")]
 
-vol$type <- "Stand volume"
-AWP$type <- "Stand productivity"
-sigmaAWPD$type <- "Growth variability" 
+vol$type <- "Plot volume"
+AWP$type <- "Plot productivity"
+sigmaAWPD$type <- "Tree growth variability" 
 
 colnames(vol)[2] <- "metric"
 colnames(AWP)[2] <- "metric"
@@ -49,7 +49,9 @@ colnames(sigmaAWPD)[2] <- "metric"
 
 data <- rbind(vol, AWP, sigmaAWPD)
 data$type <- as.factor(data$type)
-data$type <- factor(data$type, levels = c("Stand volume", "Stand productivity", "Growth variability"))
+data$type <- factor(data$type, levels = c("Plot volume", "Plot productivity", "Tree growth variability"))
+
+data$Pgap <- 1 - data$Pgap #Pcover
 
 cv_metrics <- data[, .(CV_slope = sd(Slope_Hill1)/mean(Slope_Hill1),
                        CV_ch = sd(mean_maximun_height)/mean(mean_maximun_height),
@@ -123,7 +125,7 @@ db <- ggplot(cv_metrics[variable == "CV_slope"], aes(metric,
   ylab(bquote(italic(CV)~italic(d)[italic(D)]))  +
   theme_bw(base_size = tamano) +
   th + gui + 
-  facet_grid("Structural Complexity" ~ type, scales = "free")
+  facet_grid("Structural complexity" ~ type, scales = "free")
 
 pgap <- ggplot(cv_metrics[variable == "CV_pgap"], aes(metric,
                                                       value,
@@ -138,17 +140,17 @@ pgap <- ggplot(cv_metrics[variable == "CV_pgap"], aes(metric,
              method = "SMA",
              formula = y ~ x,
              label.x = "right",
-             label.y = "bottom",
+             label.y = "top",
              size = text_size) +
   colour_PA + plot_comp +
   scale_x_continuous(trans = log10_trans()) +
-  scale_y_continuous(trans = log10_trans()) +
-  annotation_logticks(sides = "bl") +
+  #scale_y_continuous(trans = log10_trans()) +
+  annotation_logticks(sides = "b") +
   xlab(bquote(AWD[plot]~(m^3~y^-1))) + 
-  ylab(bquote(italic(CV)~italic(P)[gap])) +
+  ylab(bquote(italic(CV)~italic(P)[cover])) +
   theme_bw(base_size = tamano) +
   th + gui + 
-  facet_grid("Cover" ~ type, scales = "free")
+  facet_grid("Cover probability" ~ type, scales = "free")
 
 ch <- ggplot(cv_metrics[variable == "CV_ch"], aes(metric,
                                                   value,
@@ -186,5 +188,3 @@ jpeg(paste0(root_path, "/Figure_2.jpeg"), width = 210, height = 210, units = "mm
 Figure_2
 
 dev.off()
-
-

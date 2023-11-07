@@ -25,16 +25,16 @@ root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
 #' Load data
 
 frame <- fread(paste0(root_path, "/master_clean.csv"))
-frame[PA == 1, plot_type := "Deciduous"]
-frame[PA == 0, plot_type := "Evergreen"]
+frame[PA == 1, plot_type := "Angiosperms"]
+frame[PA == 0, plot_type := "Gymnosperms"]
 frame[PA > 0 & PA < 1, plot_type := "Mixture"]
 
 #' -----------------------------------------------------------------------------
 #' Reshape frame
 
-taxa <- frame[, c("DOY", "TD_PSV", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type")]
-phylo <- frame[, c("DOY", "PD_PSV", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type")]
-funct <- frame[, c("DOY", "FD_PSV", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type")]
+taxa <- frame[, c("DOY", "TD_PSV", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "plot_new", "PA")]
+phylo <- frame[, c("DOY", "PD_PSV", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "plot_new", "PA")]
+funct <- frame[, c("DOY", "FD_PSV", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "plot_new", "PA")]
 
 taxa$type <- "Taxonomic"
 phylo$type <- "Phylogenetic"
@@ -76,9 +76,27 @@ gui <- guides(fill = guide_colourbar(barwidth = 15,
                                      title.position = "top",
                                      title.hjust = 0.5))
 
-#faith MPD PSV PSR 
 
-# Diversity
+plot_comp <- scale_shape_manual("Plot composition", values = c(21, 24, 22),
+                                guide = guide_legend(override.aes = list(size = 2,
+                                                                         colour = "black",
+                                                                         alpha = 1),
+                                                     title.position = "top",
+                                                     title.hjust = 0.5)) 
+
+doy_color <- scale_color_carto_c("Day of the Year", 
+                                 type = "diverging", 
+                                 palette = "Fall",
+                                 guide = "none")
+
+doy_fill <-   scale_fill_carto_c("Day of the Year", 
+                                 type = "diverging", 
+                                 palette = "Fall",
+                                 limits = c(95, 305),
+                                 breaks = c(100, 200, 300)) 
+
+# ------------------------------------------------------------------------------
+# Diversity plots
 fractal <- ggplot(data_melt[variable == "Slope_Hill1",], 
        aes(x = PSV, 
            y = value,
@@ -88,28 +106,16 @@ fractal <- ggplot(data_melt[variable == "Slope_Hill1",],
   geom_point(aes(shape = plot_type), colour = "grey", alpha = 0.1) +
   stat_poly_line(method = "lm",
                  se = FALSE,
+                 #formula = y ~ x,
                  formula = y ~ poly(x, 2, raw = TRUE),
                  linewidth = 0.5) +
   stat_poly_eq(method = "lm",
-               formula = y ~ x,
+               #formula = y ~ x,
+               formula = y ~ poly(x, 2, raw = TRUE),
                label.x = "right",
                label.y = "bottom",
                size = text_size) +
-  scale_shape_manual("Plot composition", values = c(21, 24, 22),
-                     guide = guide_legend(override.aes = list(size = 2,
-                                                              colour = "black",
-                                                              alpha = 1),
-                                          title.position = "top",
-                                          title.hjust = 0.5)) +
-  scale_color_carto_c("Day of the Year", 
-                      type = "diverging", 
-                      palette = "Fall",
-                      guide = "none") +
-  scale_fill_carto_c("Day of the Year", 
-                     type = "diverging", 
-                     palette = "Fall",
-                     limits = c(95, 305),
-                     breaks = c(100, 200, 300)) +
+  plot_comp + doy_color + doy_fill + 
   coord_cartesian(xlim = c(0, 1), ylim = c(1.40, 2.6), expand = TRUE) +
   scale_x_continuous(breaks = c(0.0, 0.5, 1.0), labels = c("0.0", "0.5", "1.0")) +
   xlab("Species variability") +
@@ -118,10 +124,9 @@ fractal <- ggplot(data_melt[variable == "Slope_Hill1",],
   th + gui +
   facet_grid("Structural complexity" ~ type, scales = "free")
 
-
 gap <- ggplot(data_melt[variable == "Pgap",], 
        aes(x = PSV, 
-           y = value,
+           y = 1 - value,
            color = DOY,
            fill = DOY,
            gruop = as.factor(DOY))) +
@@ -131,34 +136,18 @@ gap <- ggplot(data_melt[variable == "Pgap",],
                  formula = y ~ poly(x, 2, raw = TRUE),
                  linewidth = 0.5) +
   stat_poly_eq(method = "lm",
-               formula = y ~ x,
+               formula = y ~ poly(x, 2, raw = TRUE),
                label.x = "right",
-               label.y = "top",
+               label.y = "bottom",
                size = text_size) +
-  scale_shape_manual("Plot composition", values = c(21, 24, 22),
-                     guide = guide_legend(override.aes = list(size = 2,
-                                                              colour = "black",
-                                                              alpha = 1),
-                                          title.position = "top",
-                                          title.hjust = 0.5)) +
-  scale_color_carto_c("Day of the Year", 
-                      type = "diverging", 
-                      palette = "Fall",
-                      guide = "none") +
-  scale_fill_carto_c("Day of the Year", 
-                     type = "diverging", 
-                     palette = "Fall",
-                     limits = c(95, 305),
-                     breaks = c(100, 200, 300)) +
+  plot_comp + doy_color + doy_fill + 
   coord_cartesian(xlim = c(0, 1), ylim = c(0, 1), expand = TRUE) +
   scale_x_continuous(breaks = c(0.0, 0.5, 1.0), labels = c("0.0", "0.5", "1.0")) +
   xlab("Species variability") +
-  ylab(bquote(italic(P)[gap]))  +
+  ylab(bquote(italic(P)[cover]))  +
   theme_bw(base_size = tamano) +
   th + gui +
-  facet_grid("Cover" ~ type, scales = "free")
-
-
+  facet_grid("Cover probability" ~ type, scales = "free")
 
 ch <- ggplot(data_melt[variable == "mean_maximun_height",], 
        aes(x = PSV, 
@@ -169,30 +158,20 @@ ch <- ggplot(data_melt[variable == "mean_maximun_height",],
   geom_point(aes(shape = plot_type), colour = "grey", alpha = 0.1) +
   stat_poly_line(method = "lm",
                  se = FALSE,
+                 #formula = y ~ x,
                  formula = y ~ poly(x, 2, raw = TRUE),
                  linewidth = 0.5) +
   stat_poly_eq(method = "lm",
-               formula = y ~ x,
-               label.x = "left",
-               label.y = "top",
+               #formula = y ~ x,
+               formula = y ~ poly(x, 2, raw = TRUE),
+               label.x = "right",
+               label.y = "bottom",
                size = text_size) +
-  scale_shape_manual("Plot composition", values = c(21, 24, 22),
-                     guide = guide_legend(override.aes = list(size = 2,
-                                                              colour = "black",
-                                                              alpha = 1),
-                                          title.position = "top",
-                                          title.hjust = 0.5)) +
-  scale_color_carto_c("Day of the Year", 
-                      type = "diverging", 
-                      palette = "Fall",
-                      guide = "none") +
-  scale_fill_carto_c("Day of the Year", 
-                     type = "diverging", 
-                     palette = "Fall",
-                     limits = c(95, 305),
-                     breaks = c(100, 200, 300)) +
-  coord_cartesian(xlim = c(0, 1), ylim = c(0, 4.5), expand = TRUE) +
+  plot_comp + doy_color + doy_fill + 
+  coord_cartesian(xlim = c(0, 1), expand = TRUE) +
   scale_x_continuous(breaks = c(0.0, 0.5, 1.0), labels = c("0.0", "0.5", "1.0")) +
+  scale_y_continuous(trans = log10_trans()) +
+  annotation_logticks(sides = "l") +
   xlab("Species variability") +
   ylab(bquote(bar(italic(CH)))) +
   theme_bw(base_size = tamano) +
