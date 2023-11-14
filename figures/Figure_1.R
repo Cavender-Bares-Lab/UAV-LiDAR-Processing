@@ -34,10 +34,9 @@ frame[PA > 0 & PA < 1, plot_type := "Mixture"]
 #' -----------------------------------------------------------------------------
 #' Data reshaping
 
-
-vol <- frame[, c("DOY", "volume", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "plot_new", "PA")]
-AWP <- frame[, c("DOY", "total_AWP", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "plot_new", "PA")]
-sigmaAWPD <- frame[, c("DOY", "sd_AWP", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "plot_new", "PA")]
+vol <- frame[, c("DOY", "volume", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_type", "plot_new", "PA")]
+AWP <- frame[, c("DOY", "total_AWP", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_type", "plot_new", "PA")]
+sigmaAWPD <- frame[, c("DOY", "sd_AWP", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_type", "plot_new", "PA")]
 
 vol$type <- "Plot volume"
 AWP$type <- "Plot productivity"
@@ -47,13 +46,15 @@ colnames(vol)[2] <- "metric"
 colnames(AWP)[2] <- "metric"
 colnames(sigmaAWPD)[2] <- "metric"
 
-data <- rbind(vol, AWP, sigmaAWPD)
+data <- rbind(vol)
+#data <- rbind(vol, AWP, sigmaAWPD)
 data$type <- as.factor(data$type)
-data$type <- factor(data$type, levels = c("Plot volume", "Plot productivity", "Tree growth variability"))
+data$type <- factor(data$type, levels = c("Plot volume"))
+#data$type <- factor(data$type, levels = c("Plot volume", "Plot productivity", "Tree growth variability"))
 
 data_melt <- melt(data, 
                   id.vars = c("DOY", "metric", "plot_type", "type"),
-                  measure.vars = c("Slope_Hill1", "Pgap", "mean_maximun_height"))
+                  measure.vars = c("Slope_Hill1", "Pgap", "cv_maximun_height"))
 
 
 # ------------------------------------------------------------------------------
@@ -111,19 +112,21 @@ db <- ggplot(data_melt[variable == "Slope_Hill1"],
                  color = DOY,
                  fill = DOY,
                  gruop = as.factor(DOY))) +
-  geom_point(aes(shape = plot_type), colour = "grey", alpha = alpha_point) +
-  stat_ma_line(method = "SMA",
+  #geom_point(aes(shape = plot_type), colour = "grey", alpha = alpha_point) +
+  geom_point(colour = "grey", alpha = alpha_point, shape = 21) +
+  stat_poly_line(method = "lm",
                  se = FALSE,
                  formula = y ~ x,
                  #formula = y ~ poly(x, 2, raw = TRUE),
                  linewidth = 0.5) +
-  stat_ma_eq(method = "SMA",
+  stat_poly_eq(method = "lm",
                formula = y ~ x,
                #formula = y ~ poly(x, 2, raw = TRUE),
                label.x = "right",
                label.y = "bottom",
                size = text_size) +
-  plot_comp + doy_color + doy_fill + 
+  #plot_comp + doy_color + doy_fill + 
+  doy_color + doy_fill +
   scale_x_continuous(trans = log10_trans()) +
   scale_y_continuous(n.breaks = 3, breaks = c(1.50, 2.00, 2.50), 
                      labels = c("1.5", "2.0", "2.5")) +
@@ -136,11 +139,45 @@ db <- ggplot(data_melt[variable == "Slope_Hill1"],
 
 pgap <- ggplot(data_melt[variable == "Pgap"], 
                aes(x = metric,
-                   y = 1 - value, 
+                   y = value, 
                    color = DOY,
                    fill = DOY,
                    gruop = as.factor(DOY))) +
-  geom_point(aes(shape = plot_type), colour = "grey", alpha = alpha_point) +
+  #geom_point(aes(shape = plot_type), colour = "grey", alpha = alpha_point) +
+  geom_point(colour = "grey", alpha = alpha_point, shape = 21) +
+  stat_poly_line(method = "lm",
+                 se = FALSE,
+                 formula = y ~ x,
+                 #formula = y ~ poly(x, 2, raw = TRUE),
+                 linewidth = 0.5) +
+  stat_poly_eq(method = "lm",
+               formula = y ~ x,
+               #formula = y ~ poly(x, 2, raw = TRUE),
+               label.x = "left",
+               label.y = "bottom",
+               size = text_size) +
+  #plot_comp + doy_color + doy_fill + 
+  doy_color + doy_fill +
+  coord_cartesian(ylim = c(0, 1), expand = TRUE) +
+  scale_x_continuous(trans = log10_trans()) +
+  scale_y_continuous(n.breaks = 3, breaks = c(0.0, 0.5, 1.0), 
+                     labels = c("0.0", "0.5", "1.0")) +
+  annotation_logticks(sides = "b") +
+  xlab(bquote(Wood~volume~(m^3))) + 
+  #xlab(bquote(AWD[plot]~(m^3~y^-1))) + 
+  ylab(bquote(italic(P)[gap])) +
+  theme_bw(base_size = tamano) +
+  th + gui + 
+  facet_grid("Gap probability" ~ type, scales = "free")
+
+ch <- ggplot(data_melt[variable == "cv_maximun_height"], 
+             aes(x = metric,
+                 y = value, 
+                 color = DOY,
+                 fill = DOY,
+                 gruop = as.factor(DOY))) +
+  #geom_point(aes(shape = plot_type), colour = "grey", alpha = alpha_point) +
+  geom_point(colour = "grey", alpha = alpha_point, shape = 21) +
   stat_poly_line(method = "lm",
                  se = FALSE,
                  formula = y ~ x,
@@ -150,49 +187,21 @@ pgap <- ggplot(data_melt[variable == "Pgap"],
                formula = y ~ x,
                #formula = y ~ poly(x, 2, raw = TRUE),
                label.x = "right",
-               label.y = "bottom",
+               label.y = "top",
                size = text_size) +
-  plot_comp + doy_color + doy_fill + 
-  coord_cartesian(ylim = c(0, 1), expand = TRUE) +
+  #plot_comp + doy_color + doy_fill + 
+  doy_color + doy_fill + 
+  coord_cartesian(ylim = c(0, 2.8), expand = TRUE) +
   scale_x_continuous(trans = log10_trans()) +
-  scale_y_continuous(n.breaks = 3, breaks = c(0.0, 0.5, 1.0), 
-                     labels = c("0.0", "0.5", "1.0")) +
+  #scale_y_continuous(trans = log10_trans(), n.breaks = 3, breaks = c(0.1, 1.0, 4.0), 
+  #                   labels = c("0.1", "1.0", "4.0")) +
   annotation_logticks(sides = "b") +
-  xlab(bquote(AWD[plot]~(m^3~y^-1))) + 
-  ylab(bquote(italic(P)[cover])) +
+  xlab(bquote(Wood~volume~(m^3))) + 
+  #xlab(bquote(sigma*AWD[tree]~(m^3~y^-1))) + 
+  ylab(bquote(italic(CH)[CV])) +
   theme_bw(base_size = tamano) +
   th + gui + 
-  facet_grid("Cover probability" ~ type, scales = "free")
-
-ch <- ggplot(data_melt[variable == "mean_maximun_height"], 
-             aes(x = metric,
-                 y = value, 
-                 color = DOY,
-                 fill = DOY,
-                 gruop = as.factor(DOY))) +
-  geom_point(aes(shape = plot_type), colour = "grey", alpha = alpha_point) +
-  stat_ma_line(method = "SMA",
-                 se = FALSE,
-                 formula = y ~ x,
-                 #formula = y ~ poly(x, 2, raw = TRUE),
-                 linewidth = 0.5) +
-  stat_ma_eq(method = "SMA",
-               formula = y ~ x,
-               #formula = y ~ poly(x, 2, raw = TRUE),
-               label.x = "right",
-               label.y = "bottom",
-               size = text_size) +
-  plot_comp + doy_color + doy_fill + 
-  #coord_cartesian(ylim = c(0.0001, 4.5), expand = TRUE) +
-  scale_x_continuous(trans = log10_trans()) +
-  scale_y_continuous(trans = log10_trans(), n.breaks = 3, breaks = c(0.1, 1.0, 4.0), 
-                     labels = c("0.1", "1.0", "4.0")) +
-  annotation_logticks(sides = "bl") +
-  xlab(bquote(sigma*AWD[tree]~(m^3~y^-1))) + 
-  ylab(bquote(bar(italic(CH))~(m))) +
-  theme_bw(base_size = tamano) +
-  th + gui + 
-  facet_grid("Canopy height" ~ type, scales = "free")
+  facet_grid("Height heterogeneity" ~ type, scales = "free")
 
 #-------------------------------------------------------------------------------
 #Merge panels
@@ -201,7 +210,7 @@ Figure_1 <- ggarrange(ch, pgap, db,
                       ncol = 1, nrow = 3,  align = "hv", 
                       common.legend = TRUE)
 #Export figure
-jpeg(paste0(root_path, "/Figure_1.jpeg"), width = 220, height = 220, units = "mm", res = 600)
+jpeg(paste0(root_path, "/Figure_1.jpeg"), width = 90, height = 220, units = "mm", res = 600)
 
 Figure_1
 

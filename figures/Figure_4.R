@@ -34,9 +34,9 @@ frame[PA > 0 & PA < 1, plot_type := "Mixture"]
 #' -----------------------------------------------------------------------------
 #' Reshape frame
 
-taxa <- frame[, c("DOY", "hill0_taxa", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "plot_new", "PA")]
-phylo <- frame[, c("DOY", "hill0_phylo", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "plot_new", "PA")]
-funct <- frame[, c("DOY", "hill0_FD_q", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "plot_new", "PA")]
+taxa <- frame[, c("DOY", "hill0_taxa", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_type", "plot_new", "PA")]
+phylo <- frame[, c("DOY", "hill0_phylo", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_type", "plot_new", "PA")]
+funct <- frame[, c("DOY", "hill0_FD_q", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_type", "plot_new", "PA")]
 
 taxa$type <- "Taxonomic"
 phylo$type <- "Phylogenetic"
@@ -50,11 +50,9 @@ data <- rbind(taxa, phylo, funct)
 data$type <- as.factor(data$type)
 data$type <- factor(data$type, levels = c("Taxonomic", "Phylogenetic", "Functional"))
 
-data$Pgap <- 1 - data$Pgap #Pcover
-
-cv_metrics <- data[, .(CV_slope = sd(Slope_Hill1)/mean(Slope_Hill1),
-                       CV_ch = sd(mean_maximun_height)/mean(mean_maximun_height),
-                       CV_pgap = sd(Pgap)/mean(Pgap)), 
+cv_metrics <- data[, .(CV_slope = sd(Slope_Hill1),
+                       CV_ch = sd(cv_maximun_height),
+                       CV_pgap = sd(Pgap)), 
                    by = c("plot_new", "Diversity", "plot_type", "type", "PA")]
 
 cv_metrics <- melt(cv_metrics, 
@@ -99,12 +97,15 @@ colour_PA <- scale_fill_viridis("Proportion of Angiosperms",
                                 limits = c(0, 1),
                                 breaks = c(0.0, 0.5, 1.0))
 
+alpha_point <- 1.0
+
 # ------------------------------------------------------------------------------
 # Plots
 cv_vol_dD <- ggplot(cv_metrics[variable == "CV_slope",], aes(Diversity,
                                                              value,
                                                              fill = PA)) +
-  geom_point(aes(shape = plot_type), colour = "grey", alpha = 0.8) +
+  #geom_point(aes(shape = plot_type), colour = "grey", alpha = 0.1) +
+  geom_point(colour = "grey", alpha = alpha_point, shape = 21) +
   stat_poly_line(method = "lm",
                se = FALSE,
                formula = y ~ x,
@@ -115,15 +116,16 @@ cv_vol_dD <- ggplot(cv_metrics[variable == "CV_slope",], aes(Diversity,
              method = "lm",
              formula = y ~ x,
              label.x = "right",
-             label.y = "bottom",
+             label.y = "top",
              size = text_size) +
-  plot_comp + colour_PA +
+  colour_PA +  
+  #colour_PA + plot_comp + 
   #coord_cartesian(xlim = c(0.0, 1.0), ylim = c(0.002, 0.16), expand = TRUE) +
   scale_x_continuous(n.breaks = 4) +
-  scale_y_continuous(trans = log10_trans()) +
-  annotation_logticks(sides = "l") +
+  #scale_y_continuous(trans = log10_trans()) +
+  #annotation_logticks(sides = "l") +
   xlab("Species richness") +
-  ylab(bquote(italic(CV)~italic(d)[italic(D)]))  +
+  ylab(bquote(sigma~italic(d)[italic(D)]))  +
   theme_bw(base_size = tamano) +
   th + gui + 
   facet_grid("Structural complexity" ~ type, scales = "free")
@@ -132,7 +134,8 @@ cv_vol_dD <- ggplot(cv_metrics[variable == "CV_slope",], aes(Diversity,
 cv_vol_Pgap <- ggplot(cv_metrics[variable == "CV_pgap",], aes(Diversity,
                                                               value,
                                                               fill = PA)) +
-  geom_point(aes(shape = plot_type), colour = "grey", alpha = 0.8) +
+  #geom_point(aes(shape = plot_type), colour = "grey", alpha = 0.1) +
+  geom_point(colour = "grey", alpha = alpha_point, shape = 21) +
   stat_poly_line(method = "lm",
                se = FALSE,
                formula = y ~ x,
@@ -143,23 +146,25 @@ cv_vol_Pgap <- ggplot(cv_metrics[variable == "CV_pgap",], aes(Diversity,
              method = "lm",
              formula = y ~ x,
              label.x = "right",
-             label.y = "bottom",
+             label.y = "top",
              size = text_size) +
-  plot_comp + colour_PA +
+  colour_PA +  
+  #colour_PA + plot_comp + 
   #coord_cartesian(xlim = c(0.0, 1.0), expand = TRUE) +
   scale_x_continuous(n.breaks = 4) +
-  scale_y_continuous(trans = log10_trans()) +
-  annotation_logticks(sides = "l") +
-  xlab(" ") +
-  ylab(bquote(italic(CV)~italic(P)[cover])) +
+  #scale_y_continuous(trans = log10_trans()) +
+  #annotation_logticks(sides = "l") +
+  xlab(bquote(italic(PD))) +
+  ylab(bquote(sigma~italic(P)[gap])) +
   theme_bw(base_size = tamano) +
   th + gui + 
-  facet_grid("Cover probability" ~ type, scales = "free")
+  facet_grid("Gap probability" ~ type, scales = "free")
 
 cv_vol_CH <-ggplot(cv_metrics[variable == "CV_ch",], aes(Diversity,
                                                          value,
                                                          fill = PA)) +
-  geom_point(aes(shape = plot_type), colour = "grey", alpha = 0.8) +
+  #geom_point(aes(shape = plot_type), colour = "grey", alpha = 0.1) +
+  geom_point(colour = "grey", alpha = alpha_point, shape = 21) +
   stat_poly_line(method = "lm",
                se = FALSE,
                formula = y ~ x,
@@ -170,18 +175,19 @@ cv_vol_CH <-ggplot(cv_metrics[variable == "CV_ch",], aes(Diversity,
              method = "lm",
              formula = y ~ x,
              label.x = "right",
-             label.y = "bottom",
+             label.y = "top",
              size = text_size) +
-  plot_comp + colour_PA +
+  colour_PA +  
+  #colour_PA + plot_comp + 
   #coord_cartesian(xlim = c(0.0, 1.0), ylim = c(0.095, 0.57), expand = TRUE) +
   scale_x_continuous(n.breaks = 4) +
-  scale_y_continuous(trans = log10_trans()) +
-  annotation_logticks(sides = "l") +
-  xlab(" ") +
-  ylab(bquote(italic(CV)~bar(italic(CH))~(m))) +
+  #scale_y_continuous(trans = log10_trans()) +
+  #annotation_logticks(sides = "l") +
+  xlab(bquote(italic(FD))) +
+  ylab(bquote(sigma~italic(CH)[CV])) +
   theme_bw(base_size = tamano) +
   th + gui + 
-  facet_grid("Canopy height" ~ type, scales = "free")
+  facet_grid("Height heterogeneity" ~ type, scales = "free")
 
 # ------------------------------------------------------------------------------
 #Merge panels

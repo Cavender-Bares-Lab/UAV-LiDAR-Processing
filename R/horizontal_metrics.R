@@ -29,9 +29,12 @@ horizontal_metrics <- function(point_cloud, xy_res = 0.1) {
   metrics <- metrics[!is.na(metrics)]
   
   mean_maximun_height <- mean(metrics)
+  sd_maximun_height <- sd(metrics)
   
   #Basic grid metrics
   sub_frame <- data.table(mean_maximun_height = mean_maximun_height,
+                          sd_maximun_height = sd_maximun_height,
+                          cv_maximun_height = sd_maximun_height/mean_maximun_height,
                           horizontal_hill0 = hill(metrics, 0),
                           horizontal_hill1 = hill(metrics, 0.9999),
                           horizontal_hill2 = hill(metrics, 2),
@@ -39,7 +42,7 @@ horizontal_metrics <- function(point_cloud, xy_res = 0.1) {
                           rumple = rumple_index(metrics_raster))
   
   #Clean residuals
-  rm(list = c("metrics", "metrics_raster", "mean_maximun_height"))
+  rm(list = c("metrics", "metrics_raster", "mean_maximun_height", "sd_maximun_height"))
   gc()
   
   #Return

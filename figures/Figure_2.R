@@ -35,9 +35,9 @@ frame[PA > 0 & PA < 1, plot_type := "Mixture"]
 #' -----------------------------------------------------------------------------
 #' Data reshaping
 
-vol <- frame[, c("DOY", "volume", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "plot_new", "PA")]
-AWP <- frame[, c("DOY", "total_AWP", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "plot_new", "PA")]
-sigmaAWPD <- frame[, c("DOY", "sd_AWP", "Slope_Hill1", "Pgap", "mean_maximun_height", "plot_type", "plot_new", "PA")]
+vol <- frame[, c("DOY", "volume", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_type", "plot_new", "PA")]
+AWP <- frame[, c("DOY", "total_AWP", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_type", "plot_new", "PA")]
+sigmaAWPD <- frame[, c("DOY", "sd_AWP", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_type", "plot_new", "PA")]
 
 vol$type <- "Plot volume"
 AWP$type <- "Plot productivity"
@@ -47,15 +47,20 @@ colnames(vol)[2] <- "metric"
 colnames(AWP)[2] <- "metric"
 colnames(sigmaAWPD)[2] <- "metric"
 
-data <- rbind(vol, AWP, sigmaAWPD)
+data <- rbind(vol)
+#data <- rbind(vol, AWP, sigmaAWPD)
 data$type <- as.factor(data$type)
-data$type <- factor(data$type, levels = c("Plot volume", "Plot productivity", "Tree growth variability"))
-
-data$Pgap <- 1 - data$Pgap #Pcover
+data$type <- factor(data$type, levels = c("Plot volume"))
+#data$type <- factor(data$type, levels = c("Plot volume", "Plot productivity", "Tree growth variability"))
 
 cv_metrics <- data[, .(CV_slope = sd(Slope_Hill1)/mean(Slope_Hill1),
-                       CV_ch = sd(mean_maximun_height)/mean(mean_maximun_height),
+                       CV_ch = sd(cv_maximun_height)/mean(cv_maximun_height),
                        CV_pgap = sd(Pgap)/mean(Pgap)), 
+                   by = c("plot_new", "metric", "plot_type", "type", "PA")]
+
+cv_metrics <- data[, .(CV_slope = sd(Slope_Hill1),
+                       CV_ch = sd(cv_maximun_height),
+                       CV_pgap = sd(Pgap)), 
                    by = c("plot_new", "metric", "plot_type", "type", "PA")]
 
 cv_metrics <- melt(cv_metrics, 
@@ -100,29 +105,34 @@ colour_PA <- scale_fill_viridis("Proportion of Angiosperms",
                                 limits = c(0, 1),
                                 breaks = c(0.0, 0.5, 1.0))
 
+alpha_point <- 1.0
+
 # ------------------------------------------------------------------------------
 # Plot
 db <- ggplot(cv_metrics[variable == "CV_slope"], aes(metric,
                                                      value,
                                                      fill = PA)) +
-  geom_point(aes(shape = plot_type), colour = "grey", alpha = 0.8) +
-  stat_ma_line(method = "SMA",
+  #geom_point(aes(shape = plot_type), colour = "grey", alpha = 0.8) +
+  geom_point(colour = "grey", alpha = alpha_point, shape = 21) +
+  stat_poly_line(method = "lm",
                se = TRUE,
                formula = y ~ x,
                linewidth = 0.5,
                colour = "black") +
-  stat_ma_eq(use_label(c("eq", "R2")),
-             method = "SMA",
+  stat_poly_eq(use_label(c("eq", "R2")),
+             method = "lm",
              formula = y ~ x,
              label.x = "right",
              label.y = "top",
              size = text_size) +
-  colour_PA + plot_comp + 
+  colour_PA +  
+  #colour_PA + plot_comp + 
   scale_x_continuous(trans = log10_trans()) +
-  scale_y_continuous(trans = log10_trans()) +
-  annotation_logticks(sides = "bl") +
+  #scale_y_continuous(trans = log10_trans()) +
+  annotation_logticks(sides = "b") +
   xlab(bquote(Wood~volume~(m^3))) + 
-  ylab(bquote(italic(CV)~italic(d)[italic(D)]))  +
+  #ylab(bquote(italic(CV)~italic(d)[italic(D)]))  +
+  ylab(bquote(sigma~italic(d)[italic(D)]))  +
   theme_bw(base_size = tamano) +
   th + gui + 
   facet_grid("Structural complexity" ~ type, scales = "free")
@@ -130,52 +140,59 @@ db <- ggplot(cv_metrics[variable == "CV_slope"], aes(metric,
 pgap <- ggplot(cv_metrics[variable == "CV_pgap"], aes(metric,
                                                       value,
                                                       fill = PA)) +
-  geom_point(aes(shape = plot_type), colour = "grey", alpha = 0.8) +
-  stat_ma_line(method = "SMA",
+  #geom_point(aes(shape = plot_type), colour = "grey", alpha = 0.8) +
+  geom_point(colour = "grey", alpha = alpha_point, shape = 21) +
+  stat_poly_line(method = "lm",
                se = TRUE,
                formula = y ~ x,
                linewidth = 0.5,
                colour = "black") +
-  stat_ma_eq(use_label(c("eq", "R2")),
-             method = "SMA",
+  stat_poly_eq(use_label(c("eq", "R2")),
+             method = "lm",
              formula = y ~ x,
              label.x = "right",
              label.y = "top",
              size = text_size) +
-  colour_PA + plot_comp +
+  colour_PA +  
+  #colour_PA + plot_comp + 
   scale_x_continuous(trans = log10_trans()) +
   #scale_y_continuous(trans = log10_trans()) +
   annotation_logticks(sides = "b") +
-  xlab(bquote(AWD[plot]~(m^3~y^-1))) + 
-  ylab(bquote(italic(CV)~italic(P)[cover])) +
+  #xlab(bquote(AWD[plot]~(m^3~y^-1))) + 
+  xlab(bquote(Wood~volume~(m^3))) + 
+  #ylab(bquote(italic(CV)~italic(P)[gap])) +
+  ylab(bquote(sigma~italic(P)[gap])) +
   theme_bw(base_size = tamano) +
   th + gui + 
-  facet_grid("Cover probability" ~ type, scales = "free")
+  facet_grid("Gap probability" ~ type, scales = "free")
 
 ch <- ggplot(cv_metrics[variable == "CV_ch"], aes(metric,
                                                   value,
                                                   fill = PA)) +
-  geom_point(aes(shape = plot_type), colour = "grey", alpha = 0.8) +
-  stat_ma_line(method = "SMA",
-               se = TRUE,
+  #geom_point(aes(shape = plot_type), colour = "grey", alpha = 0.8) +
+  geom_point(colour = "grey", alpha = alpha_point, shape = 21) +
+  stat_poly_line(method = "lm",
+               se = T,
                formula = y ~ x,
                linewidth = 0.5,
                colour = "black") +
-  stat_ma_eq(use_label(c("eq", "R2")),
-             method = "SMA",
+  stat_poly_eq(use_label(c("eq", "R2")),
+             method = "lm",
              formula = y ~ x,
              label.x = "right",
              label.y = "top",
              size = text_size) +
-  colour_PA + plot_comp +
+  colour_PA +  
+  #colour_PA + plot_comp + 
   scale_x_continuous(trans = log10_trans()) +
-  scale_y_continuous(trans = log10_trans()) +
-  annotation_logticks(sides = "bl") +
-  xlab(bquote(sigma*AWD[tree]~(m^3~y^-1))) + 
-  ylab(bquote(italic(CV)~bar(italic(CH))~(m))) +
+  #scale_y_continuous(trans = log10_trans()) +
+  annotation_logticks(sides = "b") +
+  #xlab(bquote(sigma*AWD[tree]~(m^3~y^-1))) + 
+  xlab(bquote(Wood~volume~(m^3))) + 
+  ylab(bquote(sigma~italic(CH)[CV])) +
   theme_bw(base_size = tamano) +
   th + gui + 
-  facet_grid("Canopy height" ~ type, scales = "free")
+  facet_grid("Height heterogeneity" ~ type, scales = "free")
 
 # ------------------------------------------------------------------------------
 #Merge panels
@@ -183,7 +200,7 @@ Figure_2 <- ggarrange(ch, pgap, db,
                       ncol = 1, nrow = 3,  align = "hv", 
                       common.legend = TRUE)
 #Export figure
-jpeg(paste0(root_path, "/Figure_2.jpeg"), width = 210, height = 210, units = "mm", res = 600)
+jpeg(paste0(root_path, "/Figure_2.jpeg"), width = 90, height = 210, units = "mm", res = 600)
 
 Figure_2
 

@@ -20,9 +20,9 @@ root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
 #' File reading and merging
 
 # Forest structural complexity
-FSC <- fread(paste0(root_path, "/FSC_results.csv"))
+FSC <- fread(paste0(root_path, "/FSC_results_new.csv"))
 colnames(FSC)[1] <- "plot"
-FSC <- FSC[, c(2, 20, 25:47)]
+FSC <- FSC[, c(2, 20, 24:49)]
 
 # Forest structure
 structure <- fread(paste0(root_path, "/structural_attributes.csv"))
