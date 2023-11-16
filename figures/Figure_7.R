@@ -34,18 +34,22 @@ frame[PA > 0 & PA < 1, plot_type := "Mixture"]
 
 #' -----------------------------------------------------------------------------
 #' Data reshaping
+#' 
 
-vol <- frame[, c("DOY", "volume", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_type", "plot_new", "PA")]
+frame$cvAWPD <- frame$sd_AWP/frame$mean_AWP
 
-vol$type <- "Wood volume"
+AWP <- frame[, c("DOY", "total_AWP", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_type", "plot_new", "PA")]
+sigmaAWPD <- frame[, c("DOY", "sd_AWP", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_type", "plot_new", "PA")]
 
-colnames(vol)[2] <- "metric"
+AWP$type <- "Annual wood productivity"
+sigmaAWPD$type <- "Tree growth variability" 
+
 colnames(AWP)[2] <- "metric"
 colnames(sigmaAWPD)[2] <- "metric"
 
-data <- rbind(vol)
+data <- rbind(AWP, sigmaAWPD)
 data$type <- as.factor(data$type)
-data$type <- factor(data$type, levels = c("Wood volume"))
+data$type <- factor(data$type, levels = c("Annual wood productivity", "Tree growth variability"))
 
 cv_metrics <- data[, .(CV_slope = sd(Slope_Hill1)/mean(Slope_Hill1),
                        CV_ch = sd(cv_maximun_height)/mean(cv_maximun_height),
@@ -55,6 +59,15 @@ cv_metrics <- data[, .(CV_slope = sd(Slope_Hill1)/mean(Slope_Hill1),
 cv_metrics <- melt(cv_metrics, 
                    id.vars = c("plot_new", "plot_type", "type", "metric", "PA"),
                    measure.vars = c("CV_slope", "CV_ch", "CV_pgap"))
+
+cv_metrics[variable == "CV_ch", variable := "Height heterogeneity"]
+cv_metrics[variable == "CV_pgap", variable := "Gap probability"]
+cv_metrics[variable == "CV_slope", variable := "Structural complexity"]
+
+cv_metrics$variable <- as.factor(cv_metrics$variable)
+cv_metrics$variable <- factor(cv_metrics$variable, levels = c("Height heterogeneity",
+                                                              "Gap probability",
+                                                              "Structural complexity"))
 
 # ------------------------------------------------------------------------------
 # Plot details
@@ -98,99 +111,96 @@ alpha_point <- 1.0
 
 # ------------------------------------------------------------------------------
 # Plot
-db <- ggplot(cv_metrics[variable == "CV_slope"], aes(metric,
-                                                     value,
+ch <- ggplot(cv_metrics[variable == "Height heterogeneity"], aes(value,
+                                                                 metric,
                                                      fill = PA)) +
   #geom_point(aes(shape = plot_type), colour = "grey", alpha = 0.8) +
   geom_point(colour = "grey", alpha = alpha_point, shape = 21) +
   stat_poly_line(method = "lm",
-               se = TRUE,
-               formula = y ~ x,
-               linewidth = 0.5,
-               colour = "black") +
+                 se = FALSE,
+                 formula = y ~ x,
+                 linewidth = 0.5,
+                 colour = "black",
+                 linetype = "dotted") +
   stat_poly_eq(use_label(c("eq", "R2")),
-             method = "lm",
-             formula = y ~ x,
-             label.x = "right",
-             label.y = "top",
-             size = text_size) +
+               method = "lm",
+               formula = y ~ x,
+               label.x = "left",
+               label.y = "bottom",
+               size = text_size) +
   colour_PA +  
   #colour_PA + plot_comp + 
   scale_x_continuous(trans = log10_trans()) +
   scale_y_continuous(trans = log10_trans()) +
   annotation_logticks(sides = "bl") +
-  xlab(bquote(Wood~volume~(m^3))) + 
-  ylab(bquote(italic(CV)~italic(d)[italic(D)]))  +
+  xlab(bquote(italic(CV)~italic(CH)[CV]))  +
+  ylab(bquote(AWD[plot]~(m^3~y^-1))) + 
   theme_bw(base_size = tamano) +
   th + gui + 
-  facet_grid("Structural complexity" ~ type, scales = "free")
+  facet_grid(type ~ "Height heterogeneity", scales = "free")
 
-pgap <- ggplot(cv_metrics[variable == "CV_pgap"], aes(metric,
-                                                      value,
-                                                      fill = PA)) +
+pgap <- ggplot(cv_metrics[variable == "Gap probability"], aes(value,
+                                                              metric,
+                                                              fill = PA)) +
   #geom_point(aes(shape = plot_type), colour = "grey", alpha = 0.8) +
   geom_point(colour = "grey", alpha = alpha_point, shape = 21) +
   stat_poly_line(method = "lm",
-               se = TRUE,
-               formula = y ~ x,
-               linewidth = 0.5,
-               colour = "black") +
+                 se = TRUE,
+                 formula = y ~ x,
+                 linewidth = 0.5,
+                 colour = "black") +
   stat_poly_eq(use_label(c("eq", "R2")),
-             method = "lm",
-             formula = y ~ x,
-             label.x = "right",
-             label.y = "bottom",
-             size = text_size) +
+               method = "lm",
+               formula = y ~ x,
+               label.x = "left",
+               label.y = "bottom",
+               size = text_size) +
   colour_PA +  
   #colour_PA + plot_comp + 
   scale_x_continuous(trans = log10_trans()) +
   scale_y_continuous(trans = log10_trans()) +
   annotation_logticks(sides = "bl") +
-  #xlab(bquote(AWD[plot]~(m^3~y^-1))) + 
-  xlab(bquote(Wood~volume~(m^3))) + 
-  ylab(bquote(italic(CV)~italic(P)[gap])) +
+  xlab(bquote(italic(CV)~italic(P)[gap])) +
+  ylab(bquote(sigma*AWD[tree]~(m^3~y^-1))) + 
   theme_bw(base_size = tamano) +
   th + gui + 
-  facet_grid("Gap probability" ~ type, scales = "free")
+  facet_grid(type ~ "Gap probability", scales = "free")
 
-ch <- ggplot(cv_metrics[variable == "CV_ch"], aes(metric,
-                                                  value,
-                                                  fill = PA)) +
+db <- ggplot(cv_metrics[variable == "Structural complexity"], aes(value,
+                                                              metric,
+                                                              fill = PA)) +
   #geom_point(aes(shape = plot_type), colour = "grey", alpha = 0.8) +
   geom_point(colour = "grey", alpha = alpha_point, shape = 21) +
   stat_poly_line(method = "lm",
-               se = FALSE,
-               formula = y ~ x,
-               linewidth = 0.5,
-               colour = "black",
-               linetype = "dotted") +
+                 se = TRUE,
+                 formula = y ~ x,
+                 linewidth = 0.5,
+                 colour = "black") +
   stat_poly_eq(use_label(c("eq", "R2")),
-             method = "lm",
-             formula = y ~ x,
-             label.x = "right",
-             label.y = "bottom",
-             size = text_size) +
+               method = "lm",
+               formula = y ~ x,
+               label.x = "left",
+               label.y = "bottom",
+               size = text_size) +
   colour_PA +  
   #colour_PA + plot_comp + 
   scale_x_continuous(trans = log10_trans()) +
   scale_y_continuous(trans = log10_trans()) +
-  annotation_logticks(sides = "b") +
-  #xlab(bquote(sigma*AWD[tree]~(m^3~y^-1))) + 
-  xlab(bquote(Wood~volume~(m^3))) + 
-  ylab(bquote(italic(CV)~italic(CH)[CV])) +
+  annotation_logticks(sides = "bl") +
+  xlab(bquote(italic(CV)~italic(d)[italic(D)])) +
+  ylab(bquote(sigma*AWD[tree]~(m^3~y^-1))) + 
   theme_bw(base_size = tamano) +
   th + gui + 
-  facet_grid("Height heterogeneity" ~ type, scales = "free")
+  facet_grid(type ~ "Structural complexity", scales = "free")
 
 # ------------------------------------------------------------------------------
 #Merge panels
-Figure_2 <- ggarrange(ch, pgap, db,
-                      ncol = 1, nrow = 3,  align = "hv", 
+Figure_7 <- ggarrange(ch, pgap, db,
+                      ncol = 3, nrow = 1,  align = "hv", 
                       common.legend = TRUE)
 #Export figure
-jpeg(paste0(root_path, "/Figure_2.jpeg"), width = 90, height = 210, units = "mm", res = 600)
+jpeg(paste0(root_path, "/Figure_7.jpeg"), width = 240, height = 130, units = "mm", res = 600)
 
-Figure_2
+Figure_7
 
 dev.off()
-

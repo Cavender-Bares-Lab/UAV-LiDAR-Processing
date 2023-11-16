@@ -50,9 +50,9 @@ data <- rbind(taxa, phylo, funct)
 data$type <- as.factor(data$type)
 data$type <- factor(data$type, levels = c("Taxonomic", "Phylogenetic", "Functional"))
 
-cv_metrics <- data[, .(CV_slope = sd(Slope_Hill1),
-                       CV_ch = sd(cv_maximun_height),
-                       CV_pgap = sd(Pgap)), 
+cv_metrics <- data[, .(CV_slope = sd(Slope_Hill1)/mean(Slope_Hill1),
+                       CV_ch = sd(cv_maximun_height)/mean(cv_maximun_height),
+                       CV_pgap = sd(Pgap)/mean(Pgap)), 
                    by = c("plot_new", "Diversity", "plot_type", "type", "PA")]
 
 cv_metrics <- melt(cv_metrics, 
@@ -107,11 +107,11 @@ cv_vol_dD <- ggplot(cv_metrics[variable == "CV_slope",], aes(Diversity,
   #geom_point(aes(shape = plot_type), colour = "grey", alpha = 0.1) +
   geom_point(colour = "grey", alpha = alpha_point, shape = 21) +
   stat_poly_line(method = "lm",
-               se = FALSE,
+               se = TRUE,
                formula = y ~ x,
                linewidth = 0.5,
-               colour = "black",
-               linetype = "dotted") +
+               #linetype = "dotted",
+               colour = "black") +
   stat_poly_eq(use_label(c("eq", "R2")),
              method = "lm",
              formula = y ~ x,
@@ -122,10 +122,11 @@ cv_vol_dD <- ggplot(cv_metrics[variable == "CV_slope",], aes(Diversity,
   #colour_PA + plot_comp + 
   #coord_cartesian(xlim = c(0.0, 1.0), ylim = c(0.002, 0.16), expand = TRUE) +
   scale_x_continuous(n.breaks = 4) +
-  #scale_y_continuous(trans = log10_trans()) +
-  #annotation_logticks(sides = "l") +
+  #scale_x_continuous(trans = log10_trans()) +
+  scale_y_continuous(trans = log10_trans()) +
+  annotation_logticks(sides = "l") +
   xlab("Species richness") +
-  ylab(bquote(sigma~italic(d)[italic(D)]))  +
+  ylab(bquote(italic(CV)~italic(d)[italic(D)]))  +
   theme_bw(base_size = tamano) +
   th + gui + 
   facet_grid("Structural complexity" ~ type, scales = "free")
@@ -137,11 +138,10 @@ cv_vol_Pgap <- ggplot(cv_metrics[variable == "CV_pgap",], aes(Diversity,
   #geom_point(aes(shape = plot_type), colour = "grey", alpha = 0.1) +
   geom_point(colour = "grey", alpha = alpha_point, shape = 21) +
   stat_poly_line(method = "lm",
-               se = FALSE,
+               se = TRUE,
                formula = y ~ x,
                linewidth = 0.5,
-               colour = "black",
-               linetype = "dotted") +
+               colour = "black") +
   stat_poly_eq(use_label(c("eq", "R2")),
              method = "lm",
              formula = y ~ x,
@@ -152,10 +152,11 @@ cv_vol_Pgap <- ggplot(cv_metrics[variable == "CV_pgap",], aes(Diversity,
   #colour_PA + plot_comp + 
   #coord_cartesian(xlim = c(0.0, 1.0), expand = TRUE) +
   scale_x_continuous(n.breaks = 4) +
-  #scale_y_continuous(trans = log10_trans()) +
-  #annotation_logticks(sides = "l") +
+  #scale_x_continuous(trans = log10_trans()) +
+  scale_y_continuous(trans = log10_trans()) +
+  annotation_logticks(sides = "l") +
   xlab(bquote(italic(PD))) +
-  ylab(bquote(sigma~italic(P)[gap])) +
+  ylab(bquote(italic(CV)~italic(P)[gap])) +
   theme_bw(base_size = tamano) +
   th + gui + 
   facet_grid("Gap probability" ~ type, scales = "free")
@@ -166,11 +167,10 @@ cv_vol_CH <-ggplot(cv_metrics[variable == "CV_ch",], aes(Diversity,
   #geom_point(aes(shape = plot_type), colour = "grey", alpha = 0.1) +
   geom_point(colour = "grey", alpha = alpha_point, shape = 21) +
   stat_poly_line(method = "lm",
-               se = FALSE,
+               se = TRUE,
                formula = y ~ x,
                linewidth = 0.5,
-               colour = "black",
-               linetype = "dotted") +
+               colour = "black") +
   stat_poly_eq(use_label(c("eq", "R2")),
              method = "lm",
              formula = y ~ x,
@@ -182,9 +182,10 @@ cv_vol_CH <-ggplot(cv_metrics[variable == "CV_ch",], aes(Diversity,
   #coord_cartesian(xlim = c(0.0, 1.0), ylim = c(0.095, 0.57), expand = TRUE) +
   scale_x_continuous(n.breaks = 4) +
   #scale_y_continuous(trans = log10_trans()) +
-  #annotation_logticks(sides = "l") +
+  scale_y_continuous(trans = log10_trans()) +
+  annotation_logticks(sides = "l") +
   xlab(bquote(italic(FD))) +
-  ylab(bquote(sigma~italic(CH)[CV])) +
+  ylab(bquote(italic(CV)~italic(CH)[CV])) +
   theme_bw(base_size = tamano) +
   th + gui + 
   facet_grid("Height heterogeneity" ~ type, scales = "free")
@@ -197,7 +198,7 @@ Figure_4 <- ggarrange(cv_vol_CH,
                       ncol = 1, nrow = 3,  align = "hv", 
                       common.legend = TRUE)
 #Export figure
-jpeg(paste0(root_path, "/Figure_4.jpeg"), width = 210, height = 210, units = "mm", res = 600)
+jpeg(paste0(root_path, "/Figure_4a.jpeg"), width = 210, height = 210, units = "mm", res = 600)
 
 Figure_4
 

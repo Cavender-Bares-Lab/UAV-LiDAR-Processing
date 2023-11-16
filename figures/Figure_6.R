@@ -50,9 +50,9 @@ data <- rbind(taxa, phylo, funct)
 data$type <- as.factor(data$type)
 data$type <- factor(data$type, levels = c("Taxonomic", "Phylogenetic", "Functional"))
 
-cv_metrics <- data[, .(CV_slope = sd(Slope_Hill1),
-                       CV_ch = sd(cv_maximun_height),
-                       CV_pgap = sd(Pgap)), 
+cv_metrics <- data[, .(CV_slope = sd(Slope_Hill1)/mean(Slope_Hill1),
+                       CV_ch = sd(cv_maximun_height)/mean(cv_maximun_height),
+                       CV_pgap = sd(Pgap)/mean(Pgap)), 
                    by = c("plot_new", "PSV", "plot_type", "type", "PA")]
 cv_metrics <- cv_metrics[!is.na(PSV), ]
 
@@ -98,7 +98,7 @@ colour_PA <- scale_fill_viridis("Proportion of Angiosperms",
                                 limits = c(0, 1),
                                 breaks = c(0.0, 0.5, 1.0))
 
-alpha_point <- 0.15
+alpha_point <- 1.0
 
 # ------------------------------------------------------------------------------
 # Plots
@@ -127,7 +127,7 @@ cv_vol_dD <- ggplot(cv_metrics[variable == "CV_slope",], aes(PSV,
   scale_y_continuous(trans = log10_trans()) +
   annotation_logticks(sides = "l") +
   xlab("Species variability") +
-  ylab(bquote(sigma~italic(d)[italic(D)]))  +
+  ylab(bquote(italic(CV)~italic(d)[italic(D)]))  +
   theme_bw(base_size = tamano) +
   th + gui + 
   facet_grid("Structural complexity" ~ type, scales = "free")
@@ -139,11 +139,12 @@ cv_vol_Pgap <- ggplot(cv_metrics[variable == "CV_pgap",], aes(PSV,
   #geom_point(aes(shape = plot_type), colour = "grey", alpha = alpha_point) +
   geom_point(colour = "grey", alpha = alpha_point, shape = 21) +
   stat_poly_line(method = "lm",
-               se = TRUE,
+               se = FALSE,
                formula = y ~ x,
                #formula = y ~ poly(x, 2, raw = TRUE),
                linewidth = 0.5,
-               colour = "black") +
+               colour = "black",
+               linetype = "dotted") +
   stat_poly_eq(use_label(c("eq", "R2")),
              method = "lm",
              formula = y ~ x,
@@ -158,7 +159,7 @@ cv_vol_Pgap <- ggplot(cv_metrics[variable == "CV_pgap",], aes(PSV,
   scale_y_continuous(trans = log10_trans()) +
   annotation_logticks(sides = "l") +
   xlab(" ") +
-  ylab(bquote(sigma~italic(P)[gap])) +
+  ylab(bquote(italic(CV)~italic(P)[gap])) +
   theme_bw(base_size = tamano) +
   th + gui + 
   facet_grid("Gap probability" ~ type, scales = "free")
@@ -189,7 +190,7 @@ cv_vol_CH <-ggplot(cv_metrics[variable == "CV_ch",], aes(PSV,
   scale_y_continuous(trans = log10_trans()) +
   annotation_logticks(sides = "l") +
   xlab(" ") +
-  ylab(bquote(sigma~italic(CH)[CV])) +
+  ylab(bquote(italic(CV)~italic(CH)[CV])) +
   theme_bw(base_size = tamano) +
   th + gui + 
   facet_grid("Height heterogeneity" ~ type, scales = "free")
