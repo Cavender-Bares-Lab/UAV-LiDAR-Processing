@@ -1,14 +1,13 @@
 ################################################################################
-#' @title Cleaning of field inventories and estimation of plot metrics
+#' @title Net biodiversity effect
 ################################################################################
 
-#' @description Data cleaning for extracting plot forest structure metrics
+#' @description Estimation of the net biodiversity effect
 #' 
-#' @return A .csv file
+#' @return A tiff file
 
-#' --------------------------------------------------------------------------
+#' -----------------------------------------------------------------------------
 #' Libraries
-
 library(data.table)
 
 #' -----------------------------------------------------------------------------
@@ -16,14 +15,6 @@ library(data.table)
 
 root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
 #root_path <- "F:/Projects/LiDAR/data"
-
-#' -----------------------------------------------------------------------------
-#' Functions
-
-hill <- function(n_points, q) {
-  p <- n_points/sum(n_points)
-  return((sum(p^q)^(1 / (1 - q))))
-}
 
 #' -----------------------------------------------------------------------------
 #' Processing
@@ -152,131 +143,80 @@ frame_large <- frame_large[row != 10,]
 #-------------------------------------------------------------------------------
 # Merge small and large plots
 
-plots <- rbind(frame_small, frame_large)
+trees <- rbind(frame_small, frame_large)
 
 #-------------------------------------------------------------------------------
-# Estimation of plot volume growth from 2021 to 2022.
+# Estimation of tree volume growth from 2021 to 2022.
 
 # Reshape 2021
-plots_2021 <- subset(plots, year(measurement_date) == 2021)
-plots_2021 <- plots_2021[, c("individual_id", "deadmissing", 
+trees_2021 <- subset(trees, year(measurement_date) == 2021)
+trees_2021 <- trees_2021[, c("individual_id", "deadmissing", 
                              "measurement_date", "V.conoid_conoidoid_infill")]
-plots_2021 <- plots_2021[deadmissing != "Yes", ]
-plots_2021 <- plots_2021[, c(1, 3, 4)]
-colnames(plots_2021)[2:3] <- c("date_2021", "volume_2021")
+trees_2021 <- trees_2021[deadmissing != "Yes", ]
+trees_2021 <- trees_2021[, c(1, 3, 4)]
+colnames(trees_2021)[2:3] <- c("date_2021", "volume_2021")
 
 # Reshape 2022
-plots_2022 <- subset(plots, year(measurement_date) == 2022)
-plots_2022 <- plots_2022[, c("plot", "plot_new", "individual_id", "deadmissing", 
+trees_2022 <- subset(trees, year(measurement_date) == 2022)
+trees_2022 <- trees_2022[, c("plot", "plot_new", "individual_id", "deadmissing", 
                              "year_planted", "species", "species_richness",
                              "measurement_date", "V.conoid_conoidoid_infill")]
-plots_2022 <- plots_2022[deadmissing != "Yes", ]
-plots_2022 <- plots_2022[, c(1:3, 5:9)]
-colnames(plots_2022)[7:8] <- c("date_2022", "volume_2022")
+trees_2022 <- trees_2022[deadmissing != "Yes", ]
+trees_2022 <- trees_2022[, c(1:3, 5:9)]
+colnames(trees_2022)[7:8] <- c("date_2022", "volume_2022")
 
 # Merge years
-plot_growth <- merge(plots_2021, plots_2022, by = c("individual_id"),
-                     all.x = FALSE, all.y = FALSE)
+tree_growth <- merge(trees_2021, trees_2022, by = c("individual_id"),
+                     all.x = TRUE, all.y = TRUE)
 
 # Estimate Annual Woody Productivity
-plot_growth$AWP <- (plot_growth$volume_2022 - plot_growth$volume_2021) /
-  ((plot_growth$date_2022 - plot_growth$date_2021)/365.25)
+tree_growth$AWP <- (tree_growth$volume_2022 - tree_growth$volume_2021) /
+  ((tree_growth$date_2022 - tree_growth$date_2021)/365.25)
 
-plot_growth$RAWP <- ((plot_growth$volume_2022 - plot_growth$volume_2021)/plot_growth$volume_2021) /
-  ((plot_growth$date_2022 - plot_growth$date_2021)/365.25)
+# Clean of trees
+tree_growth_mono <- tree_growth[year_planted < 2018, ]
+tree_growth_mono <- tree_growth_mono[species_richness == 1, ]
+tree_growth_mono <- na.exclude(tree_growth_mono)
+tree_growth_mono[, .N, by = "species"]
 
-# Get summary per plot
-species_productivity <- plot_growth[, .(mean_year_planted = mean(year_planted),
-                                        ntrees = .N,
-                                        volume = sum(volume_2022),
-                                        total_AWP = sum(AWP),
-                                        mean_AWP = mean(AWP),
-                                        sd_AWP = sd(AWP),
-                                        total_RAWP = sum(RAWP),
-                                        mean_RAWP = mean(RAWP),
-                                        sd_RAWP = sd(RAWP)),
-                                    by = c("plot", "plot_new", "species", "species_richness")]
+# Mean per species
+species_growth <- tree_growth_mono[, .(mean_AWP = mean(AWP, na.rm = TRUE)),
+                                   by = "species"]
 
-# Export species productivity
-fwrite(species_productivity, paste0(root_path, "/species_productivity.csv"))
+# Plot growth
+tree_growth <- tree_growth[!is.na(volume_2022),]
+plot_growth <- tree_growth[, .(volume = sum(volume_2022, na.rm = TRUE),
+                               observed_AWP = sum(AWP, na.rm = TRUE),
+                               ntrees = .N),
+                           by = c("plot_new", "species", "species_richness")]
 
-#-------------------------------------------------------------------------------
-# Summary of metrics by plot.
+# Total volume
+total_volume <- plot_growth[, .(total_volume = sum(volume)),
+                            by = c("plot_new", "species_richness")]
 
-# Select 2022 inventory
-plots <- subset(plots, year(measurement_date) == 2022)
+#' -----------------------------------------------------------------------------
+#' Estimate the NBE
 
-# Get summary
-plot_summary <- plots[deadmissing == "No", 
-                      .(SR_real = length(unique(species)),
-                        year_mean = mean(year_planted),
-                        year_cv = sd(year_planted)/mean(year_planted), 
-                        ntrees = .N, 
-                        volume = sum(V.conoid_conoidoid_infill, na.rm = TRUE),
-                        vol_Hill0 = hill(V.conoid_conoidoid_infill, 0),
-                        vol_Hill1 = hill(V.conoid_conoidoid_infill, 0.999),
-                        vol_Hill2 = hill(V.conoid_conoidoid_infill, 2)),
-                      by = c("plot", "plot_new")]
+# Merge volume per and plot growth
+frame <- merge(plot_growth, total_volume, by = c("plot_new", "species_richness"))
 
-complete <- merge(plot_summary, plot_growth_summary, 
-                  by = c("plot", "plot_new"), 
-                  all.x = TRUE, 
-                  all.y = TRUE)
+# Proportion of volume per species on the plot
+frame$PV <- frame$volume/frame$total_volume
+frame[, sum(PV), by = "plot_new"] # Check for calculation
 
-#-------------------------------------------------------------------------------
-# Summary of metrics by species in the plot.
+# Merge species growth with frame
+frame <- merge(frame, species_growth, by = c("species"))
 
-# Reshaping
-species_summary <- plots[deadmissing == "No", .(ntrees = .N,
-                                                volume = sum(V.conoid_conoidoid_infill, na.rm = TRUE)),
-                         by = c("plot", "plot_new", "species")]
+# Weighted
+frame$expected_AWP <- frame$mean_AWP*frame$PV
 
-# Export species summary 
-fwrite(species_summary, paste0(root_path, "species_summary.csv"))
+# NBE per plot
+plot_NBE <- frame[, .(volume = sum(volume),
+                      observed_AWP = sum(observed_AWP),
+                      expected_AWP = sum(expected_AWP),
+                      ntrees = sum(ntrees)),
+                  by = c("plot_new", "species_richness")]
 
-#-------------------------------------------------------------------------------
-# Get proportion of deciduous 
-traits <- fread(paste0(root_path, "/traits.csv"))
-traits <- traits[, c(5, 11)]
-species <- species_summary[, c(1, 2, 3, 5)]
-colnames(species)[3] <- "Species"
+plot_NBE$NBE <- (plot_NBE$observed_AWP - plot_NBE$expected_AWP)
 
-proportions <- merge(traits, species, by = "Species", all.x = TRUE, all.y = TRUE)
-p <- proportions[, sum(volume), by = c("plot", "plot_new", "Gymnosperm")]
-colnames(p)[4] <- "volume"
-proportions <- data.frame(plot = "1", plot_new = "1", PA = 0)
-unique_plots <- unique(p$plot_new)
-
-for(i in 1:length(unique_plots)) {
-  
-  sub <- subset(p, plot_new == unique_plots[i])
-  
-  if(nrow(sub) == 1) {
-    if(sub$Gymnosperm[1] == "N") {
-      proportions[i, 1] <- sub$plot[1]
-      proportions[i, 2] <- sub$plot_new[1]
-      proportions[i, 3] <- 1.00
-    } else {
-      proportions[i, 1] <- sub$plot[1]
-      proportions[i, 2] <- sub$plot_new[1]
-      proportions[i, 3] <- 0.00
-    }
-  } else {
-    gym <- sub[Gymnosperm == "Y", volume]
-    ang <- sub[Gymnosperm == "N", volume]
-    proportions[i, 1] <- sub$plot[1]
-    proportions[i, 2] <- sub$plot_new[1]
-    proportions[i, 3] <- ang/(gym + ang)
-  }
-}
-
-complete <- merge(complete, proportions, 
-                  by = c("plot", "plot_new"), 
-                  all.x = TRUE, 
-                  all.y = TRUE)
-
-# Export structural attributes
-fwrite(complete, paste0(root_path, "/structural_attributes.csv"))
-
-
-
+fwrite(plot_NBE, paste0(root_path, "/plot_NBE.csv"))

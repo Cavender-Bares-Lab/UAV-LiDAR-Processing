@@ -1,5 +1,5 @@
 ################################################################################
-#' @title Phenological effects
+#' @title Net Biodiveristy Effect and seasonal stability
 ################################################################################
 
 #' @description Phenological effect on FSC and their association with 
@@ -10,12 +10,6 @@
 #' -----------------------------------------------------------------------------
 #' Libraries
 library(data.table)
-library(viridis)
-library(rcartocolor)
-library(ggplot2)
-library(scales)
-library(ggpubr)
-library(ggpmisc)
 options(scipen = 99999)
 
 #' -----------------------------------------------------------------------------
@@ -31,31 +25,27 @@ frame <- fread(paste0(root_path, "/master_clean.csv"))
 frame[PA == 1, plot_type := "Angiosperms"]
 frame[PA == 0, plot_type := "Gymnosperms"]
 frame[PA > 0 & PA < 1, plot_type := "Mixture"]
+NBE <- fread(paste0(root_path, "/plot_NBE.csv"))
 
 #' -----------------------------------------------------------------------------
 #' Data reshaping
 #' 
 
-frame$cvAWPD <- frame$sd_AWP/frame$mean_AWP
+LiDAR <- frame[, c("DOY", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_type", "plot_new", "PA", "SR_real")]
 
-AWP <- frame[, c("DOY", "total_AWP", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_type", "plot_new", "PA")]
-sigmaAWPD <- frame[, c("DOY", "sd_AWP", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_type", "plot_new", "PA")]
-
-AWP$type <- "Annual wood productivity"
-sigmaAWPD$type <- "Tree growth variability" 
-
-colnames(AWP)[2] <- "metric"
-colnames(sigmaAWPD)[2] <- "metric"
-
-data <- rbind(AWP, sigmaAWPD)
-data$type <- as.factor(data$type)
-data$type <- factor(data$type, levels = c("Annual wood productivity", "Tree growth variability"))
-
-cv_metrics <- data[, .(CV_slope = sd(Slope_Hill1)/mean(Slope_Hill1),
+cv_metrics <- LiDAR[, .(CV_slope = sd(Slope_Hill1)/mean(Slope_Hill1),
                        CV_ch = sd(cv_maximun_height)/mean(cv_maximun_height),
                        CV_pgap = sd(Pgap)/mean(Pgap)), 
-                   by = c("plot_new", "metric", "plot_type", "type", "PA")]
+                   by = c("plot_new", "plot_type", "PA", "SR_real")]
 
+LiDAR_NBE <- merge(cv_metrics, NBE, by = c("plot_new"), all.x = TRUE, all.y = FALSE)
+
+LiDAR_NBE <- LiDAR_NBE[species_richness > 1, ]
+
+plot(log(LiDAR_NBE$NBE) ~ log(LiDAR_NBE$CV_slope))
+abline(lm(log(LiDAR_NBE$NBE) ~ log(LiDAR_NBE$CV_slope)))
+summary(lm(log(LiDAR_NBE$NBE) ~ log(LiDAR_NBE$CV_slope)))
+        
 cv_metrics <- melt(cv_metrics, 
                    id.vars = c("plot_new", "plot_type", "type", "metric", "PA"),
                    measure.vars = c("CV_slope", "CV_ch", "CV_pgap"))
