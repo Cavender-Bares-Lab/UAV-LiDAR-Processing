@@ -1,145 +1,101 @@
 ################################################################################
-#' @title Effect of biomass, tree size inequality, and PA on FSC.
+#' @title Effect forest volume on LiDAR-derived metrics
 ################################################################################
 
-#' @description Effect of biomass, tree size inequality, and PA on FSC
+#' @description Figure 1 to test the effect of forest volume on LiDAR derived
+#' metrics
 #' 
-#' @return A tiff file
+#' @return A tiff file and statistical results
 
 #' -----------------------------------------------------------------------------
 #' Libraries
 library(data.table)
-library(viridis)
 library(rcartocolor)
 library(ggplot2)
 library(scales)
-library(ggpubr)
 library(ggpmisc)
 options(scipen = 99999)
 
 #' -----------------------------------------------------------------------------
 #' Working path
 
-root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
-#root_path <- "F:/Projects/LiDAR/data"
+#root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+root_path <- "F:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Load data
 
 frame <- fread(paste0(root_path, "/master_clean.csv"))
-frame[PA == 1, plot_type := "Angiosperms"]
-frame[PA == 0, plot_type := "Gymnosperms"]
-frame[PA > 0 & PA < 1, plot_type := "Mixture"]
 
 #' -----------------------------------------------------------------------------
 #' Data reshaping
 
-vol <- frame[, c("DOY", "volume", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_type", "plot_new", "PA")]
-AWP <- frame[, c("DOY", "total_AWP", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_type", "plot_new", "PA")]
-sigmaAWPD <- frame[, c("DOY", "sd_AWP", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_type", "plot_new", "PA")]
+data <- frame[, c("plot_new", "PA", "Block", "DOY", "volume",
+                  "Slope_Hill1", "Pgap", "cv_maximun_height")]
 
-vol$type <- "Plot volume"
-AWP$type <- "Plot productivity"
-sigmaAWPD$type <- "Tree growth variability" 
+data_melt <- melt(data,
+                  id.vars = c("DOY", "volume"),
+                  measure.vars = c("Slope_Hill1", "Pgap", "cv_maximun_height"),
+                  variable.name = "LiDAR")
 
-colnames(vol)[2] <- "metric"
-colnames(AWP)[2] <- "metric"
-colnames(sigmaAWPD)[2] <- "metric"
-
-data <- rbind(vol)
-#data <- rbind(vol, AWP, sigmaAWPD)
-data$type <- as.factor(data$type)
-data$type <- factor(data$type, levels = c("Plot volume"))
-#data$type <- factor(data$type, levels = c("Plot volume", "Plot productivity", "Tree growth variability"))
-
-data_melt <- melt(data, 
-                  id.vars = c("DOY", "metric", "plot_type", "type"),
-                  measure.vars = c("Slope_Hill1", "Pgap", "cv_maximun_height"))
-
+data_melt$LiDAR <- as.factor(data_melt$LiDAR)
+data_melt$LiDAR <- factor(data_melt$LiDAR,
+                          levels = c("cv_maximun_height", "Pgap", "Slope_Hill1"),
+                          labels = c("Height heterogeneity", "Gap probability", "Structural complexity"))
 
 # ------------------------------------------------------------------------------
 # Plot details
+
 tamano <- 12
 tamano2 <- 10
 text_size <- 2.8
-
-th <- theme(plot.background = element_blank(), 
-            panel.grid.major = element_blank(), 
-            panel.grid.minor = element_blank(), 
+th <- theme(plot.background = element_blank(),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
             axis.text.x = element_text(color = "black"),
             axis.text.y = element_text(color = "black"),
             plot.margin = margin(4, 4, 0, 1, "pt"),
-            legend.position= c("top"), 
-            legend.direction = "horizontal", 
-            legend.background = element_rect(fill = "transparent"), 
+            legend.position= c("top"),
+            legend.direction = "horizontal",
+            legend.background = element_rect(fill = "transparent"),
             legend.box.background = element_blank(),
-            strip.background = element_rect(color="black", 
-                                            fill="black", 
-                                            linewidth=1.5, 
+            strip.background = element_rect(color="black",
+                                            fill="black",
+                                            linewidth=1.5,
                                             linetype="solid"),
             strip.text = element_text(color = "white"))
 
-gui <- guides(fill = guide_colourbar(barwidth = 15, 
-                                     barheight = 0.7, 
+gui <- guides(fill = guide_colourbar(barwidth = 15,
+                                     barheight = 0.7,
                                      title.position = "top",
-                                     title.hjust = 0.5))  
+                                     title.hjust = 0.5))
 
-plot_comp <- scale_shape_manual("Plot composition", values = c(21, 24, 22),
-                                guide = guide_legend(override.aes = list(size = 2,
-                                                                         colour = "black",
-                                                                         alpha = 1),
-                                                     title.position = "top",
-                                                     title.hjust = 0.5)) 
+#plot_comp <- scale_shape_manual("Plot composition", values = c(21, 24, 22),
+#                                guide = guide_legend(override.aes = list(size = 2,
+#                                                                         colour = "black",
+#                                                                         alpha = 1),
+#                                                     title.position = "top",
+#                                                     title.hjust = 0.5))
 
-doy_color <- scale_color_carto_c("Day of the Year", 
-                                 type = "diverging", 
+doy_color <- scale_color_carto_c("Day of the Year",
+                                 type = "diverging",
                                  palette = "Fall",
                                  guide = "none")
 
-doy_fill <-   scale_fill_carto_c("Day of the Year", 
-                                 type = "diverging", 
+doy_fill <-   scale_fill_carto_c("Day of the Year",
+                                 type = "diverging",
                                  palette = "Fall",
                                  limits = c(95, 305),
-                                 breaks = c(100, 200, 300)) 
+                                 breaks = c(100, 200, 300))
 
 alpha_point <- 0.15
 
 # ------------------------------------------------------------------------------
-# Panels
-db <- ggplot(data_melt[variable == "Slope_Hill1"], 
-             aes(x = metric,
-                 y = value, 
-                 color = DOY,
-                 fill = DOY,
-                 gruop = as.factor(DOY))) +
-  #geom_point(aes(shape = plot_type), colour = "grey", alpha = alpha_point) +
-  geom_point(colour = "grey", alpha = alpha_point, shape = 21) +
-  stat_poly_line(method = "lm",
-                 se = FALSE,
-                 formula = y ~ x,
-                 #formula = y ~ poly(x, 2, raw = TRUE),
-                 linewidth = 0.5) +
-  stat_poly_eq(method = "lm",
-               formula = y ~ x,
-               #formula = y ~ poly(x, 2, raw = TRUE),
-               label.x = "right",
-               label.y = "bottom",
-               size = text_size) +
-  #plot_comp + doy_color + doy_fill + 
-  doy_color + doy_fill +
-  scale_x_continuous(trans = log10_trans()) +
-  scale_y_continuous(n.breaks = 3, breaks = c(1.50, 2.00, 2.50), 
-                     labels = c("1.5", "2.0", "2.5")) +
-  annotation_logticks(sides = "b") +
-  xlab(bquote(Wood~volume~(m^3))) + 
-  ylab(bquote(italic(d)[italic(D)]))  +
-  theme_bw(base_size = tamano) +
-  th + gui + 
-  facet_grid("Structural complexity" ~ type, scales = "free")
+# Plot
 
-pgap <- ggplot(data_melt[variable == "Pgap"], 
-               aes(x = metric,
-                   y = value, 
+plot <- ggplot(data_melt,
+               aes(x = volume,
+                   y = value,
                    color = DOY,
                    fill = DOY,
                    gruop = as.factor(DOY))) +
@@ -153,66 +109,66 @@ pgap <- ggplot(data_melt[variable == "Pgap"],
   stat_poly_eq(method = "lm",
                formula = y ~ x,
                #formula = y ~ poly(x, 2, raw = TRUE),
-               label.x = "left",
-               label.y = "bottom",
-               size = text_size) +
-  #plot_comp + doy_color + doy_fill + 
-  doy_color + doy_fill +
-  coord_cartesian(ylim = c(0, 1), expand = TRUE) +
-  scale_x_continuous(trans = log10_trans()) +
-  scale_y_continuous(n.breaks = 3, breaks = c(0.0, 0.5, 1.0), 
-                     labels = c("0.0", "0.5", "1.0")) +
-  annotation_logticks(sides = "b") +
-  xlab(bquote(Wood~volume~(m^3))) + 
-  #xlab(bquote(AWD[plot]~(m^3~y^-1))) + 
-  ylab(bquote(italic(P)[gap])) +
-  theme_bw(base_size = tamano) +
-  th + gui + 
-  facet_grid("Gap probability" ~ type, scales = "free")
-
-ch <- ggplot(data_melt[variable == "cv_maximun_height"], 
-             aes(x = metric,
-                 y = value, 
-                 color = DOY,
-                 fill = DOY,
-                 gruop = as.factor(DOY))) +
-  #geom_point(aes(shape = plot_type), colour = "grey", alpha = alpha_point) +
-  geom_point(colour = "grey", alpha = alpha_point, shape = 21) +
-  stat_poly_line(method = "lm",
-                 se = FALSE,
-                 formula = y ~ x,
-                 #formula = y ~ poly(x, 2, raw = TRUE),
-                 linewidth = 0.5) +
-  stat_poly_eq(method = "lm",
-               formula = y ~ x,
-               #formula = y ~ poly(x, 2, raw = TRUE),
                label.x = "right",
                label.y = "top",
                size = text_size) +
-  #plot_comp + doy_color + doy_fill + 
-  doy_color + doy_fill + 
-  coord_cartesian(ylim = c(0, 2.8), expand = TRUE) +
+  #plot_comp + doy_color + doy_fill +
+  doy_color + doy_fill +
   scale_x_continuous(trans = log10_trans()) +
-  #scale_y_continuous(trans = log10_trans(), n.breaks = 3, breaks = c(0.1, 1.0, 4.0), 
-  #                   labels = c("0.1", "1.0", "4.0")) +
+  #scale_y_continuous(n.breaks = 3, breaks = c(1.50, 2.00, 2.50),
+  #                   labels = c("1.5", "2.0", "2.5")) +
   annotation_logticks(sides = "b") +
-  xlab(bquote(Wood~volume~(m^3))) + 
-  #xlab(bquote(sigma*AWD[tree]~(m^3~y^-1))) + 
-  ylab(bquote(italic(CH)[CV])) +
+  xlab(bquote(Wood~volume~(m^3))) +
+  ylab(bquote(italic(d)[italic(D)]~~~~italic(P)[gap]~~~italic(CH)[CV])) +
   theme_bw(base_size = tamano) +
-  th + gui + 
-  facet_grid("Height heterogeneity" ~ type, scales = "free")
+  th + gui +
+  facet_grid(LiDAR ~ ., scales = "free")
 
-#-------------------------------------------------------------------------------
-#Merge panels
+# Export figure
+jpeg(paste0(root_path, "/Figure_1.jpeg"), width = 90, height = 180, units = "mm", res = 600)
 
-Figure_1 <- ggarrange(ch, pgap, db,
-                      ncol = 1, nrow = 3,  align = "hv", 
-                      common.legend = TRUE)
-#Export figure
-jpeg(paste0(root_path, "/Figure_1.jpeg"), width = 90, height = 220, units = "mm", res = 600)
-
-Figure_1
+plot
 
 dev.off()
+
+
+# ------------------------------------------------------------------------------
+# Statistical analysis
+
+library(lme4)
+library(sjPlot)
+library(sjmisc)
+library(stargazer)
+library(report)
+library(car)
+
+data$DOY <- as.character(data$DOY)
+
+#CHcv
+ch <- lmer(cv_maximun_height ~ log(volume)*DOY + (1 | plot_new:Block),
+           data = data)
+qqnorm(resid(ch))
+qqline(resid(ch))
+report(ch)
+Anova(ch, test.statistic="F")
+tab_model(ch, p.val = "kr", show.df = TRUE)
+
+#Pgap
+Pgap <- lmer(Pgap ~ log(volume)*DOY + (1 | plot_new:Block),
+           data = data)
+qqnorm(resid(Pgap))
+qqline(resid(Pgap))
+report(Pgap)
+Anova(Pgap, test.statistic="F")
+tab_model(Pgap, p.val = "kr", show.df = TRUE)
+
+#dD
+dD <- lmer(Slope_Hill1 ~ log(volume)*DOY + (1 | plot_new:Block),
+           data = data)
+qqnorm(resid(dD))
+qqline(resid(dD))
+report(dD)
+Anova(dD, test.statistic="F")
+tab_model(dD, p.val = "kr", show.df = TRUE)
+
 
