@@ -9,12 +9,13 @@
 #' -----------------------------------------------------------------------------
 #' Libraries
 library(data.table)
+options(scipen = 99999)
 
 #' -----------------------------------------------------------------------------
 #' Working path
 
-root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
-#root_path <- "F:/Projects/LiDAR/data"
+#root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+root_path <- "F:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Processing
@@ -159,64 +160,77 @@ colnames(trees_2021)[2:3] <- c("date_2021", "volume_2021")
 # Reshape 2022
 trees_2022 <- subset(trees, year(measurement_date) == 2022)
 trees_2022 <- trees_2022[, c("plot", "plot_new", "individual_id", "deadmissing", 
-                             "year_planted", "species", "species_richness",
+                             "year_planted", "species",
                              "measurement_date", "V.conoid_conoidoid_infill")]
 trees_2022 <- trees_2022[deadmissing != "Yes", ]
-trees_2022 <- trees_2022[, c(1:3, 5:9)]
-colnames(trees_2022)[7:8] <- c("date_2022", "volume_2022")
+trees_2022 <- trees_2022[, c(1:3, 5:8)]
+colnames(trees_2022)[6:7] <- c("date_2022", "volume_2022")
 
 # Merge years
-tree_growth <- merge(trees_2021, trees_2022, by = c("individual_id"),
+inventories <- merge(trees_2021, trees_2022, by = c("individual_id"),
                      all.x = TRUE, all.y = TRUE)
 
-# Estimate Annual Woody Productivity
-tree_growth$AWP <- (tree_growth$volume_2022 - tree_growth$volume_2021) /
-  ((tree_growth$date_2022 - tree_growth$date_2021)/365.25)
+# Estimate AWP per tree
+inventories$tree_AWP <- (inventories$volume_2022 - inventories$volume_2021) /
+  ((inventories$date_2022 - inventories$date_2021)/365.25)
 
 # Clean of trees
-tree_growth_mono <- tree_growth[year_planted < 2018, ]
-tree_growth_mono <- tree_growth_mono[species_richness == 1, ]
-tree_growth_mono <- na.exclude(tree_growth_mono)
-tree_growth_mono[, .N, by = "species"]
+inventories_mono <- inventories[year_planted < 2018, ]
+nspecies <- inventories_mono[, .(species_richness = length(unique(species))),
+                             by = "plot_new"]
+inventories_mono <- merge(inventories_mono, nspecies, 
+                          by = "plot_new", all.x = TRUE, all.y = TRUE)
+inventories_mono <- inventories_mono[species_richness == 1, ]
+inventories_mono <- na.exclude(inventories_mono)
+inventories_mono[, .N, by = "species"]
 
-# Mean per species
-species_growth <- tree_growth_mono[, .(mean_AWP = mean(AWP, na.rm = TRUE)),
-                                   by = "species"]
+# Mean AWP per species per tree 
+tree_species_growth <- inventories_mono[, .(mean_tree_AWP = mean(tree_AWP, na.rm = TRUE)),
+                                        by = "species"]
 
-# Plot growth
-tree_growth <- tree_growth[!is.na(volume_2022),]
-plot_growth <- tree_growth[, .(volume = sum(volume_2022, na.rm = TRUE),
-                               observed_AWP = sum(AWP, na.rm = TRUE),
+# Plot AWP per species
+inventories <- inventories[!is.na(volume_2022),]
+plot_growth <- inventories[, .(species_total_volume = sum(volume_2022, na.rm = TRUE),
+                               observed_species_total_AWP = sum(tree_AWP, na.rm = TRUE),
                                ntrees = .N),
-                           by = c("plot_new", "species", "species_richness")]
+                           by = c("plot_new", "species")]
+nspecies <- plot_growth[, .(species_richness = length(unique(species))),
+                             by = "plot_new"]
+plot_growth <- merge(plot_growth, nspecies,
+                     by = "plot_new", all.x = TRUE, all.y = TRUE)
 
-# Total volume
-total_volume <- plot_growth[, .(total_volume = sum(volume)),
+# Total volume per plot
+total_volume <- plot_growth[, .(plot_total_volume = sum(species_total_volume)),
                             by = c("plot_new", "species_richness")]
 
 #' -----------------------------------------------------------------------------
 #' Estimate the NBE
 
 # Merge volume per and plot growth
-frame <- merge(plot_growth, total_volume, by = c("plot_new", "species_richness"))
+frame <- merge(plot_growth, total_volume, 
+               by = c("plot_new", "species_richness"))
 
 # Proportion of volume per species on the plot
-frame$PV <- frame$volume/frame$total_volume
+frame$PV <- frame$species_total_volume/frame$plot_total_volume
 frame[, sum(PV), by = "plot_new"] # Check for calculation
 
+# Order
+frame <- frame[order(plot_new),]
+
 # Merge species growth with frame
-frame <- merge(frame, species_growth, by = c("species"))
+frame <- merge(frame, tree_species_growth, by = c("species"))
+frame <- frame[order(plot_new),]
 
 # Weighted
-frame$expected_AWP <- frame$mean_AWP*frame$PV
+frame$expected_species_total_AWP <- (frame$mean_tree_AWP*frame$ntrees)*frame$PV
 
 # NBE per plot
-plot_NBE <- frame[, .(volume = sum(volume),
-                      observed_AWP = sum(observed_AWP),
-                      expected_AWP = sum(expected_AWP),
+plot_NBE <- frame[, .(volume = sum(species_total_volume),
+                      observed_total_AWP = sum(observed_species_total_AWP),
+                      expected_total_AWP = sum(expected_species_total_AWP),
                       ntrees = sum(ntrees)),
                   by = c("plot_new", "species_richness")]
 
-plot_NBE$NBE <- (plot_NBE$observed_AWP - plot_NBE$expected_AWP)
+plot_NBE$overyielding <- (plot_NBE$observed_total_AWP - plot_NBE$expected_total_AWP)
 
 fwrite(plot_NBE, paste0(root_path, "/plot_NBE.csv"))

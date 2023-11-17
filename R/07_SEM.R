@@ -1,9 +1,9 @@
 ################################################################################
-#' @title Phenological effects
+#' @title Structural Equation Models
 ################################################################################
 
-#' @description Phenological effect on FSC and their association with 
-#' plot metrics
+#' @description Structural Equation Models to explain the role of different levels
+#' of diversity in seasonal structural stability and overyielding
 #' 
 #' @return A tiff file
 
@@ -12,158 +12,125 @@
 library(data.table)
 library(lavaan)
 library(lavaanPlot)
+library(piecewiseSEM)
 options(scipen = 99999)
 
 #' -----------------------------------------------------------------------------
 #' Working path
 
-root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
-#root_path <- "F:/Projects/LiDAR/data"
+#root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+root_path <- "F:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Load data
 
 frame <- fread(paste0(root_path, "/master_clean.csv"))
-frame[PA == 1, plot_type := "Angiosperms"]
-frame[PA == 0, plot_type := "Gymnosperms"]
-frame[PA > 0 & PA < 1, plot_type := "Mixture"]
 
 #' -----------------------------------------------------------------------------
 #' Data reshaping
 
-AWP <- frame[, c("DOY", "total_AWP", "cv_maximun_height", "Pgap", "Slope_Hill1", "plot_type", "plot_new", "PA", "hill0_taxa", "hill0_phylo", "hill0_FD_q", "TD_PSV", "FD_PSV", "PD_PSV")]
-sigmaAWPD <- frame[, c("DOY", "sd_AWP", "cv_maximun_height", "Pgap", "Slope_Hill1", "plot_type", "plot_new", "PA", "hill0_taxa", "hill0_phylo", "hill0_FD_q", "TD_PSV", "FD_PSV", "PD_PSV")]
+data <- frame[, c("plot_new", "PA", "Block", "DOY", "overyielding",
+                  "cv_maximun_height", "Pgap", "Slope_Hill1", 
+                  "hill0_taxa", "hill0_phylo", "hill0_FD_q", 
+                  "TD_PSV", "FD_PSV", "PD_PSV")]
 
-AWP$type <- "Annual wood productivity"
-sigmaAWPD$type <- "Tree growth variability" 
-
-colnames(AWP)[2] <- "metric"
-colnames(sigmaAWPD)[2] <- "metric"
-
-data <- rbind(AWP, sigmaAWPD)
-data$type <- as.factor(data$type)
-data$type <- factor(data$type, levels = c("Annual wood productivity", "Tree growth variability"))
-
-cv_metrics <- data[, .(CV_slope = sd(Slope_Hill1)/mean(Slope_Hill1),
-                       CV_ch = sd(cv_maximun_height)/mean(cv_maximun_height),
-                       CV_pgap = sd(Pgap)/mean(Pgap)), 
-                   by = c("plot_new", "metric", "plot_type", "type", "PA", 
-                          "hill0_taxa", "hill0_phylo", "hill0_FD_q", "TD_PSV", 
-                          "FD_PSV", "PD_PSV")]
+cv_metrics <- data[, .(CV_slope = 1/(sd(Slope_Hill1)/mean(Slope_Hill1)),
+                       CV_ch = 1/(sd(cv_maximun_height)/mean(cv_maximun_height)),
+                       CV_pgap = 1/(sd(Pgap)/mean(Pgap))), 
+                   by = c("plot_new", "PA", "Block", "overyielding",
+                          "hill0_taxa", "hill0_phylo", "hill0_FD_q", 
+                          "TD_PSV", "FD_PSV", "PD_PSV")]
 
 # PSV != 0
 cv_metrics <- na.exclude(cv_metrics)
 
+# Transformations
+cv_metrics$hill0_phylo <- log(cv_metrics$hill0_phylo)
+cv_metrics$hill0_FD_q <- log(cv_metrics$hill0_FD_q)
+
 # Melt by LiDAR
 cv_metrics <- melt(cv_metrics, 
-                   id.vars = c("plot_new", "plot_type", "type", "metric", "PA", 
+                   id.vars = c("plot_new", "PA", "Block", "overyielding", 
                                "hill0_taxa", "hill0_phylo", "hill0_FD_q", 
                                "TD_PSV", "FD_PSV", "PD_PSV"),
                    measure.vars = c("CV_slope", "CV_ch", "CV_pgap"),
                    variable.name = "LiDAR_metric",
                    value.name = "LiDAR")
 
-cv_metrics[LiDAR_metric == "CV_ch", LiDAR_metric := "Height heterogeneity"]
-cv_metrics[LiDAR_metric == "CV_pgap", LiDAR_metric := "Gap probability"]
-cv_metrics[LiDAR_metric == "CV_slope", LiDAR_metric := "Structural complexity"]
-
 cv_metrics$LiDAR_metric <- as.factor(cv_metrics$LiDAR_metric)
-cv_metrics$LiDAR_metric <- factor(cv_metrics$LiDAR_metric, levels = c("Height heterogeneity",
-                                                              "Gap probability",
-                                                              "Structural complexity"))
+cv_metrics$LiDAR_metric <- factor(cv_metrics$LiDAR_metric, 
+                                  levels = c("CV_ch", "CV_pgap", "CV_slope"),
+                                  labels = c("Height heterogeneity", "Gap probability", "Structural complexity"))
 
 # Melt by diversity
 cv_metrics <- melt(cv_metrics, 
-                   id.vars = c("plot_new", "plot_type", "type", "metric", "PA", 
+                   id.vars = c("plot_new", "PA", "Block", "overyielding", 
                                "LiDAR_metric", "LiDAR", 
                                "TD_PSV", "FD_PSV", "PD_PSV"),
                    measure.vars = c("hill0_taxa", "hill0_phylo", "hill0_FD_q"),
                    variable.name = "diversity_metric",
                    value.name = "diversity")
 
-cv_metrics[diversity_metric == "hill0_taxa", diversity_metric := "Taxonomic"]
-cv_metrics[diversity_metric == "hill0_phylo", diversity_metric := "Phylogenetic"]
-cv_metrics[diversity_metric == "hill0_FD_q", diversity_metric := "Functional"]
-
 cv_metrics$diversity_metric <- as.factor(cv_metrics$diversity_metric)
-cv_metrics$diversity_metric <- factor(cv_metrics$diversity_metric, levels = c("Taxonomic",
-                                                                              "Phylogenetic",
-                                                                              "Functional"))
+cv_metrics$diversity_metric <- factor(cv_metrics$diversity_metric, 
+                                      levels = c("hill0_taxa", "hill0_phylo", "hill0_FD_q"),
+                                      labels = c("Taxonomic", "Phylogenetic", "Functional"))
 
-# Melt by species releatness
+# Melt by species variability
 cv_metrics <- melt(cv_metrics, 
-                   id.vars = c("plot_new", "plot_type", "type", "metric", "PA", 
+                   id.vars = c("plot_new", "PA", "Block", "overyielding", 
                                "LiDAR_metric", "LiDAR", 
                                "diversity_metric", "diversity"),
                    measure.vars = c("TD_PSV", "FD_PSV", "PD_PSV"),
                    variable.name = "SV_metric",
                    value.name = "SV")
 
-cv_metrics[SV_metric == "TD_PSV", SV_metric := "Taxonomic"]
-cv_metrics[SV_metric == "FD_PSV", SV_metric := "Phylogenetic"]
-cv_metrics[SV_metric == "PD_PSV", SV_metric := "Functional"]
-
 cv_metrics$SV_metric <- as.factor(cv_metrics$SV_metric)
-cv_metrics$SV_metric <- factor(cv_metrics$SV_metric, levels = c("Taxonomic",
-                                                                "Phylogenetic",
-                                                                "Functional"))
+cv_metrics$SV_metric <- factor(cv_metrics$SV_metric, 
+                               levels = c("TD_PSV", "FD_PSV", "PD_PSV"),
+                               labels = c("Taxonomic", "Phylogenetic", "Functional"))
 
 # ------------------------------------------------------------------------------
 # Structural Equation Modeling
 
 # Transform
 cv_metrics$LiDAR <- log(cv_metrics$LiDAR)
-cv_metrics$metric <- log(cv_metrics$metric)
 
-# Model
-model <- '
-  LiDAR ~ diversity + SV
-  metric ~ LiDAR + diversity + SV
-  ' #diversity ~~ SV
   
 # Taxonomic model
 taxonomic <- cv_metrics[LiDAR_metric == "Structural complexity" &
                           diversity_metric == "Taxonomic" &
                           SV_metric == "Taxonomic", ]
 
-taxonomic_AWP <- sem(model, 
-                     data = taxonomic[type == "Annual wood productivity",])
-lavaanPlot(name = "model1", taxonomic_AWP, coefs = TRUE)
-summary(taxonomic_AWP, rsq = TRUE, fit.measures = TRUE) 
+taxonomic_model <- psem(
+  lmer(LiDAR ~  diversity + SV + (1|Block), taxonomic),
+  lmer(overyielding ~ LiDAR + diversity + SV + (1|Block), taxonomic)
+  )
 
-taxonomic_sAWP <- sem(model, 
-                     data = taxonomic[type == "Tree growth variability",])
-lavaanPlot(name = "model1", taxonomic_sAWP, coefs = TRUE)
-summary(taxonomic_sAWP, rsq = TRUE, fit.measures = TRUE) 
+
+summary(taxonomic_model)
 
 # Phylogenetic model
 phylogenetic <- cv_metrics[LiDAR_metric == "Structural complexity" &
                           diversity_metric == "Phylogenetic" &
                           SV_metric == "Phylogenetic", ]
 
-phylogenetic_AWP <- sem(model, 
-                     data = phylogenetic[type == "Annual wood productivity",])
-lavaanPlot(name = "model1", phylogenetic_AWP, coefs = TRUE)
-summary(phylogenetic_AWP, rsq = TRUE, fit.measures = TRUE) 
+phylogenetic_model <- psem(
+  lmer(LiDAR ~  diversity + SV + (1|Block), phylogenetic),
+  lmer(overyielding ~ LiDAR + diversity + SV + (1|Block), phylogenetic)
+)
 
-phylogenetic_sAWP <- sem(model, 
-                      data = phylogenetic[type == "Tree growth variability",])
-lavaanPlot(name = "model1", phylogenetic_sAWP, coefs = TRUE)
-summary(phylogenetic_sAWP, rsq = TRUE, fit.measures = TRUE) 
+summary(phylogenetic_model)
+
 
 # Functional model
 functional <- cv_metrics[LiDAR_metric == "Structural complexity" &
-                         diversity_metric == "Functional" &
-                         SV_metric == "Functional", ]
+                             diversity_metric == "Phylogenetic" &
+                             SV_metric == "Phylogenetic", ]
 
-functional_AWP <- sem(model, 
-                      data = functional[type == "Annual wood productivity",])
-lavaanPlot(name = "model1", functional_AWP, coefs = TRUE)
-summary(functional_AWP, rsq = TRUE, fit.measures = TRUE) 
+functional_model <- psem(
+  lmer(LiDAR ~  diversity + SV + (1|Block), functional),
+  lmer(overyielding ~ LiDAR + diversity + SV + (1|Block), functional)
+)
 
-functional_sAWP <- sem(model, 
-                       data = functional[type == "Tree growth variability",])
-lavaanPlot(name = "model1", functional_sAWP, coefs = TRUE)
-summary(functional_sAWP, rsq = TRUE, fit.measures = TRUE) 
-
-# ------------------------------------------------------------------------------
+summary(functional_model)

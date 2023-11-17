@@ -14,8 +14,8 @@ library(data.table)
 #' -----------------------------------------------------------------------------
 #' Working path
 
-root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
-#root_path <- "F:/Projects/LiDAR/data"
+#root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+root_path <- "F:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Functions
@@ -152,59 +152,13 @@ frame_large <- frame_large[row != 10,]
 #-------------------------------------------------------------------------------
 # Merge small and large plots
 
-plots <- rbind(frame_small, frame_large)
-
-#-------------------------------------------------------------------------------
-# Estimation of plot volume growth from 2021 to 2022.
-
-# Reshape 2021
-plots_2021 <- subset(plots, year(measurement_date) == 2021)
-plots_2021 <- plots_2021[, c("individual_id", "deadmissing", 
-                             "measurement_date", "V.conoid_conoidoid_infill")]
-plots_2021 <- plots_2021[deadmissing != "Yes", ]
-plots_2021 <- plots_2021[, c(1, 3, 4)]
-colnames(plots_2021)[2:3] <- c("date_2021", "volume_2021")
-
-# Reshape 2022
-plots_2022 <- subset(plots, year(measurement_date) == 2022)
-plots_2022 <- plots_2022[, c("plot", "plot_new", "individual_id", "deadmissing", 
-                             "year_planted", "species", "species_richness",
-                             "measurement_date", "V.conoid_conoidoid_infill")]
-plots_2022 <- plots_2022[deadmissing != "Yes", ]
-plots_2022 <- plots_2022[, c(1:3, 5:9)]
-colnames(plots_2022)[7:8] <- c("date_2022", "volume_2022")
-
-# Merge years
-plot_growth <- merge(plots_2021, plots_2022, by = c("individual_id"),
-                     all.x = FALSE, all.y = FALSE)
-
-# Estimate Annual Woody Productivity
-plot_growth$AWP <- (plot_growth$volume_2022 - plot_growth$volume_2021) /
-  ((plot_growth$date_2022 - plot_growth$date_2021)/365.25)
-
-plot_growth$RAWP <- ((plot_growth$volume_2022 - plot_growth$volume_2021)/plot_growth$volume_2021) /
-  ((plot_growth$date_2022 - plot_growth$date_2021)/365.25)
-
-# Get summary per plot
-species_productivity <- plot_growth[, .(mean_year_planted = mean(year_planted),
-                                        ntrees = .N,
-                                        volume = sum(volume_2022),
-                                        total_AWP = sum(AWP),
-                                        mean_AWP = mean(AWP),
-                                        sd_AWP = sd(AWP),
-                                        total_RAWP = sum(RAWP),
-                                        mean_RAWP = mean(RAWP),
-                                        sd_RAWP = sd(RAWP)),
-                                    by = c("plot", "plot_new", "species", "species_richness")]
-
-# Export species productivity
-fwrite(species_productivity, paste0(root_path, "/species_productivity.csv"))
+trees <- rbind(frame_small, frame_large)
 
 #-------------------------------------------------------------------------------
 # Summary of metrics by plot.
 
 # Select 2022 inventory
-plots <- subset(plots, year(measurement_date) == 2022)
+plots <- subset(trees, year(measurement_date) == 2022)
 
 # Get summary
 plot_summary <- plots[deadmissing == "No", 
@@ -217,11 +171,6 @@ plot_summary <- plots[deadmissing == "No",
                         vol_Hill1 = hill(V.conoid_conoidoid_infill, 0.999),
                         vol_Hill2 = hill(V.conoid_conoidoid_infill, 2)),
                       by = c("plot", "plot_new")]
-
-complete <- merge(plot_summary, plot_growth_summary, 
-                  by = c("plot", "plot_new"), 
-                  all.x = TRUE, 
-                  all.y = TRUE)
 
 #-------------------------------------------------------------------------------
 # Summary of metrics by species in the plot.
@@ -270,7 +219,7 @@ for(i in 1:length(unique_plots)) {
   }
 }
 
-complete <- merge(complete, proportions, 
+complete <- merge(plot_summary, proportions, 
                   by = c("plot", "plot_new"), 
                   all.x = TRUE, 
                   all.y = TRUE)

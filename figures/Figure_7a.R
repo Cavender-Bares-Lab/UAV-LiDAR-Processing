@@ -15,8 +15,8 @@ options(scipen = 99999)
 #' -----------------------------------------------------------------------------
 #' Working path
 
-root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
-#root_path <- "F:/Projects/LiDAR/data"
+#root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+root_path <- "F:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Load data
@@ -42,9 +42,9 @@ LiDAR_NBE <- merge(cv_metrics, NBE, by = c("plot_new"), all.x = TRUE, all.y = FA
 
 LiDAR_NBE <- LiDAR_NBE[species_richness > 1, ]
 
-plot(log(LiDAR_NBE$NBE) ~ log(LiDAR_NBE$CV_slope))
-abline(lm(log(LiDAR_NBE$NBE) ~ log(LiDAR_NBE$CV_slope)))
-summary(lm(log(LiDAR_NBE$NBE) ~ log(LiDAR_NBE$CV_slope)))
+plot(LiDAR_NBE$NBE ~ log(LiDAR_NBE$CV_pgap))
+abline(lm(LiDAR_NBE$NBE ~ log(LiDAR_NBE$CV_pgap)))
+summary(lm(LiDAR_NBE$NBE ~ log(LiDAR_NBE$CV_pgap)))
         
 cv_metrics <- melt(cv_metrics, 
                    id.vars = c("plot_new", "plot_type", "type", "metric", "PA"),

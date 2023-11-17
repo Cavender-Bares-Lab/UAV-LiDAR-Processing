@@ -13,26 +13,35 @@ library(data.table)
 #' -----------------------------------------------------------------------------
 #' Working path
 
-root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
-#root_path <- "F:/Projects/LiDAR/data"
+#root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+root_path <- "F:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' File reading and merging
 
 # Forest structural complexity
-FSC <- fread(paste0(root_path, "/FSC_results_new.csv"))
-colnames(FSC)[1] <- "plot"
-FSC <- FSC[, c(2, 20, 24:49)]
+LiDAR <- fread(paste0(root_path, "/LiDAR_results.csv"))
+colnames(LiDAR)[1] <- "plot"
+LiDAR <- LiDAR[, c(2, 4, 20, 24:49)]
+LiDAR <- LiDAR[order(plot_new)]
 
 # Forest structure
 structure <- fread(paste0(root_path, "/structural_attributes.csv"))
+structure <- structure[order(plot_new)]
 
 # Diversity
 diversity <- fread(paste0(root_path, "/diversity.csv"))
+diversity <- diversity[order(plot_new)]
+
+# AWP and overyielding
+NBE <- fread(paste0(root_path, "/plot_NBE.csv"))
+NBE <- NBE[order(plot_new)]
+NBE <- NBE[, c("plot_new", "observed_total_AWP", "expected_total_AWP", "overyielding")]
 
 # Merge files
-data <- merge(structure, diversity, by = c("plot_new"), all.x = TRUE, all.y = TRUE)
-data <- merge(data, FSC, by = c("plot_new"), all.x = TRUE, all.y = TRUE)
+data <- merge(structure, NBE, by = c("plot_new"), all.x = TRUE, all.y = TRUE)
+data <- merge(data, diversity, by = c("plot_new"), all.x = TRUE, all.y = TRUE)
+data <- merge(data, LiDAR, by = c("plot_new"), all.x = TRUE, all.y = TRUE)
 fwrite(data, paste0(root_path, "/master_file.csv")) #Manual checking
 data <- fread(paste0(root_path, "/master_file.csv"))
 
@@ -60,7 +69,6 @@ data[, .N, by = c("plot_new")]
 
 # Remove plot
 data <- data[volume >= 0.01,]
-
 
 #Export clean data
 fwrite(data, paste0(root_path, "/master_clean.csv")) #Manual checking

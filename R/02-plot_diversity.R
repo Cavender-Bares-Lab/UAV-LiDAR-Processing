@@ -18,8 +18,8 @@ library(hillR)
 #' -----------------------------------------------------------------------------
 #' Working path
 
-root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
-#root_path <- "F:/Projects/LiDAR/data"
+#root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+root_path <- "F:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Functions
@@ -29,7 +29,7 @@ hill <- function(n_points, q) {
   return((sum(p^q)^(1 / (1 - q))))
 }
 
-devtools::source_url("https://github.com/ShanKothari/DecomposingFD/blob/master/R/AlphaFD.R?raw=TRUE")
+#devtools::source_url("https://github.com/ShanKothari/DecomposingFD/blob/master/R/AlphaFD.R?raw=TRUE")
 
 #' -----------------------------------------------------------------------------
 #' Processing
@@ -41,7 +41,7 @@ species_summary <- fread(paste0(root_path, "/species_summary.csv"))
 #' Biomass data per species
 
 community <- species_summary[, c("plot_new", "volume", "species")]
-community$volume <- log(community$volume + 1)
+#community$volume <- log(community$volume + 1)
 community$species <- chartr(" ", "_", community$species)
 community <- sample2matrix(community)
 master_matrix <- decostand(community, method = "total") 
@@ -126,29 +126,29 @@ trait_distance <- dist(traits, diag = TRUE, upper = TRUE)
 trait_distance <- (trait_distance-min(trait_distance))/
                   (max(trait_distance)-min(trait_distance))
 
-FTD_hill0 <- FTD.comm(tdmat = trait_distance, 
-                      spmat = master_matrix, 
-                      q = 0,
-                      abund = TRUE,
-                      match.names = TRUE)$com.FTD
+#FTD_hill0 <- FTD.comm(tdmat = trait_distance, 
+#                      spmat = master_matrix, 
+#                      q = 0,
+#                      abund = TRUE,
+#                      match.names = TRUE)$com.FTD
 
-FTD_hill1 <- FTD.comm(tdmat = trait_distance, 
-                      spmat = master_matrix, 
-                      q = 1,
-                      abund = TRUE,
-                      match.names = TRUE)$com.FTD
+#FTD_hill1 <- FTD.comm(tdmat = trait_distance, 
+#                      spmat = master_matrix, 
+#                      q = 1,
+#                      abund = TRUE,
+#                      match.names = TRUE)$com.FTD
 
-FTD_hill2 <- FTD.comm(tdmat = trait_distance, 
-                      spmat = master_matrix, 
-                      q = 2,
-                      abund = TRUE,
-                      match.names = TRUE)$com.FTD
+#FTD_hill2 <- FTD.comm(tdmat = trait_distance, 
+#                      spmat = master_matrix, 
+#                      q = 2,
+#                      abund = TRUE,
+#                      match.names = TRUE)$com.FTD
 
-colnames(FTD_hill0) <- paste0("hill0_", colnames(FTD_hill0))
-colnames(FTD_hill1) <- paste0("hill1_", colnames(FTD_hill1))
-colnames(FTD_hill2) <- paste0("hill2_", colnames(FTD_hill2))
+#colnames(FTD_hill0) <- paste0("hill0_", colnames(FTD_hill0))
+#colnames(FTD_hill1) <- paste0("hill1_", colnames(FTD_hill1))
+#colnames(FTD_hill2) <- paste0("hill2_", colnames(FTD_hill2))
 
-diversity <- cbind(diversity, FTD_hill0, FTD_hill1, FTD_hill2)
+#diversity <- cbind(diversity, FTD_hill0, FTD_hill1, FTD_hill2)
 
 #' -----------------------------------------------------------------------------
 #' Get the species variability
