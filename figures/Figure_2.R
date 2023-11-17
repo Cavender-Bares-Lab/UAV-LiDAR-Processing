@@ -21,40 +21,35 @@ options(scipen = 99999)
 #' -----------------------------------------------------------------------------
 #' Working path
 
-root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
-#root_path <- "F:/Projects/LiDAR/data"
+#root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+root_path <- "F:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Load data
 
 frame <- fread(paste0(root_path, "/master_clean.csv"))
-frame[PA == 1, plot_type := "Angiosperms"]
-frame[PA == 0, plot_type := "Gymnosperms"]
-frame[PA > 0 & PA < 1, plot_type := "Mixture"]
 
 #' -----------------------------------------------------------------------------
 #' Data reshaping
 
-vol <- frame[, c("DOY", "volume", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_type", "plot_new", "PA")]
-
-vol$type <- "Wood volume"
-
-colnames(vol)[2] <- "metric"
-colnames(AWP)[2] <- "metric"
-colnames(sigmaAWPD)[2] <- "metric"
-
-data <- rbind(vol)
-data$type <- as.factor(data$type)
-data$type <- factor(data$type, levels = c("Wood volume"))
+data <- frame[, c("plot_new", "PA", "Block", "DOY", "volume",
+                  "Slope_Hill1", "Pgap", "cv_maximun_height")]
 
 cv_metrics <- data[, .(CV_slope = sd(Slope_Hill1)/mean(Slope_Hill1),
                        CV_ch = sd(cv_maximun_height)/mean(cv_maximun_height),
                        CV_pgap = sd(Pgap)/mean(Pgap)), 
-                   by = c("plot_new", "metric", "plot_type", "type", "PA")]
+                   by = c("plot_new", "volume", "PA")]
 
-cv_metrics <- melt(cv_metrics, 
-                   id.vars = c("plot_new", "plot_type", "type", "metric", "PA"),
-                   measure.vars = c("CV_slope", "CV_ch", "CV_pgap"))
+data_melt <- melt(cv_metrics, 
+                  id.vars = c("plot_new", "volume", "PA"),
+                  measure.vars = c("CV_slope", "CV_ch", "CV_pgap"),
+                  variable.name = "LiDAR")
+
+data_melt$LiDAR <- as.factor(data_melt$LiDAR)
+data_melt$LiDAR <- factor(data_melt$LiDAR,
+                          levels = c("CV_ch", "CV_pgap", "CV_slope"),
+                          labels = c("Height heterogeneity", "Gap probability", "Structural complexity"))
+
 
 # ------------------------------------------------------------------------------
 # Plot details
@@ -76,17 +71,18 @@ th <- theme(plot.background = element_blank(),
                                             linewidth=1.5, 
                                             linetype="solid"),
             strip.text = element_text(color = "white"))
+
 gui <- guides(fill = guide_colourbar(barwidth = 15, 
                                      barheight = 0.7, 
                                      title.position = "top",
                                      title.hjust = 0.5))
 
-plot_comp <- scale_shape_manual("Plot composition", values = c(21, 24, 22),
-                                guide = guide_legend(override.aes = list(size = 2,
-                                                                         colour = "black",
-                                                                         alpha = 1),
-                                                     title.position = "top",
-                                                     title.hjust = 0.5)) 
+#plot_comp <- scale_shape_manual("Plot composition", values = c(21, 24, 22),
+#                                guide = guide_legend(override.aes = list(size = 2,
+#                                                                         colour = "black",
+#                                                                         alpha = 1),
+#                                                     title.position = "top",
+#                                                     title.hjust = 0.5)) 
 
 colour_PA <- scale_fill_viridis("Proportion of Angiosperms",
                                 option = "D",
@@ -98,99 +94,39 @@ alpha_point <- 1.0
 
 # ------------------------------------------------------------------------------
 # Plot
-db <- ggplot(cv_metrics[variable == "CV_slope"], aes(metric,
-                                                     value,
-                                                     fill = PA)) +
-  #geom_point(aes(shape = plot_type), colour = "grey", alpha = 0.8) +
+
+plot <- ggplot(data_melt,
+               aes(volume,
+                   value,
+                   fill = PA)) +
   geom_point(colour = "grey", alpha = alpha_point, shape = 21) +
   stat_poly_line(method = "lm",
-               se = TRUE,
-               formula = y ~ x,
-               linewidth = 0.5,
-               colour = "black") +
+                 se = FALSE,
+                 formula = y ~ x,
+                 linewidth = 0.5,
+                 linetype = "dotted",
+                 colour = "black") +
   stat_poly_eq(use_label(c("eq", "R2")),
-             method = "lm",
-             formula = y ~ x,
-             label.x = "right",
-             label.y = "top",
-             size = text_size) +
+               method = "lm",
+               formula = y ~ x,
+               label.x = "left",
+               label.y = "bottom",
+               size = text_size) +
   colour_PA +  
   #colour_PA + plot_comp + 
   scale_x_continuous(trans = log10_trans()) +
   scale_y_continuous(trans = log10_trans()) +
   annotation_logticks(sides = "bl") +
   xlab(bquote(Wood~volume~(m^3))) + 
-  ylab(bquote(italic(CV)~italic(d)[italic(D)]))  +
+  ylab(bquote(italic(CV)~italic(d)[italic(D)]~~~~italic(CV)~italic(P)[gap]~~~italic(CV)~italic(CH)[CV])) +
   theme_bw(base_size = tamano) +
-  th + gui + 
-  facet_grid("Structural complexity" ~ type, scales = "free")
+  th + gui +
+  facet_grid(LiDAR ~ ., scales = "free")
 
-pgap <- ggplot(cv_metrics[variable == "CV_pgap"], aes(metric,
-                                                      value,
-                                                      fill = PA)) +
-  #geom_point(aes(shape = plot_type), colour = "grey", alpha = 0.8) +
-  geom_point(colour = "grey", alpha = alpha_point, shape = 21) +
-  stat_poly_line(method = "lm",
-               se = TRUE,
-               formula = y ~ x,
-               linewidth = 0.5,
-               colour = "black") +
-  stat_poly_eq(use_label(c("eq", "R2")),
-             method = "lm",
-             formula = y ~ x,
-             label.x = "right",
-             label.y = "bottom",
-             size = text_size) +
-  colour_PA +  
-  #colour_PA + plot_comp + 
-  scale_x_continuous(trans = log10_trans()) +
-  scale_y_continuous(trans = log10_trans()) +
-  annotation_logticks(sides = "bl") +
-  #xlab(bquote(AWD[plot]~(m^3~y^-1))) + 
-  xlab(bquote(Wood~volume~(m^3))) + 
-  ylab(bquote(italic(CV)~italic(P)[gap])) +
-  theme_bw(base_size = tamano) +
-  th + gui + 
-  facet_grid("Gap probability" ~ type, scales = "free")
-
-ch <- ggplot(cv_metrics[variable == "CV_ch"], aes(metric,
-                                                  value,
-                                                  fill = PA)) +
-  #geom_point(aes(shape = plot_type), colour = "grey", alpha = 0.8) +
-  geom_point(colour = "grey", alpha = alpha_point, shape = 21) +
-  stat_poly_line(method = "lm",
-               se = FALSE,
-               formula = y ~ x,
-               linewidth = 0.5,
-               colour = "black",
-               linetype = "dotted") +
-  stat_poly_eq(use_label(c("eq", "R2")),
-             method = "lm",
-             formula = y ~ x,
-             label.x = "right",
-             label.y = "bottom",
-             size = text_size) +
-  colour_PA +  
-  #colour_PA + plot_comp + 
-  scale_x_continuous(trans = log10_trans()) +
-  scale_y_continuous(trans = log10_trans()) +
-  annotation_logticks(sides = "b") +
-  #xlab(bquote(sigma*AWD[tree]~(m^3~y^-1))) + 
-  xlab(bquote(Wood~volume~(m^3))) + 
-  ylab(bquote(italic(CV)~italic(CH)[CV])) +
-  theme_bw(base_size = tamano) +
-  th + gui + 
-  facet_grid("Height heterogeneity" ~ type, scales = "free")
-
-# ------------------------------------------------------------------------------
-#Merge panels
-Figure_2 <- ggarrange(ch, pgap, db,
-                      ncol = 1, nrow = 3,  align = "hv", 
-                      common.legend = TRUE)
 #Export figure
-jpeg(paste0(root_path, "/Figure_2.jpeg"), width = 90, height = 210, units = "mm", res = 600)
+jpeg(paste0(root_path, "/Figure_2b.jpeg"), width = 90, height = 180, units = "mm", res = 600)
 
-Figure_2
+plot
 
 dev.off()
 
