@@ -231,6 +231,6 @@ plot_NBE <- frame[, .(volume = sum(species_total_volume),
                       ntrees = sum(ntrees)),
                   by = c("plot_new", "species_richness")]
 
-plot_NBE$overyielding <- (plot_NBE$observed_total_AWP - plot_NBE$expected_total_AWP)
+plot_NBE$NBE <- (plot_NBE$observed_total_AWP - plot_NBE$expected_total_AWP)
 
 fwrite(plot_NBE, paste0(root_path, "/plot_NBE.csv"))

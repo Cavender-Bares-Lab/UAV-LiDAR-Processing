@@ -19,8 +19,8 @@ options(scipen = 99999)
 #' -----------------------------------------------------------------------------
 #' Working path
 
-#root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
-root_path <- "F:/Projects/LiDAR/data"
+root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+#root_path <- "F:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Load data
@@ -70,13 +70,6 @@ gui <- guides(fill = guide_colourbar(barwidth = 15,
                                      title.position = "top",
                                      title.hjust = 0.5))
 
-#plot_comp <- scale_shape_manual("Plot composition", values = c(21, 24, 22),
-#                                guide = guide_legend(override.aes = list(size = 2,
-#                                                                         colour = "black",
-#                                                                         alpha = 1),
-#                                                     title.position = "top",
-#                                                     title.hjust = 0.5))
-
 doy_color <- scale_color_carto_c("Day of the Year",
                                  type = "diverging",
                                  palette = "Fall",
@@ -99,24 +92,18 @@ plot <- ggplot(data_melt,
                    color = DOY,
                    fill = DOY,
                    gruop = as.factor(DOY))) +
-  #geom_point(aes(shape = plot_type), colour = "grey", alpha = alpha_point) +
   geom_point(colour = "grey", alpha = alpha_point, shape = 21) +
   stat_poly_line(method = "lm",
                  se = FALSE,
                  formula = y ~ x,
-                 #formula = y ~ poly(x, 2, raw = TRUE),
                  linewidth = 0.5) +
   stat_poly_eq(method = "lm",
                formula = y ~ x,
-               #formula = y ~ poly(x, 2, raw = TRUE),
                label.x = "right",
-               label.y = "top",
+               label.y = "bottom",
                size = text_size) +
-  #plot_comp + doy_color + doy_fill +
   doy_color + doy_fill +
   scale_x_continuous(trans = log10_trans()) +
-  #scale_y_continuous(n.breaks = 3, breaks = c(1.50, 2.00, 2.50),
-  #                   labels = c("1.5", "2.0", "2.5")) +
   annotation_logticks(sides = "b") +
   xlab(bquote(Wood~volume~(m^3))) +
   ylab(bquote(italic(d)[italic(D)]~~~~italic(P)[gap]~~~italic(CH)[CV])) +
@@ -125,7 +112,7 @@ plot <- ggplot(data_melt,
   facet_grid(LiDAR ~ ., scales = "free")
 
 # Export figure
-jpeg(paste0(root_path, "/Figure_1.jpeg"), width = 90, height = 180, units = "mm", res = 600)
+jpeg(paste0(root_path, "/Figure_1a.jpeg"), width = 90, height = 180, units = "mm", res = 600)
 
 plot
 
