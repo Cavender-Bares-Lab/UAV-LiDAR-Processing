@@ -1,9 +1,9 @@
 ################################################################################
-#' @title Effect of diversity on the seasonal structural stability
+#' @title Effect of diversity on LiDAR derived metrics
 ################################################################################
 
-#' @description Figure 4 to test the effect of diversity on the seasonal structural
-#' stability of LiDAR metrics
+#' @description Figure 4 of relationships species variability on LiDAR 
+#' derived metrics
 #' 
 #' @return A tiff file
 
@@ -12,8 +12,9 @@
 library(data.table)
 library(rcartocolor)
 library(ggplot2)
-library(scales)
 library(ggpmisc)
+library(scales)
+library(ggpubr)
 
 #' -----------------------------------------------------------------------------
 #' Working path
@@ -22,7 +23,7 @@ root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
 #root_path <- "F:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
-#' Working path
+#' Load data
 
 frame <- fread(paste0(root_path, "/master_clean.csv"))
 
@@ -37,27 +38,22 @@ taxa$type <- "Taxonomic"
 phylo$type <- "Phylogenetic"
 funct$type <- "Functional" 
 
-colnames(taxa)[2] <- "diversity"
-colnames(phylo)[2] <- "diversity"
-colnames(funct)[2] <- "diversity"
+colnames(taxa)[2] <- "Diversity"
+colnames(phylo)[2] <- "Diversity"
+colnames(funct)[2] <- "Diversity"
 
 data <- rbind(taxa, phylo, funct)
 data$type <- as.factor(data$type)
 data$type <- factor(data$type, levels = c("Taxonomic", "Phylogenetic", "Functional"))
 
-ss_metrics <- data[, .(SS_slope = 1/(sd(Slope_Hill1)/mean(Slope_Hill1)),
-                       SS_ch = 1/(sd(cv_maximun_height)/mean(cv_maximun_height)),
-                       SS_pgap = 1/(sd(Pgap)/mean(Pgap))), 
-                   by = c("plot_new", "diversity", "type", "PA")]
-
-data_melt <- melt(ss_metrics, 
-                  id.vars = c("plot_new", "diversity", "PA", "type"),
-                  measure.vars = c("SS_slope", "SS_ch", "SS_pgap"),
+data_melt <- melt(data, 
+                  id.vars = c("DOY", "Diversity", "type"),
+                  measure.vars = c("Slope_Hill1", "Pgap", "cv_maximun_height"),
                   variable.name = "LiDAR")
 
 data_melt$LiDAR <- as.factor(data_melt$LiDAR)
 data_melt$LiDAR <- factor(data_melt$LiDAR,
-                          levels = c("SS_ch", "SS_pgap", "SS_slope"),
+                          levels = c("cv_maximun_height", "Pgap", "Slope_Hill1"),
                           labels = c("Height heterogeneity", "Gap probability", "Structural complexity"))
 
 # ------------------------------------------------------------------------------
@@ -94,45 +90,52 @@ plot_comp <- scale_shape_manual("Plot composition", values = c(21, 24, 22),
                                                      title.position = "top",
                                                      title.hjust = 0.5)) 
 
-colour_PA <- scale_fill_viridis("Proportion of Angiosperms",
-                                option = "D",
-                                direction = 1,
-                                limits = c(0, 1),
-                                breaks = c(0.0, 0.5, 1.0))
+doy_color <- scale_color_carto_c("Day of the Year", 
+                                 type = "diverging", 
+                                 palette = "Fall",
+                                 guide = "none")
 
-alpha_point <- 1.0
+doy_fill <-   scale_fill_carto_c("Day of the Year", 
+                                 type = "diverging", 
+                                 palette = "Fall",
+                                 limits = c(95, 305),
+                                 breaks = c(100, 200, 300)) 
+
+alpha_point <- 0.15
 
 # ------------------------------------------------------------------------------
-# Plots
+# Diversity plots
 
-plot <- ggplot(data_melt, aes(diversity,
-                              value,
-                              fill = PA)) +
+plot <- ggplot(data_melt, 
+               aes(x = Diversity, 
+                   y = value,
+                   color = DOY,
+                   fill = DOY,
+                   gruop = as.factor(DOY))) +
   geom_point(colour = "grey", alpha = alpha_point, shape = 21) +
   stat_poly_line(method = "lm",
                  se = FALSE,
                  formula = y ~ x,
-                 linewidth = 0.5,
-                 linetype = "dotted",
-                 colour = "black") +
-  stat_poly_eq(use_label(c("eq", "R2")),
-               method = "lm",
+                 linewidth = 0.5) +
+  stat_poly_eq(method = "lm",
                formula = y ~ x,
-               label.x = "right",
-               label.y = "bottom",
+               label.x = "left",
+               label.y = "top",
                size = text_size) +
-  colour_PA +  
+  doy_color + doy_fill + 
   scale_x_continuous(n.breaks = 4) +
-  scale_y_continuous(trans = log10_trans()) +
-  annotation_logticks(sides = "l") +
-  xlab(bquote(Species~richness~~~italic(PD)~~~italic(FD))) +
-  ylab(bquote(italic(SS)[italic(d)[italic(D)]]~~~~italic(SS)[italic(P)[gap]]~~~italic(SS)[italic(CH)[CV]])) +
+  scale_y_continuous(n.breaks = 4) +
+  xlab(bquote(Species~richness))  +
+  xlab(bquote(Species~richness~~~~~~italic(PD)~~~~~~italic(FD)))  +
+  ylab(bquote(italic(d)[italic(D)]~~~~italic(P)[gap]~~~italic(CH)[CV])) +
   theme_bw(base_size = tamano) +
-  th + gui + 
+  th + gui +
   facet_grid(LiDAR ~ type, scales = "free")
 
+# ------------------------------------------------------------------------------
 #Export figure
-jpeg(paste0(root_path, "/Figure_4.jpeg"), width = 210, height = 180, units = "mm", res = 600)
+
+jpeg(paste0(root_path, "/Figure_4a.jpeg"), width = 210, height = 180, units = "mm", res = 600)
 
 plot
 

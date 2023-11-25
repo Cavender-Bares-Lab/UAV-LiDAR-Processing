@@ -1,20 +1,20 @@
 ################################################################################
-#' @title Effect of diversity on LiDAR derived metrics
+#' @title Effect of volume on the seasonal structural stability
 ################################################################################
 
-#' @description Figure 3 of relationships species variability on LiDAR 
-#' derived metrics
+#' @description Figure 3 to test the effect of volume on the seasonal structural
+#' stability of LiDAR metrics
 #' 
 #' @return A tiff file
 
 #' -----------------------------------------------------------------------------
 #' Libraries
 library(data.table)
-library(rcartocolor)
+library(viridis)
 library(ggplot2)
-library(ggpmisc)
 library(scales)
-library(ggpubr)
+library(ggpmisc)
+options(scipen = 99999)
 
 #' -----------------------------------------------------------------------------
 #' Working path
@@ -28,33 +28,26 @@ root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
 frame <- fread(paste0(root_path, "/master_clean.csv"))
 
 #' -----------------------------------------------------------------------------
-#' Reshape frame
+#' Data reshaping
 
-taxa <- frame[, c("DOY", "hill0_taxa", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_new", "PA")]
-phylo <- frame[, c("DOY", "hill0_phylo", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_new", "PA")]
-funct <- frame[, c("DOY", "hill0_FD_q", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_new", "PA")]
+data <- frame[, c("plot_new", "PA", "Block", "DOY", "volume",
+                  "Slope_Hill1", "Pgap", "cv_maximun_height")]
 
-taxa$type <- "Taxonomic"
-phylo$type <- "Phylogenetic"
-funct$type <- "Functional" 
+ss_metrics <- data[, .(SS_slope = mean(Slope_Hill1)/sd(Slope_Hill1),
+                       SS_ch = mean(cv_maximun_height)/sd(cv_maximun_height),
+                       SS_pgap = mean(Pgap)/sd(Pgap)), 
+                   by = c("plot_new", "volume", "PA")]
 
-colnames(taxa)[2] <- "Diversity"
-colnames(phylo)[2] <- "Diversity"
-colnames(funct)[2] <- "Diversity"
-
-data <- rbind(taxa, phylo, funct)
-data$type <- as.factor(data$type)
-data$type <- factor(data$type, levels = c("Taxonomic", "Phylogenetic", "Functional"))
-
-data_melt <- melt(data, 
-                  id.vars = c("DOY", "Diversity", "type"),
-                  measure.vars = c("Slope_Hill1", "Pgap", "cv_maximun_height"),
+data_melt <- melt(ss_metrics, 
+                  id.vars = c("plot_new", "volume", "PA"),
+                  measure.vars = c("SS_slope", "SS_ch", "SS_pgap"),
                   variable.name = "LiDAR")
 
 data_melt$LiDAR <- as.factor(data_melt$LiDAR)
 data_melt$LiDAR <- factor(data_melt$LiDAR,
-                          levels = c("cv_maximun_height", "Pgap", "Slope_Hill1"),
+                          levels = c("SS_ch", "SS_pgap", "SS_slope"),
                           labels = c("Height heterogeneity", "Gap probability", "Structural complexity"))
+
 
 # ------------------------------------------------------------------------------
 # Plot details
@@ -83,59 +76,46 @@ gui <- guides(fill = guide_colourbar(barwidth = 15,
                                      title.position = "top",
                                      title.hjust = 0.5))
 
-plot_comp <- scale_shape_manual("Plot composition", values = c(21, 24, 22),
-                                guide = guide_legend(override.aes = list(size = 2,
-                                                                         colour = "black",
-                                                                         alpha = 1),
-                                                     title.position = "top",
-                                                     title.hjust = 0.5)) 
+colour_PA <- scale_fill_viridis("Proportion of Angiosperms",
+                                option = "D",
+                                direction = 1,
+                                limits = c(0, 1),
+                                breaks = c(0.0, 0.5, 1.0))
 
-doy_color <- scale_color_carto_c("Day of the Year", 
-                                 type = "diverging", 
-                                 palette = "Fall",
-                                 guide = "none")
-
-doy_fill <-   scale_fill_carto_c("Day of the Year", 
-                                 type = "diverging", 
-                                 palette = "Fall",
-                                 limits = c(95, 305),
-                                 breaks = c(100, 200, 300)) 
-
-alpha_point <- 0.15
+alpha_point <- 1.0
 
 # ------------------------------------------------------------------------------
-# Diversity plots
+# Plot
 
-plot <- ggplot(data_melt, 
-               aes(x = Diversity, 
-                   y = value,
-                   color = DOY,
-                   fill = DOY,
-                   gruop = as.factor(DOY))) +
+plot <- ggplot(data_melt,
+               aes(volume,
+                   value,
+                   fill = PA)) +
   geom_point(colour = "grey", alpha = alpha_point, shape = 21) +
   stat_poly_line(method = "lm",
                  se = FALSE,
                  formula = y ~ x,
-                 linewidth = 0.5) +
-  stat_poly_eq(method = "lm",
+                 linewidth = 0.5,
+                 linetype = "dotted",
+                 colour = "black") +
+  stat_poly_eq(use_label(c("eq", "R2")),
+               method = "lm",
                formula = y ~ x,
                label.x = "left",
                label.y = "top",
                size = text_size) +
-  doy_color + doy_fill + 
-  scale_x_continuous(n.breaks = 4) +
-  scale_y_continuous(n.breaks = 4) +
-  xlab(bquote(Species~richness))  +
-  xlab(bquote(Species~richness~~~~~~italic(PD)~~~~~~italic(FD)))  +
-  ylab(bquote(italic(d)[italic(D)]~~~~italic(P)[gap]~~~italic(CH)[CV])) +
+  colour_PA +  
+  scale_x_continuous(trans = log10_trans()) +
+  scale_y_continuous(trans = log10_trans()) +
+  annotation_logticks(sides = "bl") +
+  xlab(bquote(Wood~volume~(m^3))) + 
+  ylab(bquote(italic(SS)[italic(d)[italic(D)]]~~~~italic(SS)[italic(P)[gap]]~~~italic(SS)[italic(CH)[CV]])) +
   theme_bw(base_size = tamano) +
   th + gui +
-  facet_grid(LiDAR ~ type, scales = "free")
+  facet_grid(LiDAR ~ ., scales = "free")
 
-# ------------------------------------------------------------------------------
 #Export figure
-
-jpeg(paste0(root_path, "/Figure_3a.jpeg"), width = 210, height = 180, units = "mm", res = 600)
+jpeg(paste0(root_path, "/Figure_3a.jpeg"), width = 90, height = 180, units = "mm", res = 600)
 
 plot
 
