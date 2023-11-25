@@ -14,8 +14,8 @@ library(data.table)
 #' -----------------------------------------------------------------------------
 #' Working path
 
-#root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
-root_path <- "F:/Projects/LiDAR/data"
+root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+#root_path <- "F:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Functions
@@ -187,12 +187,12 @@ fwrite(species_summary, paste0(root_path, "species_summary.csv"))
 # Get proportion of deciduous 
 traits <- fread(paste0(root_path, "/traits.csv"))
 traits <- traits[, c(5, 11)]
-species <- species_summary[, c(1, 2, 3, 5)]
+species <- species_summary[, c(1, 2, 3, 4)]
 colnames(species)[3] <- "Species"
 
 proportions <- merge(traits, species, by = "Species", all.x = TRUE, all.y = TRUE)
-p <- proportions[, sum(volume), by = c("plot", "plot_new", "Gymnosperm")]
-colnames(p)[4] <- "volume"
+p <- proportions[, sum(ntrees), by = c("plot", "plot_new", "Gymnosperm")]
+colnames(p)[4] <- "ntrees"
 proportions <- data.frame(plot = "1", plot_new = "1", PA = 0)
 unique_plots <- unique(p$plot_new)
 
@@ -211,8 +211,8 @@ for(i in 1:length(unique_plots)) {
       proportions[i, 3] <- 0.00
     }
   } else {
-    gym <- sub[Gymnosperm == "Y", volume]
-    ang <- sub[Gymnosperm == "N", volume]
+    gym <- sub[Gymnosperm == "Y", ntrees]
+    ang <- sub[Gymnosperm == "N", ntrees]
     proportions[i, 1] <- sub$plot[1]
     proportions[i, 2] <- sub$plot_new[1]
     proportions[i, 3] <- ang/(gym + ang)

@@ -13,8 +13,8 @@ library(data.table)
 #' -----------------------------------------------------------------------------
 #' Working path
 
-#root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
-root_path <- "F:/Projects/LiDAR/data"
+root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+#root_path <- "F:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' File reading and merging
@@ -36,12 +36,11 @@ diversity <- diversity[order(plot_new)]
 # AWP and overyielding
 NBE <- fread(paste0(root_path, "/plot_NBE.csv"))
 NBE <- NBE[order(plot_new)]
-NBE <- NBE[, c("plot_new", "observed_total_AWP", "expected_total_AWP", "overyielding")]
 
 # Merge files
-data <- merge(structure, NBE, by = c("plot_new"), all.x = TRUE, all.y = TRUE)
-data <- merge(data, diversity, by = c("plot_new"), all.x = TRUE, all.y = TRUE)
-data <- merge(data, LiDAR, by = c("plot_new"), all.x = TRUE, all.y = TRUE)
+data <- merge(structure, NBE, by = c("plot_new"), all.x = FALSE, all.y = TRUE)
+data <- merge(data, diversity, by = c("plot_new"), all.x = TRUE, all.y = FALSE)
+data <- merge(data, LiDAR, by = c("plot_new"), all.x = TRUE, all.y = FALSE)
 fwrite(data, paste0(root_path, "/master_file.csv")) #Manual checking
 data <- fread(paste0(root_path, "/master_file.csv"))
 
@@ -50,7 +49,7 @@ data <- fread(paste0(root_path, "/master_file.csv"))
 
 # Long time planted trees
 hist(data$year_mean)
-data <- subset(data, year_mean <= 2019)
+data <- subset(data, year_mean < 2019)
 
 # Remove plots with few trees
 hist(data$ntrees)
@@ -67,8 +66,8 @@ remove <- remove[N == 8]
 data <- merge(data, remove[, 1], by = c("plot_new"), all.x = FALSE, all.y = TRUE)
 data[, .N, by = c("plot_new")]
 
-# Remove plot
-data <- data[volume >= 0.01,]
+# Volume higher than 0.01
+data <- data[volume >= 0.01]
 
 #Export clean data
 fwrite(data, paste0(root_path, "/master_clean.csv")) #Manual checking

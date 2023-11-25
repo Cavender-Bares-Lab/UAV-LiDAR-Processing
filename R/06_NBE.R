@@ -14,8 +14,8 @@ options(scipen = 99999)
 #' -----------------------------------------------------------------------------
 #' Working path
 
-#root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
-root_path <- "F:/Projects/LiDAR/data"
+root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+#root_path <- "F:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Processing
@@ -151,86 +151,95 @@ trees <- rbind(frame_small, frame_large)
 
 # Reshape 2021
 trees_2021 <- subset(trees, year(measurement_date) == 2021)
-trees_2021 <- trees_2021[, c("individual_id", "deadmissing", 
-                             "measurement_date", "V.conoid_conoidoid_infill")]
-trees_2021 <- trees_2021[deadmissing != "Yes", ]
-trees_2021 <- trees_2021[, c(1, 3, 4)]
-colnames(trees_2021)[2:3] <- c("date_2021", "volume_2021")
+trees_2021 <- trees_2021[, c("plot", "plot_new", "individual_id", 
+                             "species", "year_planted",
+                             "deadmissing", "measurement_date", "V.conoid_conoidoid_infill")]
+colnames(trees_2021)[6:8] <- c("deadmissing_2021", "date_2021", "volume_2021")
 
 # Reshape 2022
 trees_2022 <- subset(trees, year(measurement_date) == 2022)
-trees_2022 <- trees_2022[, c("plot", "plot_new", "individual_id", "deadmissing", 
-                             "year_planted", "species",
-                             "measurement_date", "V.conoid_conoidoid_infill")]
-trees_2022 <- trees_2022[deadmissing != "Yes", ]
-trees_2022 <- trees_2022[, c(1:3, 5:8)]
-colnames(trees_2022)[6:7] <- c("date_2022", "volume_2022")
+trees_2022 <- trees_2022[, c("plot", "plot_new", "individual_id", 
+                             "species", "year_planted",
+                             "deadmissing", "measurement_date", "V.conoid_conoidoid_infill")]
+#trees_2022 <- trees_2022[deadmissing != "Yes", ]
+#trees_2022 <- trees_2022[, c(1:3, 5:8)]
+colnames(trees_2022)[6:8] <- c("deadmissing_2022", "date_2022", "volume_2022")
 
 # Merge years
-inventories <- merge(trees_2021, trees_2022, by = c("individual_id"),
+inventories <- merge(trees_2021, trees_2022, by = c("plot", "plot_new", "individual_id", "species", "year_planted"),
                      all.x = TRUE, all.y = TRUE)
 
 # Estimate AWP per tree
 inventories$tree_AWP <- (inventories$volume_2022 - inventories$volume_2021) /
   ((inventories$date_2022 - inventories$date_2021)/365.25)
 
-# Clean of trees
-inventories_mono <- inventories[year_planted < 2018, ]
-nspecies <- inventories_mono[, .(species_richness = length(unique(species))),
-                             by = "plot_new"]
-inventories_mono <- merge(inventories_mono, nspecies, 
-                          by = "plot_new", all.x = TRUE, all.y = TRUE)
-inventories_mono <- inventories_mono[species_richness == 1, ]
-inventories_mono <- na.exclude(inventories_mono)
-inventories_mono[, .N, by = "species"]
+# Remove trees that where replanted on 2022
+inventories <- inventories[year_planted != 2022,]
 
-# Mean AWP per species per tree 
-tree_species_growth <- inventories_mono[, .(mean_tree_AWP = mean(tree_AWP, na.rm = TRUE)),
-                                        by = "species"]
+# ------------------------------------------------------------------------------
+# Productivity per species
+species_inventories <- inventories[, .(ntrees = .N,
+                                       tree_AWP = sum(tree_AWP, na.rm = TRUE)),
+                                   by = c("plot_new", "species")]
+species_inventories$proportion <- species_inventories$ntrees/64
 
-# Plot AWP per species
-inventories <- inventories[!is.na(volume_2022),]
-plot_growth <- inventories[, .(species_total_volume = sum(volume_2022, na.rm = TRUE),
-                               observed_species_total_AWP = sum(tree_AWP, na.rm = TRUE),
-                               ntrees = .N),
-                           by = c("plot_new", "species")]
-nspecies <- plot_growth[, .(species_richness = length(unique(species))),
-                             by = "plot_new"]
-plot_growth <- merge(plot_growth, nspecies,
-                     by = "plot_new", all.x = TRUE, all.y = TRUE)
+# ------------------------------------------------------------------------------
+# Get plot basic information
+summary_plot <- trees_2021[, .(sr = length(unique(species)),
+                               mean_year_planted = mean(year_planted)),
+                           by = c("plot_new")]
 
-# Total volume per plot
-total_volume <- plot_growth[, .(plot_total_volume = sum(species_total_volume)),
-                            by = c("plot_new", "species_richness")]
+summary_plot <- summary_plot[mean_year_planted < 2019]
 
-#' -----------------------------------------------------------------------------
-#' Estimate the NBE
+# ------------------------------------------------------------------------------
+# Get monocultures
+plots_mono <- summary_plot[sr == 1,]
 
-# Merge volume per and plot growth
-frame <- merge(plot_growth, total_volume, 
-               by = c("plot_new", "species_richness"))
+mono_inventories <- merge(plots_mono, species_inventories, by = "plot_new",
+                          all.x = TRUE, all.y = FALSE)
 
-# Proportion of volume per species on the plot
-frame$PV <- frame$species_total_volume/frame$plot_total_volume
-frame[, sum(PV), by = "plot_new"] # Check for calculation
+mono_species_AWP <- mono_inventories[, .(plot_AWP = mean(tree_AWP)),
+                                     by = "species"]
 
-# Order
-frame <- frame[order(plot_new),]
+# ------------------------------------------------------------------------------
+# Merge mixtures and monocultures
 
-# Merge species growth with frame
-frame <- merge(frame, tree_species_growth, by = c("species"))
-frame <- frame[order(plot_new),]
+# Plots with mean year planted before 2019
+species_inventories <- merge(species_inventories, summary_plot, by = "plot_new", all.x = FALSE, all.y = TRUE)
+species_inventories <- merge(species_inventories, mono_species_AWP, by = "species")
+colnames(species_inventories)[c(4, 8)] <- c("observed_AWP", "monocultueres_AWP")
 
-# Weighted
-frame$expected_species_total_AWP <- (frame$mean_tree_AWP*frame$ntrees)*frame$PV
+# ------------------------------------------------------------------------------
+# Correct by proportion of species
+species_inventories$expected_AWP <- species_inventories$monocultueres_AWP*species_inventories$proportion
+species_inventories <- species_inventories[order(plot_new, species)]
+#species_inventories$NBE <- species_inventories$observed_AWP - species_inventories$expected_AWP_corrected
 
-# NBE per plot
-plot_NBE <- frame[, .(volume = sum(species_total_volume),
-                      observed_total_AWP = sum(observed_species_total_AWP),
-                      expected_total_AWP = sum(expected_species_total_AWP),
-                      ntrees = sum(ntrees)),
-                  by = c("plot_new", "species_richness")]
+BE <- data.table()
+idplots <- unique(species_inventories$plot_new)
 
-plot_NBE$NBE <- (plot_NBE$observed_total_AWP - plot_NBE$expected_total_AWP)
+for(i in 1:length(idplots)) {
+  
+  # Select plot
+  plot <- subset(species_inventories, plot_new == idplots[i])
+  
+  # Number of species
+  Y <- plot$observed_AWP
+  M <- plot$expected_AWP
+  N <- nrow(plot)
+  dRY <- (Y/M) - (1/N)
+  covar <- sum((dRY-mean(dRY)) * (M-mean(M)))/N
+  SE <- N*covar
+  CE <- N*mean(dRY)*mean(M)
+  NE <- SE + CE
+  
+  result <- data.table(plot_new = idplots[i], 
+                       CE = CE, 
+                       SE = SE, 
+                       NE = NE)
+  
+  BE <- rbind(BE, result)
+  
+}
 
-fwrite(plot_NBE, paste0(root_path, "/plot_NBE.csv"))
+fwrite(BE, paste0(root_path, "/plot_NBE.csv"))
