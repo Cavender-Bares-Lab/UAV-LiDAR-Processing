@@ -12,14 +12,15 @@
 library(data.table)
 library(lavaan)
 library(lavaanPlot)
+library(lme4)
 library(piecewiseSEM)
 options(scipen = 99999)
 
 #' -----------------------------------------------------------------------------
 #' Working path
 
-#root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
-root_path <- "F:/Projects/LiDAR/data"
+root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+#root_path <- "F:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Load data
@@ -29,15 +30,15 @@ frame <- fread(paste0(root_path, "/master_clean.csv"))
 #' -----------------------------------------------------------------------------
 #' Data reshaping
 
-data <- frame[, c("plot_new", "PA", "Block", "DOY", "overyielding",
+data <- frame[, c("plot_new", "PA", "Block", "DOY", "NE",
                   "cv_maximun_height", "Pgap", "Slope_Hill1", 
                   "hill0_taxa", "hill0_phylo", "hill0_FD_q", 
                   "TD_PSV", "FD_PSV", "PD_PSV")]
 
-cv_metrics <- data[, .(CV_slope = 1/(sd(Slope_Hill1)/mean(Slope_Hill1)),
-                       CV_ch = 1/(sd(cv_maximun_height)/mean(cv_maximun_height)),
-                       CV_pgap = 1/(sd(Pgap)/mean(Pgap))), 
-                   by = c("plot_new", "PA", "Block", "overyielding",
+cv_metrics <- data[, .(CV_slope = mean(Slope_Hill1)/sd(Slope_Hill1),
+                       CV_ch = mean(cv_maximun_height)/sd(cv_maximun_height),
+                       CV_pgap = mean(Pgap)/sd(Pgap)), 
+                   by = c("plot_new", "PA", "Block", "NE",
                           "hill0_taxa", "hill0_phylo", "hill0_FD_q", 
                           "TD_PSV", "FD_PSV", "PD_PSV")]
 
@@ -50,7 +51,7 @@ cv_metrics$hill0_FD_q <- log(cv_metrics$hill0_FD_q)
 
 # Melt by LiDAR
 cv_metrics <- melt(cv_metrics, 
-                   id.vars = c("plot_new", "PA", "Block", "overyielding", 
+                   id.vars = c("plot_new", "PA", "Block", "NE", 
                                "hill0_taxa", "hill0_phylo", "hill0_FD_q", 
                                "TD_PSV", "FD_PSV", "PD_PSV"),
                    measure.vars = c("CV_slope", "CV_ch", "CV_pgap"),
@@ -64,7 +65,7 @@ cv_metrics$LiDAR_metric <- factor(cv_metrics$LiDAR_metric,
 
 # Melt by diversity
 cv_metrics <- melt(cv_metrics, 
-                   id.vars = c("plot_new", "PA", "Block", "overyielding", 
+                   id.vars = c("plot_new", "PA", "Block", "NE", 
                                "LiDAR_metric", "LiDAR", 
                                "TD_PSV", "FD_PSV", "PD_PSV"),
                    measure.vars = c("hill0_taxa", "hill0_phylo", "hill0_FD_q"),
@@ -78,7 +79,7 @@ cv_metrics$diversity_metric <- factor(cv_metrics$diversity_metric,
 
 # Melt by species variability
 cv_metrics <- melt(cv_metrics, 
-                   id.vars = c("plot_new", "PA", "Block", "overyielding", 
+                   id.vars = c("plot_new", "PA", "Block", "NE", 
                                "LiDAR_metric", "LiDAR", 
                                "diversity_metric", "diversity"),
                    measure.vars = c("TD_PSV", "FD_PSV", "PD_PSV"),
@@ -104,7 +105,7 @@ taxonomic <- cv_metrics[LiDAR_metric == "Structural complexity" &
 
 taxonomic_model <- psem(
   lmer(LiDAR ~  diversity + SV + (1|Block), taxonomic),
-  lmer(overyielding ~ LiDAR + diversity + SV + (1|Block), taxonomic)
+  lmer(NE ~ LiDAR + diversity + SV + (1|Block), taxonomic)
   )
 
 
@@ -117,7 +118,7 @@ phylogenetic <- cv_metrics[LiDAR_metric == "Structural complexity" &
 
 phylogenetic_model <- psem(
   lmer(LiDAR ~  diversity + SV + (1|Block), phylogenetic),
-  lmer(overyielding ~ LiDAR + diversity + SV + (1|Block), phylogenetic)
+  lmer(NE ~ LiDAR + diversity + SV + (1|Block), phylogenetic)
 )
 
 summary(phylogenetic_model)
@@ -125,12 +126,12 @@ summary(phylogenetic_model)
 
 # Functional model
 functional <- cv_metrics[LiDAR_metric == "Structural complexity" &
-                             diversity_metric == "Phylogenetic" &
-                             SV_metric == "Phylogenetic", ]
+                             diversity_metric == "Functional" &
+                             SV_metric == "Functional", ]
 
 functional_model <- psem(
   lmer(LiDAR ~  diversity + SV + (1|Block), functional),
-  lmer(overyielding ~ LiDAR + diversity + SV + (1|Block), functional)
+  lmer(NE ~ LiDAR + diversity + SV + (1|Block), functional)
 )
 
 summary(functional_model)
