@@ -1,20 +1,16 @@
 ################################################################################
-#' @title Extended figure 2
+#' @title Accumulated growing degree days
 ################################################################################
 
-#' @description Extended figure 2 providing the statistics associated with the 
-#' linear regressions
+#' @description Figure S2 of the accumulative growing degree days for Cedar Cree on
+#' 2022
 #' 
-#' @return A jpeg file
+#' @return A jpeg file with the figure
 
 #' -----------------------------------------------------------------------------
 #' Libraries
 library(data.table)
-library(rcartocolor)
 library(ggplot2)
-library(scales)
-library(ggpmisc)
-options(scipen = 99999)
 
 #' -----------------------------------------------------------------------------
 #' Working path
@@ -23,25 +19,17 @@ root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
 #root_path <- "F:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
-#' Load data
+#' Processing
 
-frame <- fread(paste0(root_path, "/master_clean.csv"))
+# Weather data
+data <- fread(paste0(root_path, "/climate.csv"))
 
-#' -----------------------------------------------------------------------------
-#' Data reshaping
-
-data <- frame[, c("plot_new", "PA", "Block", "DOY", "volume",
-                  "Slope_Hill1", "Pgap", "cv_maximun_height")]
-
-data_melt <- melt(data,
-                  id.vars = c("DOY", "volume"),
-                  measure.vars = c("Slope_Hill1", "Pgap", "cv_maximun_height"),
-                  variable.name = "LiDAR")
-
-data_melt$LiDAR <- as.factor(data_melt$LiDAR)
-data_melt$LiDAR <- factor(data_melt$LiDAR,
-                          levels = c("cv_maximun_height", "Pgap", "Slope_Hill1"),
-                          labels = c("Height heterogeneity", "Gap probability", "Structural complexity"))
+# Define date
+data$Date <- as.IDate(data$Date)
+data$DOY <- yday(data$Date)
+data$GDD <- ((data$MaxTemp+data$MinTemp)/2) - 15 
+data[GDD <= 0, GDD := 0]
+data$AGDD <- cumsum(data$GDD)
 
 # ------------------------------------------------------------------------------
 # Plot details
@@ -65,56 +53,31 @@ th <- theme(plot.background = element_blank(),
                                             linetype="solid"),
             strip.text = element_text(color = "white"))
 
-gui <- guides(fill = guide_colourbar(barwidth = 15,
-                                     barheight = 0.7,
-                                     title.position = "top",
-                                     title.hjust = 0.5))
-
-doy_color <- scale_color_carto_c("Day of the Year",
-                                 type = "diverging",
-                                 palette = "Fall",
-                                 guide = "none")
-
-doy_fill <-   scale_fill_carto_c("Day of the Year",
-                                 type = "diverging",
-                                 palette = "Fall",
-                                 limits = c(95, 305),
-                                 breaks = c(100, 200, 300))
-
-alpha_point <- 0.15
-
 # ------------------------------------------------------------------------------
 # Plot
 
-plot <- ggplot(data_melt,
-               aes(x = volume,
-                   y = value,
-                   color = DOY,
-                   fill = DOY,
-                   gruop = as.factor(DOY))) +
-  #geom_point(colour = "grey", alpha = alpha_point, shape = 21) +
-  stat_poly_line(method = "lm",
-                 se = FALSE,
-                 formula = y ~ x,
-                 linewidth = 0.5) +
-  stat_poly_eq(method = "lm",
-               use_label(c("R2", "F", "P")),
-               formula = y ~ x,
-               label.x = "right",
-               label.y = "bottom",
-               size = text_size) +
-  doy_color + doy_fill +
-  scale_x_continuous(trans = log10_trans()) +
-  annotation_logticks(sides = "b") +
-  xlab(bquote(Wood~volume~(m^3))) +
-  ylab(bquote(italic(d)[italic(D)]~~~~italic(P)[gap]~~~italic(CH)[CV])) +
+plot <- ggplot(data,
+               aes(x = DOY,
+                   y = AGDD)) +
+  geom_line(colour = "grey25",
+            linewidth = 0.5) +
+  geom_vline(xintercept = c(100, 138, 163, 188, 215, 250, 260, 297),
+             colour = "darkgreen",
+             linetype = "dotted",
+             linewidth = 0.5) +
+  scale_x_continuous(limits = c(1, 365), expand = c(0, 0), breaks = c(100, 200, 300)) +
+  scale_y_continuous(limits = c(-20, 5310), expand = c(0, 0)) +
+  #doy_color + doy_fill +
+  xlab("Day of the Year") +
+  ylab("Accumulated growing degree days") +
   theme_bw(base_size = tamano) +
-  th + gui +
-  facet_grid(LiDAR ~ ., scales = "free")
+  th
+
 
 # Export figure
-jpeg(paste0(root_path, "/Figure_S2a.jpeg"), width = 90, height = 180, units = "mm", res = 600)
+jpeg(paste0(root_path, "/Figure_S2.jpeg"), width = 100, height = 80, units = "mm", res = 600)
 
 plot
 
 dev.off()
+

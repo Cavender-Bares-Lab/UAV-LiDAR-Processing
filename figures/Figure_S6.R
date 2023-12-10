@@ -1,12 +1,11 @@
 ################################################################################
-#' @title Extended figure 6
+#' @title Extended figure S6
 ################################################################################
 
-#' @description Extended figure 6 providing the statistics associated with the 
+#' @description Extended figure S6 providing the statistics associated with the 
 #' linear regressions
 #' 
 #' @return A jpeg file
-
 
 #' -----------------------------------------------------------------------------
 #' Libraries
@@ -31,24 +30,24 @@ frame <- fread(paste0(root_path, "/master_clean.csv"))
 #' -----------------------------------------------------------------------------
 #' Reshape frame
 
-taxa <- frame[, c("DOY", "TD_PSV", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_new", "PA")]
-phylo <- frame[, c("DOY", "PD_PSV", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_new", "PA")]
-funct <- frame[, c("DOY", "FD_PSV", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_new", "PA")]
+taxa <- frame[, c("DOY", "hill0_taxa", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_new", "PA")]
+phylo <- frame[, c("DOY", "hill0_phylo", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_new", "PA")]
+funct <- frame[, c("DOY", "hill0_FD_q", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_new", "PA")]
 
 taxa$type <- "Taxonomic"
 phylo$type <- "Phylogenetic"
 funct$type <- "Functional" 
 
-colnames(taxa)[2] <- "PSV"
-colnames(phylo)[2] <- "PSV"
-colnames(funct)[2] <- "PSV"
+colnames(taxa)[2] <- "Diversity"
+colnames(phylo)[2] <- "Diversity"
+colnames(funct)[2] <- "Diversity"
 
 data <- rbind(taxa, phylo, funct)
 data$type <- as.factor(data$type)
 data$type <- factor(data$type, levels = c("Taxonomic", "Phylogenetic", "Functional"))
 
 data_melt <- melt(data, 
-                  id.vars = c("DOY", "PSV", "type"),
+                  id.vars = c("DOY", "Diversity", "type"),
                   measure.vars = c("Slope_Hill1", "Pgap", "cv_maximun_height"),
                   variable.name = "LiDAR")
 
@@ -57,10 +56,7 @@ data_melt$LiDAR <- factor(data_melt$LiDAR,
                           levels = c("cv_maximun_height", "Pgap", "Slope_Hill1"),
                           labels = c("Height heterogeneity", "Gap probability", "Structural complexity"))
 
-data_melt <- data_melt[!is.na(PSV),]
-
 # ------------------------------------------------------------------------------
-
 # Plot details
 tamano <- 12
 tamano2 <- 10
@@ -108,14 +104,15 @@ doy_fill <-   scale_fill_carto_c("Day of the Year",
 alpha_point <- 0.15
 
 # ------------------------------------------------------------------------------
-# Plot
+# Diversity plots
 
 plot <- ggplot(data_melt, 
-               aes(x = PSV, 
+               aes(x = Diversity, 
                    y = value,
                    color = DOY,
                    fill = DOY,
                    gruop = as.factor(DOY))) +
+  #geom_point(colour = "grey", alpha = alpha_point, shape = 21) +
   stat_poly_line(method = "lm",
                  se = FALSE,
                  formula = y ~ x,
@@ -123,14 +120,14 @@ plot <- ggplot(data_melt,
   stat_poly_eq(method = "lm",
                use_label(c("R2", "F", "P")),
                formula = y ~ x,
-               label.x = "left",
-               label.y = "top",
+               label.x = "right",
+               label.y = "bottom",
                size = text_size) +
   doy_color + doy_fill + 
-  coord_cartesian(xlim = c(0, 1)) +
   scale_x_continuous(n.breaks = 4) +
-  scale_y_continuous(n.breaks = 3) +
-  xlab("Species variability") +
+  scale_y_continuous(n.breaks = 4) +
+  xlab(bquote(Species~richness))  +
+  xlab(bquote(Species~richness~~~~~~italic(PD)~~~~~~italic(FD)))  +
   ylab(bquote(italic(d)[italic(D)]~~~~italic(P)[gap]~~~italic(CH)[CV])) +
   theme_bw(base_size = tamano) +
   th + gui +
@@ -138,8 +135,10 @@ plot <- ggplot(data_melt,
 
 # ------------------------------------------------------------------------------
 #Export figure
-jpeg(paste0(root_path, "/Figure_S6b.jpeg"), width = 210, height = 180, units = "mm", res = 600)
+
+jpeg(paste0(root_path, "/Figure_S6.jpeg"), width = 210, height = 180, units = "mm", res = 600)
 
 plot
 
 dev.off()
+

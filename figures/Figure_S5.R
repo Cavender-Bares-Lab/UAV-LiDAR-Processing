@@ -1,20 +1,22 @@
 ################################################################################
-#' @title Extended figure 4
+#' @title Comparison of sesonal structural stability 
 ################################################################################
 
-#' @description Extended figure 4 providing the statistics associated with the 
-#' linear regressions
+#' @description Figure S5 that compares the sesonal structural stability among plots
+#' composed of angiosperms, mixtures (angiosperms and gymnosperms), and gymnosperms.
 #' 
 #' @return A jpeg file
 
 #' -----------------------------------------------------------------------------
 #' Libraries
 library(data.table)
+library(viridis)
 library(rcartocolor)
 library(ggplot2)
-library(ggpmisc)
 library(scales)
 library(ggpubr)
+library(ggpmisc)
+options(scipen = 99999)
 
 #' -----------------------------------------------------------------------------
 #' Working path
@@ -28,32 +30,35 @@ root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
 frame <- fread(paste0(root_path, "/master_clean.csv"))
 
 #' -----------------------------------------------------------------------------
-#' Reshape frame
+#' Data reshaping
 
-taxa <- frame[, c("DOY", "hill0_taxa", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_new", "PA")]
-phylo <- frame[, c("DOY", "hill0_phylo", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_new", "PA")]
-funct <- frame[, c("DOY", "hill0_FD_q", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_new", "PA")]
+# Define plots
+frame[PA == 1, plot_type := "Angiosperms"]
+frame[PA == 0, plot_type := "Gymnosperms"]
+frame[PA > 0 & PA < 1, plot_type := "Mixture"]
 
-taxa$type <- "Taxonomic"
-phylo$type <- "Phylogenetic"
-funct$type <- "Functional" 
+# Select columns of interest
+data <- frame[, c("plot_new", "plot_type", "Block", "PA", 
+                  "Slope_Hill1", "Pgap", "cv_maximun_height")]
 
-colnames(taxa)[2] <- "Diversity"
-colnames(phylo)[2] <- "Diversity"
-colnames(funct)[2] <- "Diversity"
+ss_metrics <- data[, .(SS_slope = mean(Slope_Hill1)/sd(Slope_Hill1),
+                       SS_ch = mean(cv_maximun_height)/sd(cv_maximun_height),
+                       SS_pgap = mean(Pgap)/sd(Pgap)), 
+                   by = c("plot_new", "plot_type", "Block", "PA")]
 
-data <- rbind(taxa, phylo, funct)
-data$type <- as.factor(data$type)
-data$type <- factor(data$type, levels = c("Taxonomic", "Phylogenetic", "Functional"))
+ss_metrics$plot_type <- as.factor(ss_metrics$plot_type)
+ss_metrics$plot_type <- factor(ss_metrics$plot_type, levels = c("Angiosperms", 
+                                                                "Mixture", 
+                                                                "Gymnosperms"))
 
-data_melt <- melt(data, 
-                  id.vars = c("DOY", "Diversity", "type"),
-                  measure.vars = c("Slope_Hill1", "Pgap", "cv_maximun_height"),
+data_melt <- melt(ss_metrics, 
+                  id.vars = c("plot_new", "plot_type", "Block", "PA"),
+                  measure.vars = c("SS_slope", "SS_ch", "SS_pgap"),
                   variable.name = "LiDAR")
 
 data_melt$LiDAR <- as.factor(data_melt$LiDAR)
 data_melt$LiDAR <- factor(data_melt$LiDAR,
-                          levels = c("cv_maximun_height", "Pgap", "Slope_Hill1"),
+                          levels = c("SS_ch", "SS_pgap", "SS_slope"),
                           labels = c("Height heterogeneity", "Gap probability", "Structural complexity"))
 
 # ------------------------------------------------------------------------------
@@ -78,67 +83,39 @@ th <- theme(plot.background = element_blank(),
                                             linetype="solid"),
             strip.text = element_text(color = "white"))
 
-gui <- guides(fill = guide_colourbar(barwidth = 15, 
-                                     barheight = 0.7, 
-                                     title.position = "top",
-                                     title.hjust = 0.5))
+#-------------------------------------------------------------------------------
+# Figure S4
 
-plot_comp <- scale_shape_manual("Plot composition", values = c(21, 24, 22),
-                                guide = guide_legend(override.aes = list(size = 2,
-                                                                         colour = "black",
-                                                                         alpha = 1),
-                                                     title.position = "top",
-                                                     title.hjust = 0.5)) 
+S4 <- ggplot(data_melt,
+             aes(x = plot_type,
+                 y = value,
+                 fill = plot_type)) +
+  geom_point(shape = 21, 
+             size = 1, 
+             position = position_jitterdodge(), 
+             color = "white", 
+             alpha = 0.8) +
+  geom_violin(alpha = 0.4, 
+              position = position_dodge(width = .75), 
+              linewidth = 0.5, 
+              color = "black") +
+  geom_boxplot(width=0.05, 
+               color = "white", 
+               alpha = .8, 
+               outlier.shape = NA) +
+  scale_y_continuous(trans = log10_trans()) +
+  annotation_logticks(sides = "l") +
+  xlab("Community composition") + 
+  scale_fill_manual("Composition", values = c("#d95f02", 
+                                              "#7570b3",
+                                              "#1b9e77")) + 
+  ylab(bquote(italic(SS)[italic(d)[italic(D)]]~~~~italic(SS)[italic(P)[gap]]~~~italic(SS)[italic(CH)[CV]])) +
+  theme_bw(base_size = tamano) + th + 
+  facet_grid(LiDAR ~ ., scales = "free")
 
-doy_color <- scale_color_carto_c("Day of the Year", 
-                                 type = "diverging", 
-                                 palette = "Fall",
-                                 guide = "none")
-
-doy_fill <-   scale_fill_carto_c("Day of the Year", 
-                                 type = "diverging", 
-                                 palette = "Fall",
-                                 limits = c(95, 305),
-                                 breaks = c(100, 200, 300)) 
-
-alpha_point <- 0.15
-
-# ------------------------------------------------------------------------------
-# Diversity plots
-
-plot <- ggplot(data_melt, 
-               aes(x = Diversity, 
-                   y = value,
-                   color = DOY,
-                   fill = DOY,
-                   gruop = as.factor(DOY))) +
-  #geom_point(colour = "grey", alpha = alpha_point, shape = 21) +
-  stat_poly_line(method = "lm",
-                 se = FALSE,
-                 formula = y ~ x,
-                 linewidth = 0.5) +
-  stat_poly_eq(method = "lm",
-               use_label(c("R2", "F", "P")),
-               formula = y ~ x,
-               label.x = "right",
-               label.y = "bottom",
-               size = text_size) +
-  doy_color + doy_fill + 
-  scale_x_continuous(n.breaks = 4) +
-  scale_y_continuous(n.breaks = 4) +
-  xlab(bquote(Species~richness))  +
-  xlab(bquote(Species~richness~~~~~~italic(PD)~~~~~~italic(FD)))  +
-  ylab(bquote(italic(d)[italic(D)]~~~~italic(P)[gap]~~~italic(CH)[CV])) +
-  theme_bw(base_size = tamano) +
-  th + gui +
-  facet_grid(LiDAR ~ type, scales = "free")
-
-# ------------------------------------------------------------------------------
 #Export figure
+jpeg(paste0(root_path, "/Figure_S5.jpeg"), width = 130, height = 180, units = "mm", res = 600)
 
-jpeg(paste0(root_path, "/Figure_S5b.jpeg"), width = 210, height = 180, units = "mm", res = 600)
-
-plot
+S4
 
 dev.off()
-

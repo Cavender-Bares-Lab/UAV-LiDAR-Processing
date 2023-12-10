@@ -1,140 +1,120 @@
 ################################################################################
-#' @title Temporal variation of the fractal geometry
+#' @title Extended figure S3
 ################################################################################
 
-#' @description Figure that shows the temporal variation of the fractal geometry
+#' @description Extended figure S3 providing the statistics associated with the 
+#' linear regressions
 #' 
-#' @return A tiff file
+#' @return A jpeg file
 
 #' -----------------------------------------------------------------------------
 #' Libraries
 library(data.table)
-library(viridis)
 library(rcartocolor)
 library(ggplot2)
 library(scales)
-library(ggpubr)
 library(ggpmisc)
 options(scipen = 99999)
 
 #' -----------------------------------------------------------------------------
 #' Working path
 
-#root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
-root_path <- "F:/Projects/LiDAR/data"
+root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+#root_path <- "F:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Load data
 
 frame <- fread(paste0(root_path, "/master_clean.csv"))
-frame[PA == 1, plot_type := "Angiosperms"]
-frame[PA == 0, plot_type := "Gymnosperms"]
-frame[PA > 0 & PA < 1, plot_type := "Mixture"]
 
 #' -----------------------------------------------------------------------------
 #' Data reshaping
 
-reshaping <- frame
-reshaping_ch <- reshaping[, c("plot_new", "PA", "plot_type", "DOY", "volume",
-                               "cv_maximun_height")]
-reshaping_pgap <- reshaping[, c("plot_new", "PA", "plot_type", "DOY", "volume",
-                                "Pgap")]
-reshaping_frac <- reshaping[, c("plot_new", "PA", "plot_type", "DOY", "volume",
-                                "Slope_Hill1")]
+data <- frame[, c("plot_new", "PA", "Block", "DOY", "volume",
+                  "Slope_Hill1", "Pgap", "cv_maximun_height")]
 
-reshaping_ch <- melt(reshaping_ch, id.vars = c("plot_new", "PA", "plot_type", "DOY", "volume"))
-reshaping_ch$parameter <- "Height heterogeneity"
+data_melt <- melt(data,
+                  id.vars = c("DOY", "volume"),
+                  measure.vars = c("Slope_Hill1", "Pgap", "cv_maximun_height"),
+                  variable.name = "LiDAR")
 
-reshaping_pgap <- melt(reshaping_pgap, id.vars = c("plot_new", "PA", "plot_type", "DOY", "volume"))
-reshaping_pgap$parameter <- "Gap probability"
-
-reshaping_frac <- melt(reshaping_frac, id.vars = c("plot_new", "PA", "plot_type", "DOY", "volume"))
-reshaping_frac$parameter <- "Structural complexity"
-
-reshaping <- rbind(reshaping_ch, reshaping_pgap, reshaping_frac)
-
-reshaping$parameter <- as.factor(reshaping$parameter)
-reshaping$parameter <- factor(reshaping$parameter, levels = c("Height heterogeneity", 
-                                                              "Gap probability",
-                                                              "Structural complexity"))
-
-reshaping$plot_type <- as.factor(reshaping$plot_type)
-reshaping$plot_type <- factor(reshaping$plot_type, levels = c("Angiosperms", 
-                                                              "Mixture",
-                                                              "Gymnosperms"))
+data_melt$LiDAR <- as.factor(data_melt$LiDAR)
+data_melt$LiDAR <- factor(data_melt$LiDAR,
+                          levels = c("cv_maximun_height", "Pgap", "Slope_Hill1"),
+                          labels = c("Height heterogeneity", "Gap probability", "Structural complexity"))
 
 # ------------------------------------------------------------------------------
 # Plot details
+
 tamano <- 12
 tamano2 <- 10
 text_size <- 2.8
-
-th <- theme(plot.background = element_blank(), 
-            panel.grid.major = element_blank(), 
-            panel.grid.minor = element_blank(), 
+th <- theme(plot.background = element_blank(),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
             axis.text.x = element_text(color = "black"),
             axis.text.y = element_text(color = "black"),
             plot.margin = margin(4, 4, 0, 1, "pt"),
-            legend.position= c("top"), 
-            legend.direction = "horizontal", 
-            legend.background = element_rect(fill = "transparent"), 
+            legend.position= c("top"),
+            legend.direction = "horizontal",
+            legend.background = element_rect(fill = "transparent"),
             legend.box.background = element_blank(),
-            strip.background = element_rect(color="black", 
-                                            fill="black", 
-                                            linewidth=1.5, 
+            strip.background = element_rect(color="black",
+                                            fill="black",
+                                            linewidth=1.5,
                                             linetype="solid"),
             strip.text = element_text(color = "white"))
 
-gui <- guides(fill = guide_colourbar(barwidth = 15, 
-                                     barheight = 0.7, 
+gui <- guides(fill = guide_colourbar(barwidth = 15,
+                                     barheight = 0.7,
                                      title.position = "top",
-                                     title.hjust = 0.5))  
+                                     title.hjust = 0.5))
 
-fill_PA <- scale_fill_viridis("Proportion of Angiosperms",
-                                option = "D",
-                                direction = 1,
-                                limits = c(0, 1),
-                                breaks = c(0.0, 0.5, 1.0))
+doy_color <- scale_color_carto_c("Day of the Year",
+                                 type = "diverging",
+                                 palette = "Fall",
+                                 guide = "none")
 
-colour_PA <- scale_colour_viridis("Proportion of Angiosperms",
-                                option = "D",
-                                direction = 1,
-                                limits = c(0, 1),
-                                breaks = c(0.0, 0.5, 1.0))
+doy_fill <-   scale_fill_carto_c("Day of the Year",
+                                 type = "diverging",
+                                 palette = "Fall",
+                                 limits = c(95, 305),
+                                 breaks = c(100, 200, 300))
 
-# Figure S1
+alpha_point <- 0.15
 
-S1 <- ggplot(reshaping,
-       aes(x = DOY,
-           y = value,
-           colour = PA,
-           fill = PA,
-           gruop = as.factor(plot_new))) +
-  geom_point(alpha = 0.1) +
-  geom_line(alpha = 0.2) +
-  scale_fill_carto_c("Proportion of Angiosperms", 
-                     type = "diverging", 
-                     palette = "Earth",
-                     direction = -1,
-                     limits = c(0, 1),
-                     breaks = c(0.0, 0.5, 1.0)) +
-  scale_colour_carto_c("Proportion of Angiosperms", 
-                     type = "diverging", 
-                     palette = "Earth",
-                     direction = -1,
-                     limits = c(0, 1),
-                     breaks = c(0.0, 0.5, 1.0)) +
-  scale_y_continuous(n.breaks = 4) +
-  xlab("Day of the year ") +
-  ylab(bquote(italic(d)[italic(D)]))  +
+# ------------------------------------------------------------------------------
+# Plot
+
+plot <- ggplot(data_melt,
+               aes(x = volume,
+                   y = value,
+                   color = DOY,
+                   fill = DOY,
+                   gruop = as.factor(DOY))) +
+  #geom_point(colour = "grey", alpha = alpha_point, shape = 21) +
+  stat_poly_line(method = "lm",
+                 se = FALSE,
+                 formula = y ~ x,
+                 linewidth = 0.5) +
+  stat_poly_eq(method = "lm",
+               use_label(c("R2", "F", "P")),
+               formula = y ~ x,
+               label.x = "right",
+               label.y = "bottom",
+               size = text_size) +
+  doy_color + doy_fill +
+  scale_x_continuous(trans = log10_trans()) +
+  annotation_logticks(sides = "b") +
+  xlab(bquote(Wood~volume~(m^3))) +
+  ylab(bquote(italic(d)[italic(D)]~~~~italic(P)[gap]~~~italic(CH)[CV])) +
   theme_bw(base_size = tamano) +
   th + gui +
-  facet_grid(parameter ~ plot_type, scales = "free")
+  facet_grid(LiDAR ~ ., scales = "free")
 
-#Export figure
-jpeg(paste0(root_path, "/Figure_S1.jpeg"), width = 210, height = 150, units = "mm", res = 600)
+# Export figure
+jpeg(paste0(root_path, "/Figure_S3.jpeg"), width = 90, height = 180, units = "mm", res = 600)
 
-S1
+plot
 
 dev.off()
-
