@@ -1,9 +1,9 @@
 ################################################################################
-#' @title Effect of species variability on the seasonal structural stability
+#' @title Effect of multiple dimensions of variability on the structural stability
 ################################################################################
 
-#' @description Figure 7 to test the effect of species variability on the 
-#' seasonal structural stability of LiDAR metrics
+#' @description Figure 7 to test the effect of multiple dimensions of variability 
+#' on the seasonal structural stability of LiDAR metrics
 #' 
 #' @return A tiff file
 
@@ -127,7 +127,7 @@ plot <- ggplot(data_melt, aes(PSV,
   scale_x_continuous(n.breaks = 4) +
   scale_y_continuous(trans = log10_trans()) +
   annotation_logticks(sides = "l") +
-  xlab("Species variability") +
+  xlab("Taxonomic variability      Phylogenetic variability       Functional variability") +
   ylab(bquote(italic(SS)[italic(d)[italic(D)]]~~~~italic(SS)[italic(P)[gap]]~~~italic(SS)[italic(CH)[CV]])) +
   theme_bw(base_size = tamano) +
   th + gui + 
@@ -139,4 +139,4 @@ jpeg(paste0(root_path, "/Figure_7a.jpeg"), width = 210, height = 180, units = "m
 plot
 
 dev.off()
-
+  

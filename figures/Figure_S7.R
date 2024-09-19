@@ -1,21 +1,21 @@
 ################################################################################
-#' @title Effect of diversity on overyilding 
+#' @title Extended figure S7
 ################################################################################
 
-#' @description Figure S7 to test the effect of diversity on overyilding
+#' @description Extended figure S7 providing the statistics associated with the 
+#' linear regressions
 #' 
 #' @return A jpeg file
+
 
 #' -----------------------------------------------------------------------------
 #' Libraries
 library(data.table)
-library(viridis)
-library(RColorBrewer)
+library(rcartocolor)
 library(ggplot2)
-library(scales)
 library(ggpmisc)
+library(scales)
 library(ggpubr)
-options(scipen = 99999)
 
 #' -----------------------------------------------------------------------------
 #' Working path
@@ -27,44 +27,40 @@ root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
 #' Load data
 
 frame <- fread(paste0(root_path, "/master_clean.csv"))
-frame <- frame[date == "2022-04-10",]
-frame <- frame[SR_real != 1, ]
 
 #' -----------------------------------------------------------------------------
-#' Data reshaping
+#' Reshape frame
 
-data <- frame[, c("plot_new", "PA", "Block", "DOY", "NE",
-                  "hill0_taxa", "hill0_phylo", "hill0_FD_q", 
-                  "TD_PSV", "FD_PSV", "PD_PSV")]
+taxa <- frame[, c("DOY", "TD_PSV", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_new", "PA")]
+phylo <- frame[, c("DOY", "PD_PSV", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_new", "PA")]
+funct <- frame[, c("DOY", "FD_PSV", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_new", "PA")]
 
-# Melt by diversity
-data_diversity <- melt(data, 
-             id.vars = c("plot_new", "PA", "Block", "NE"),
-             measure.vars = c("hill0_taxa", "hill0_phylo", "hill0_FD_q"),
-             variable.name = "diversity_metric",
-             value.name = "diversity")
+taxa$type <- "Taxonomic"
+phylo$type <- "Phylogenetic"
+funct$type <- "Functional" 
 
-data_diversity$diversity_metric <- as.factor(data_diversity$diversity_metric)
-data_diversity$diversity_metric <- factor(data_diversity$diversity_metric, 
-                                      levels = c("hill0_taxa", "hill0_phylo", "hill0_FD_q"),
-                                      labels = c("Taxonomic", "Phylogenetic", "Functional"))
-data_diversity$metric <- "Diversity"
+colnames(taxa)[2] <- "PSV"
+colnames(phylo)[2] <- "PSV"
+colnames(funct)[2] <- "PSV"
 
+data <- rbind(taxa, phylo, funct)
+data$type <- as.factor(data$type)
+data$type <- factor(data$type, levels = c("Taxonomic", "Phylogenetic", "Functional"))
 
-# Melt by species variability
-data_SV <- melt(data, 
-             id.vars = c("plot_new", "PA", "Block", "NE"),
-             measure.vars = c("TD_PSV", "FD_PSV", "PD_PSV"),
-             variable.name = "SV_metric",
-             value.name = "SV")
+data_melt <- melt(data, 
+                  id.vars = c("DOY", "PSV", "type"),
+                  measure.vars = c("Slope_Hill1", "Pgap", "cv_maximun_height"),
+                  variable.name = "LiDAR")
 
-data_SV$SV_metric <- as.factor(data_SV$SV_metric)
-data_SV$SV_metric <- factor(data_SV$SV_metric, 
-                         levels = c("TD_PSV", "FD_PSV", "PD_PSV"),
-                         labels = c("Taxonomic", "Phylogenetic", "Functional"))
-data_SV$metric <- "Species variability"
+data_melt$LiDAR <- as.factor(data_melt$LiDAR)
+data_melt$LiDAR <- factor(data_melt$LiDAR,
+                          levels = c("cv_maximun_height", "Pgap", "Slope_Hill1"),
+                          labels = c("Height heterogeneity", "Gap probability", "Structural complexity"))
+
+data_melt <- data_melt[!is.na(PSV),]
 
 # ------------------------------------------------------------------------------
+
 # Plot details
 tamano <- 12
 tamano2 <- 10
@@ -91,82 +87,58 @@ gui <- guides(fill = guide_colourbar(barwidth = 15,
                                      title.position = "top",
                                      title.hjust = 0.5))
 
-colour_PA <- scale_fill_viridis("Proportion of Angiosperms",
-                                option = "D",
-                                direction = 1,
-                                limits = c(0, 1),
-                                breaks = c(0.0, 0.5, 1.0))
+plot_comp <- scale_shape_manual("Plot composition", values = c(21, 24, 22),
+                                guide = guide_legend(override.aes = list(size = 2,
+                                                                         colour = "black",
+                                                                         alpha = 1),
+                                                     title.position = "top",
+                                                     title.hjust = 0.5)) 
 
-alpha_point <- 1.0
+doy_color <- scale_color_carto_c("Day of the Year", 
+                                 type = "diverging", 
+                                 palette = "Fall",
+                                 guide = "none")
+
+doy_fill <-   scale_fill_carto_c("Day of the Year", 
+                                 type = "diverging", 
+                                 palette = "Fall",
+                                 limits = c(95, 305),
+                                 breaks = c(100, 200, 300)) 
+
+alpha_point <- 0.15
 
 # ------------------------------------------------------------------------------
 # Plot
 
-plot_diversity <- ggplot(data_diversity,
-               aes(diversity,
-                   NE,
-                   fill = PA)) +
-  geom_point(colour = "grey", alpha = alpha_point, shape = 21) +
+plot <- ggplot(data_melt, 
+               aes(x = PSV, 
+                   y = value,
+                   color = DOY,
+                   fill = DOY,
+                   gruop = as.factor(DOY))) +
   stat_poly_line(method = "lm",
                  se = FALSE,
                  formula = y ~ x,
-                 linewidth = 0.5,
-                 linetype = "dotted",
-                 colour = "black") +
-  stat_poly_eq(use_label(c("R2", "F", "P")),
-               method = "lm",
+                 linewidth = 0.5) +
+  stat_poly_eq(method = "lm",
+               use_label(c("R2", "F", "P")),
                formula = y ~ x,
-               label.x = "right",
+               label.x = "left",
                label.y = "top",
                size = text_size) +
-  colour_PA +
-  #coord_cartesian(ylim = c(-0.001, 0.16)) +
-  scale_x_continuous(trans = log10_trans()) +
-  #scale_y_continuous(n.breaks = 4) +
-  annotation_logticks(sides = "b") +
-  xlab(bquote(Species~richness~~~~~~italic(PD)~~~~~~italic(FD)))  +
-  ylab(bquote(Net~biodiversity~effect~(m^3~y^-1))) +
-  #ylab(bquote(NBE~(m^3~y^-1)~~~SE~(m^3~y^-1)~~~CE~(m^3~y^-1))) +
-  theme_bw(base_size = tamano) +
-  th + gui +
-  facet_grid(metric ~ diversity_metric, scales = "free")
-
-
-plot_sv <- ggplot(data_SV,
-               aes(SV,
-                   NE,
-                   fill = PA)) +
-  geom_point(colour = "grey", alpha = alpha_point, shape = 21) +
-  stat_poly_line(method = "lm",
-                 #se = FALSE,
-                 formula = y ~ x,
-                 linewidth = 0.5,
-                 #linetype = "dotted",
-                 colour = "black") +
-  stat_poly_eq(use_label(c("R2", "F", "P")),
-               method = "lm",
-               formula = y ~ x,
-               label.x = "right",
-               label.y = "top",
-               size = text_size) +
-  colour_PA +
+  doy_color + doy_fill + 
   coord_cartesian(xlim = c(0, 1)) +
-  scale_x_continuous(n.breaks = 3) +
-  #scale_x_continuous(trans = log10_trans()) +
-  #scale_y_continuous(n.breaks = 4) +
-  #annotation_logticks(sides = "b") +
-  xlab("Species variability")  +
-  ylab(bquote(Net~biodiversity~effect~(m^3~y^-1))) +
+  scale_x_continuous(n.breaks = 4) +
+  scale_y_continuous(n.breaks = 3) +
+  xlab("Taxonomic variability      Phylogenetic variability       Functional variability") +
+  ylab(bquote(italic(d)[italic(D)]~~~~italic(P)[gap]~~~italic(CH)[CV])) +
   theme_bw(base_size = tamano) +
   th + gui +
-  facet_grid(metric ~ SV_metric, scales = "free")
+  facet_grid(LiDAR ~ type, scales = "free")
 
-plot <- ggarrange(plot_diversity, plot_sv,
-                  ncol = 1, nrow = 2,
-                  common.legend = TRUE)
-
+# ------------------------------------------------------------------------------
 #Export figure
-jpeg(paste0(root_path, "/Figure_S7a.jpeg"), width = 210, height = 150, units = "mm", res = 600)
+jpeg(paste0(root_path, "/Figure_S7c.jpeg"), width = 210, height = 180, units = "mm", res = 600)
 
 plot
 

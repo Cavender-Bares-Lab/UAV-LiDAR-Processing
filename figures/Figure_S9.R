@@ -1,9 +1,8 @@
 ################################################################################
-#' @title Effect of seasonal structural stability on complementarity and selection 
+#' @title Influence of diversity on overyielding 
 ################################################################################
 
-#' @description Figure S8 to test the effect of LiDAR seasonal stability 
-#' on complementarity and selection effects
+#' @description Figure S9 to test the effect of diversity on overyielding
 #' 
 #' @return A jpeg file
 
@@ -15,6 +14,7 @@ library(RColorBrewer)
 library(ggplot2)
 library(scales)
 library(ggpmisc)
+library(ggpubr)
 options(scipen = 99999)
 
 #' -----------------------------------------------------------------------------
@@ -27,32 +27,30 @@ root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
 #' Load data
 
 frame <- fread(paste0(root_path, "/master_clean.csv"))
+frame <- frame[date == "2022-04-10",]
+frame <- frame[SR_real != 1, ]
 
 #' -----------------------------------------------------------------------------
 #' Data reshaping
 
-data <- frame[, c("plot_new", "SR_real", "PA", "Block", "DOY", "NE", "CE", "SE",
-                  "Slope_Hill1", "Pgap", "cv_maximun_height")]
+data <- frame[, c("plot_new", "PA", "Block", "DOY", "NE", "CE", "SE",
+                  "hill0_taxa", "hill0_phylo", "hill0_FD_q")]
 
-ss_metrics <- data[, .(SS_slope = mean(Slope_Hill1)/sd(Slope_Hill1),
-                       SS_ch = mean(cv_maximun_height)/sd(cv_maximun_height),
-                       SS_pgap = mean(Pgap)/sd(Pgap)), 
-                   by = c("plot_new", "Block", "SR_real", "NE", "CE", "SE", "PA")]
+# Melt by species variability
+data_SV <- melt(data, 
+                id.vars = c("plot_new", "PA", "Block", "DOY", "NE", "CE", "SE"),
+                measure.vars = c("hill0_taxa", "hill0_phylo", "hill0_FD_q"),
+                variable.name = "SV_metric",
+                value.name = "SV")
 
-data_melt <- melt(ss_metrics, 
-                  id.vars = c("plot_new", "Block", "SR_real", "NE", "CE", "SE", "PA"),
-                  measure.vars = c("SS_slope", "SS_ch", "SS_pgap"),
-                  variable.name = "LiDAR")
+data_SV$SV_metric <- as.factor(data_SV$SV_metric)
+data_SV$SV_metric <- factor(data_SV$SV_metric, 
+                            levels = c("hill0_taxa", "hill0_phylo", "hill0_FD_q"),
+                            labels = c("Taxonomic", "Phylogenetic", "Functional"))
 
-data_melt$LiDAR <- as.factor(data_melt$LiDAR)
-data_melt$LiDAR <- factor(data_melt$LiDAR,
-                          levels = c("SS_ch", "SS_pgap", "SS_slope"),
-                          labels = c("Height heterogeneity", "Gap probability", "Structural complexity"))
-
-data_melt <- data_melt[SR_real > 1,]
-
-data_melt <- melt(data_melt, 
-                  id.vars = c("plot_new", "Block", "SR_real", "PA", "LiDAR", "value"),
+# Melt by effects
+data_melt <- melt(data_SV, 
+                  id.vars = c("plot_new", "Block", "PA", "SV_metric", "SV"),
                   measure.vars = c("NE", "SE", "CE"),
                   variable.name = "partition",
                   value.name = "effect")
@@ -61,7 +59,6 @@ data_melt$partition <- as.factor(data_melt$partition)
 data_melt$partition <- factor(data_melt$partition,
                               levels = c("NE", "CE", "SE"),
                               labels = c("Net biodiversity effect", "Complementarity effect", "Selection effect"))
-
 
 # ------------------------------------------------------------------------------
 # Plot details
@@ -101,38 +98,37 @@ alpha_point <- 1.0
 # ------------------------------------------------------------------------------
 # Plot
 
-plot <- ggplot(data_melt[partition != "Net biodiversity effect"],
-               aes(value,
+plot <- ggplot(data_melt,
+               aes(SV,
                    effect,
                    fill = PA)) +
   geom_point(colour = "grey", alpha = alpha_point, shape = 21) +
   stat_poly_line(method = "lm",
-                 se = FALSE,
+                 #se = FALSE,
                  formula = y ~ x,
                  linewidth = 0.5,
-                 linetype = "dotted",
+                 #linetype = "dotted",
                  colour = "black") +
-  stat_poly_eq(use_label(c("eq", "R2")),
+  stat_poly_eq(use_label(c("R2", "F", "P")),
                method = "lm",
                formula = y ~ x,
                label.x = "right",
                label.y = "top",
                size = text_size) +
   colour_PA +
-  #coord_cartesian(ylim = c(-0.001, 0.16)) +
-  scale_x_continuous(trans = log10_trans()) +
-  #scale_y_continuous(trans = log10_trans(), n.breaks = 4) +
-  #scale_y_continuous(n.breaks = 4) +
-  annotation_logticks(sides = "b") +
-  xlab(bquote(italic(SS)[italic(CH)[CV]]~~~~italic(SS)[italic(P)[gap]]~~~italic(SS)[italic(d)[italic(D)]])) +
-  ylab(bquote(SE~(m^3~y^-1)~~CE~(m^3~y^-1))) +
-  #ylab(bquote(NBE~(m^3~y^-1)~~~SE~(m^3~y^-1)~~~CE~(m^3~y^-1))) +
+  #coord_cartesian(xlim = c(0, 1)) +
+  scale_x_continuous(n.breaks = 3) +
+  #scale_x_continuous(trans = log10_trans()) +
+  scale_y_continuous(n.breaks = 3) +
+  #annotation_logticks(sides = "b") +
+  xlab(bquote(Species~richness~~~~~~italic(PD)~~~~~~italic(FD)))  +
+  ylab(bquote(SE~(m^3~y^-1)~~~~CE~(m^3~y^-1)~~~~NBE~(m^3~y^-1))) +
   theme_bw(base_size = tamano) +
   th + gui +
-  facet_grid(partition ~ LiDAR, scales = "free")
+  facet_grid(partition ~ SV_metric, scales = "free")
 
 #Export figure
-jpeg(paste0(root_path, "/Figure_S8.jpeg"), width = 210, height = 130, units = "mm", res = 600)
+jpeg(paste0(root_path, "/Figure_S9.jpeg"), width = 210, height = 190, units = "mm", res = 600)
 
 plot
 

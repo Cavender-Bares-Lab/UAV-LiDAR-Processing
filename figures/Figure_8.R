@@ -1,9 +1,9 @@
 ################################################################################
-#' @title Effect of seasonal structural stability on overyilding 
+#' @title Effect of seasonal structural stability on overyielding 
 ################################################################################
 
 #' @description Figure 8 to test the effect of LiDAR seasonal stability 
-#' on overyilding
+#' on overyielding
 #' 
 #' @return A tiff file
 
@@ -59,8 +59,8 @@ data_melt <- melt(data_melt,
 
 data_melt$partition <- as.factor(data_melt$partition)
 data_melt$partition <- factor(data_melt$partition,
-                          levels = c("NE", "SE", "CE"),
-                          labels = c("Net biodiversity effect", "Selection effect", "Complementarity effect"))
+                          levels = c("NE", "CE", "SE"),
+                          labels = c("Net biodiversity effect", "Complementarity effect", "Selection effect"))
 
 
 # ------------------------------------------------------------------------------
@@ -101,7 +101,7 @@ alpha_point <- 1.0
 # ------------------------------------------------------------------------------
 # Plot
 
-plot <- ggplot(data_melt[partition == "Net biodiversity effect",],
+plot <- ggplot(data_melt[partition == "Net biodiversity effect"],
                aes(value,
                    effect,
                    fill = PA)) +
@@ -115,14 +115,15 @@ plot <- ggplot(data_melt[partition == "Net biodiversity effect",],
   stat_poly_eq(use_label(c("eq", "R2")),
                method = "lm",
                formula = y ~ x,
-               label.x = "left",
+               label.x = "right",
                label.y = "top",
                size = text_size) +
   colour_PA +
-  coord_cartesian(ylim = c(-0.001, 0.16)) +
+  #coord_cartesian(ylim = c(-0.001, 0.16)) +
   scale_x_continuous(trans = log10_trans()) +
-  scale_y_continuous(n.breaks = 4) +
-  annotation_logticks(sides = "b") +
+  scale_y_continuous(trans = log10_trans(), n.breaks = 4) +
+  #scale_y_continuous(n.breaks = 4) +
+  annotation_logticks(sides = "bl") +
   xlab(bquote(italic(SS)[italic(CH)[CV]]~~~~italic(SS)[italic(P)[gap]]~~~italic(SS)[italic(d)[italic(D)]])) +
   ylab(bquote(Net~biodiversity~effect~(m^3~y^-1))) +
   #ylab(bquote(NBE~(m^3~y^-1)~~~SE~(m^3~y^-1)~~~CE~(m^3~y^-1))) +

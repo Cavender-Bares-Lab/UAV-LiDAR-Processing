@@ -39,7 +39,7 @@ threads <- 28
 batch_metrics <- function(path_pc, path_gpkg, output_name, threads) {
   
   #Set number of threads to use
-  set_lidr_threads(30)
+  set_lidr_threads(4)
   
   #Read point cloud remove noise and large scan angles
   pc <- readLAS(path_pc, 
@@ -92,6 +92,7 @@ batch_metrics <- function(path_pc, path_gpkg, output_name, threads) {
     vegetation_pc <- classify_noise(vegetation_pc, sor(k = 30,
                                                        m = 0.98,
                                                        quantile = TRUE))
+    vegetation_pc <- filter_poi(vegetation_pc, Classification != 18)
     vegetation_pc <- decimate_points(vegetation_pc, random_per_voxel(0.01, 1))
     
     # Get height threshold
@@ -104,9 +105,9 @@ batch_metrics <- function(path_pc, path_gpkg, output_name, threads) {
     if(size_above == TRUE | npoints == TRUE) {
       
       # Clean residuals
-      #rm(list = c("limit", "Plot", "Area", "limit", "plot_pc", 
-      #            "vegetation_pc", "max_points", "size_above",
-      #            "npoints"))
+      rm(list = c("limit", "Plot", "Area", "plot_pc", 
+                  "vegetation_pc", "max_points", "size_above",
+                  "npoints"))
       gc()
       
       #Return empty frame
@@ -164,13 +165,13 @@ batch_metrics <- function(path_pc, path_gpkg, output_name, threads) {
       results <- cbind(results, v_metrics, h_metrics, fractal) 
       results <- cbind(results, h_metrics) 
       
-      names_export <- paste0(output_name, "_plot_", plot_new, ".csv")
+      names_export <- paste0(output_name, "plot_", plot_new, ".csv")
       fwrite(results, names_export)
       
       # Clean residuals
-      #rm(list = c("limit", "Plot", "Area", "vegetation_pc", "max_points",
-      #            "size_above", "total_points", "FC", "Npulses", "Wz", 
-      #            "h_metrics", "v_metrics", "fractal", "results", "names_export"))
+      rm(list = c("limit", "Plot", "Area", "vegetation_pc", "max_points",
+                  "size_above", "total_points", "FC", "Npulses", "Wz", 
+                  "h_metrics", "v_metrics", "fractal", "results", "names_export"))
       gc()
       
       return(print(paste0("Plot ", plot_new, " was successfully processed")))
@@ -179,7 +180,7 @@ batch_metrics <- function(path_pc, path_gpkg, output_name, threads) {
   }
   
   # Parallel
-  pbmclapply(140:stands, 
+  pbmclapply(1:stands, 
              FUN = get_metrics, 
              pc = pc, 
              limits_gpkg = limits_gpkg,
@@ -194,9 +195,9 @@ batch_metrics <- function(path_pc, path_gpkg, output_name, threads) {
 #' @examples 
 
 # FAB2 ----------------------------------
-#root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
-root_path <- "G:/Projects/LiDAR/data"
-threads <- 16
+root_path <- "/media/antonio/antonio/LiDAR/data"
+#root_path <- "G:/Projects/LiDAR/data"
+threads <- 14
 
 # 2022-04-10
 path_pc <- paste0(root_path, "/L2/", "2022-04-10_FAB2.laz")
