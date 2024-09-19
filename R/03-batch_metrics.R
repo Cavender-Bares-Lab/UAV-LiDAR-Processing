@@ -27,6 +27,7 @@ library(foreach)
 #' @param threads Number of threads for parallel processing
 
 root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+root_path <- "G:/Projects/LiDAR/data"
 path_pc <- paste0(root_path, "/L2/", "2022-04-10_FAB2.laz")
 path_gpkg <- paste0(root_path, "/GIS/", "2022-04-10_FAB2.gpkg")
 output_name <- paste0(root_path, "/", "2022-04-10_FAB2_results")
@@ -42,7 +43,7 @@ batch_metrics <- function(path_pc, path_gpkg, output_name, threads) {
   
   #Read point cloud remove noise and large scan angles
   pc <- readLAS(path_pc, 
-                select = "xyzc",
+                select = "xyzcnr",
                 filter = "-keep_class 1 2 8")
   
   #Read gpkp
@@ -91,7 +92,6 @@ batch_metrics <- function(path_pc, path_gpkg, output_name, threads) {
     vegetation_pc <- classify_noise(vegetation_pc, sor(k = 30,
                                                        m = 0.98,
                                                        quantile = TRUE))
-    vegetation_pc <- filter_poi(vegetation_pc, Classification != 18)
     vegetation_pc <- decimate_points(vegetation_pc, random_per_voxel(0.01, 1))
     
     # Get height threshold
@@ -104,9 +104,9 @@ batch_metrics <- function(path_pc, path_gpkg, output_name, threads) {
     if(size_above == TRUE | npoints == TRUE) {
       
       # Clean residuals
-      rm(list = c("limit", "Plot", "Area", "limit", "plot_pc", 
-                  "vegetation_pc", "max_points", "ground_points", "size_above",
-                  "npoints"))
+      #rm(list = c("limit", "Plot", "Area", "limit", "plot_pc", 
+      #            "vegetation_pc", "max_points", "size_above",
+      #            "npoints"))
       gc()
       
       #Return empty frame
@@ -114,21 +114,29 @@ batch_metrics <- function(path_pc, path_gpkg, output_name, threads) {
       
     } else {
       
+      total_points <- plot_pc@header$`Number of point records`
+      
+      #-------------------------------------------------------------------------
+      # Gap fraction
+      Npulses <- plot_pc@header$`Number of points by return`[1]
+      Wz <- sum(1/filter_poi(plot_pc, Z >= 0.25)$NumberOfReturns)
+      FC <- Wz/Npulses
+      
+      #-------------------------------------------------------------------------
+      # Horizontal metrics
+      
       #Ground pc
       ground_pc <- filter_poi(plot_pc, Z < 0.25)
       rm(list = c("plot_pc"))
       ground_pc <- decimate_points(ground_pc, random_per_voxel(0.01, 1))
       
-      # Pgap
-      points <- vegetation_pc@header$`Number of point records` + ground_pc@header$`Number of point records`
-      area <- st_area(limit)
-      Pgap <- ground_pc@header$`Number of point records`/ points
-      
-      # Stands metrics ------------------------------------
       # Horizontal metrics
       h_metrics <- horizontal_metrics(point_cloud = rbind(ground_pc, vegetation_pc),
                                       xy_res = 0.1)
       rm(list = c("ground_pc"))
+      
+      #-------------------------------------------------------------------------
+      # Vectical Metrics
       
       # Vertical function
       v_metrics <- vertical_metrics(point_cloud = vegetation_pc, 
@@ -136,28 +144,33 @@ batch_metrics <- function(path_pc, path_gpkg, output_name, threads) {
                                     z_min = 0.25, 
                                     z_max = 10)
       
+      #-------------------------------------------------------------------------
       # 3D metrics 
       fractal <- fractal_metrics(point_cloud = vegetation_pc, 
                                  z_min = 0.25)
+      
+      #-------------------------------------------------------------------------
+      # Results
       
       # Merge
       results <- data.table(Plot = Plot,
                             plot_new = plot_new,
                             Type = Area,
-                            area = as.numeric(area),
-                            npoints = points,
-                            density = points/as.numeric(area),
-                            Pgap = Pgap)
+                            area = as.numeric(st_area(limit)),
+                            npoints = total_points,
+                            density = total_points/as.numeric(st_area(limit)),
+                            FC = FC)
+      
       results <- cbind(results, v_metrics, h_metrics, fractal) 
       results <- cbind(results, h_metrics) 
       
-      names_export <- paste0(output_name, plot_new, "_h_.csv")
+      names_export <- paste0(output_name, "_plot_", plot_new, ".csv")
       fwrite(results, names_export)
       
       # Clean residuals
-      rm(list = c("limit", "Plot", "Area", "vegetation_pc", "max_points", 
-                  "ground_points", "size_above", "points", "area", "Pgap", 
-                  "h_metrics", "v_metrics", "fractal", "results", "names_export"))
+      #rm(list = c("limit", "Plot", "Area", "vegetation_pc", "max_points",
+      #            "size_above", "total_points", "FC", "Npulses", "Wz", 
+      #            "h_metrics", "v_metrics", "fractal", "results", "names_export"))
       gc()
       
       return(print(paste0("Plot ", plot_new, " was successfully processed")))
@@ -166,7 +179,7 @@ batch_metrics <- function(path_pc, path_gpkg, output_name, threads) {
   }
   
   # Parallel
-  pbmclapply(1:stands, 
+  pbmclapply(140:stands, 
              FUN = get_metrics, 
              pc = pc, 
              limits_gpkg = limits_gpkg,
@@ -181,8 +194,8 @@ batch_metrics <- function(path_pc, path_gpkg, output_name, threads) {
 #' @examples 
 
 # FAB2 ----------------------------------
-root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
-#root_path <- "F:/Projects/LiDAR/data"
+#root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+root_path <- "G:/Projects/LiDAR/data"
 threads <- 16
 
 # 2022-04-10
