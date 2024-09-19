@@ -130,7 +130,7 @@ plot <- ggplot(data_melt,
   coord_cartesian(xlim = c(0, 1)) +
   scale_x_continuous(n.breaks = 4) +
   scale_y_continuous(n.breaks = 3) +
-  xlab("Species variability") +
+  xlab("Taxonomic variability      Phylogenetic variability       Functional variability") +
   ylab(bquote(italic(d)[italic(D)]~~~~italic(P)[gap]~~~italic(CH)[CV])) +
   theme_bw(base_size = tamano) +
   th + gui +
@@ -138,7 +138,7 @@ plot <- ggplot(data_melt,
 
 # ------------------------------------------------------------------------------
 #Export figure
-jpeg(paste0(root_path, "/Figure_S7.jpeg"), width = 210, height = 180, units = "mm", res = 600)
+jpeg(paste0(root_path, "/Figure_S7c.jpeg"), width = 210, height = 180, units = "mm", res = 600)
 
 plot
 

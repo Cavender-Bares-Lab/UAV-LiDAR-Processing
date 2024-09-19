@@ -30,9 +30,9 @@ frame <- fread(paste0(root_path, "/master_clean.csv"))
 #' -----------------------------------------------------------------------------
 #' Reshape frame
 
-taxa <- frame[, c("DOY", "hill0_taxa", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_new", "PA")]
-phylo <- frame[, c("DOY", "hill0_phylo", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_new", "PA")]
-funct <- frame[, c("DOY", "hill0_FD_q", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_new", "PA")]
+taxa <- frame[, c("DOY", "hill0_taxa", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_new", "PA", "Block")]
+phylo <- frame[, c("DOY", "hill0_phylo", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_new", "PA", "Block")]
+funct <- frame[, c("DOY", "hill0_FD_q", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_new", "PA", "Block")]
 
 taxa$type <- "Taxonomic"
 phylo$type <- "Phylogenetic"
@@ -47,7 +47,7 @@ data$type <- as.factor(data$type)
 data$type <- factor(data$type, levels = c("Taxonomic", "Phylogenetic", "Functional"))
 
 data_melt <- melt(data, 
-                  id.vars = c("DOY", "Diversity", "type"),
+                  id.vars = c("DOY", "Diversity", "type", "plot_new", "PA", "Block"),
                   measure.vars = c("Slope_Hill1", "Pgap", "cv_maximun_height"),
                   variable.name = "LiDAR")
 
@@ -141,3 +141,100 @@ plot
 
 dev.off()
 
+
+# ------------------------------------------------------------------------------
+# Statistical analysis
+
+library(lme4)
+library(sjPlot)
+library(sjmisc)
+library(stargazer)
+library(report)
+library(car)
+
+data_melt$DOY <- as.character(data_melt$DOY)
+
+# Taxonomic diversity-----------------------------------------------------------
+#CHcv
+ch <- lmer(value ~ log(Diversity)*DOY + (1 | plot_new:Block),
+           data = data_melt[type == "Taxonomic" & LiDAR == "Height heterogeneity", ])
+qqnorm(resid(ch))
+qqline(resid(ch))
+report(ch)
+Anova(ch, test.statistic="F")
+tab_model(ch, p.val = "kr", show.df = TRUE)
+
+#Pgap
+Pgap <- lmer(value ~ log(Diversity)*DOY + (1 | plot_new:Block),
+             data = data_melt[type == "Taxonomic" & LiDAR == "Gap probability", ])
+qqnorm(resid(Pgap))
+qqline(resid(Pgap))
+report(Pgap)
+Anova(Pgap, test.statistic="F")
+tab_model(Pgap, p.val = "kr", show.df = TRUE)
+
+#dD
+dD <- lmer(value ~ log(Diversity)*DOY + (1 | plot_new:Block),
+             data = data_melt[type == "Taxonomic" & LiDAR == "Structural complexity", ])
+qqnorm(resid(dD))
+qqline(resid(dD))
+report(dD)
+Anova(dD, test.statistic="F")
+tab_model(dD, p.val = "kr", show.df = TRUE)
+
+# Phylogenetic diversity--------------------------------------------------------
+#CHcv
+ch <- lmer(value ~ log(Diversity)*DOY + (1 | plot_new:Block),
+           data = data_melt[type == "Phylogenetic" & LiDAR == "Height heterogeneity", ])
+qqnorm(resid(ch))
+qqline(resid(ch))
+report(ch)
+Anova(ch, test.statistic="F")
+tab_model(ch, p.val = "kr", show.df = TRUE)
+
+#Pgap
+Pgap <- lmer(value ~ log(Diversity)*DOY + (1 | plot_new:Block),
+             data = data_melt[type == "Phylogenetic" & LiDAR == "Gap probability", ])
+qqnorm(resid(Pgap))
+qqline(resid(Pgap))
+report(Pgap)
+Anova(Pgap, test.statistic="F")
+tab_model(Pgap, p.val = "kr", show.df = TRUE)
+
+#dD
+dD <- lmer(value ~ log(Diversity)*DOY + (1 | plot_new:Block),
+           data = data_melt[type == "Phylogenetic" & LiDAR == "Structural complexity", ])
+qqnorm(resid(dD))
+qqline(resid(dD))
+report(dD)
+Anova(dD, test.statistic="F")
+tab_model(dD, p.val = "kr", show.df = TRUE)
+
+
+# Functional diversity--------------------------------------------------------
+#CHcv
+ch <- lmer(value ~ log(Diversity+1)*DOY + (1 | plot_new:Block),
+           data = data_melt[type == "Functional" & LiDAR == "Height heterogeneity", ])
+qqnorm(resid(ch))
+qqline(resid(ch))
+report(ch)
+Anova(ch, test.statistic="F")
+tab_model(ch, p.val = "kr", show.df = TRUE)
+
+#Pgap
+Pgap <- lmer(value ~ log(Diversity+1)*DOY + (1 | plot_new:Block),
+             data = data_melt[type == "Functional" & LiDAR == "Gap probability", ])
+qqnorm(resid(Pgap))
+qqline(resid(Pgap))
+report(Pgap)
+Anova(Pgap, test.statistic="F")
+tab_model(Pgap, p.val = "kr", show.df = TRUE)
+
+#dD
+dD <- lmer(value ~ log(Diversity+1)*DOY + (1 | plot_new:Block),
+           data = data_melt[type == "Functional" & LiDAR == "Structural complexity", ])
+qqnorm(resid(dD))
+qqline(resid(dD))
+report(dD)
+Anova(dD, test.statistic="F")
+tab_model(dD, p.val = "kr", show.df = TRUE)

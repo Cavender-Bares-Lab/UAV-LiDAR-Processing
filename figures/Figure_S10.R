@@ -1,9 +1,9 @@
 ################################################################################
-#' @title Influence of species variability on overyielding 
+#' @title Influence of multiple dimensions of variability on overyielding 
 ################################################################################
 
-#' @description Figure S10 to test the effect of species variability on 
-#' overyielding
+#' @description Figure S10 to test the effect multiple dimensions of  variability 
+#' on overyielding
 #' 
 #' @return A jpeg file
 
@@ -114,7 +114,7 @@ plot <- ggplot(data_melt,
                method = "lm",
                formula = y ~ x,
                label.x = "left",
-               label.y = "top",
+               label.y = "bottom",
                size = text_size) +
   colour_PA +
   coord_cartesian(xlim = c(0, 1)) +
@@ -122,14 +122,14 @@ plot <- ggplot(data_melt,
   #scale_x_continuous(trans = log10_trans()) +
   #scale_y_continuous(n.breaks = 4) +
   #annotation_logticks(sides = "b") +
-  xlab("Species variability")  +
+  xlab("Taxonomic variability      Phylogenetic variability       Functional variability")  +
   ylab(bquote(SE~(m^3~y^-1)~~~~CE~(m^3~y^-1)~~~~NBE~(m^3~y^-1))) +
   theme_bw(base_size = tamano) +
   th + gui +
   facet_grid(partition ~ SV_metric, scales = "free")
 
 #Export figure
-jpeg(paste0(root_path, "/Figure_S10.jpeg"), width = 210, height = 190, units = "mm", res = 600)
+jpeg(paste0(root_path, "/Figure_S10a.jpeg"), width = 210, height = 190, units = "mm", res = 600)
 
 plot
 

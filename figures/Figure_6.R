@@ -1,9 +1,9 @@
 ################################################################################
-#' @title Effect of species variability on LiDAR derived metrics
+#' @title Effect of multiple dimensions of variability on LiDAR derived metrics
 ################################################################################
 
-#' @description Figure 6 of relationships species variability on LiDAR 
-#' derived metrics
+#' @description Figure 6 describing the relationships between multiple dimensions 
+#'of variability and LiDAR derived metrics
 #' 
 #' @return A tiff file
 
@@ -30,9 +30,9 @@ frame <- fread(paste0(root_path, "/master_clean.csv"))
 #' -----------------------------------------------------------------------------
 #' Reshape frame
 
-taxa <- frame[, c("DOY", "TD_PSV", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_new", "PA")]
-phylo <- frame[, c("DOY", "PD_PSV", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_new", "PA")]
-funct <- frame[, c("DOY", "FD_PSV", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_new", "PA")]
+taxa <- frame[, c("DOY", "TD_PSV", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_new", "PA", "Block")]
+phylo <- frame[, c("DOY", "PD_PSV", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_new", "PA", "Block")]
+funct <- frame[, c("DOY", "FD_PSV", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_new", "PA", "Block")]
 
 taxa$type <- "Taxonomic"
 phylo$type <- "Phylogenetic"
@@ -47,7 +47,7 @@ data$type <- as.factor(data$type)
 data$type <- factor(data$type, levels = c("Taxonomic", "Phylogenetic", "Functional"))
 
 data_melt <- melt(data, 
-     id.vars = c("DOY", "PSV", "type"),
+     id.vars = c("DOY", "PSV", "type", "Block", "plot_new", "PA"),
      measure.vars = c("Slope_Hill1", "Pgap", "cv_maximun_height"),
      variable.name = "LiDAR")
 
@@ -123,13 +123,13 @@ plot <- ggplot(data_melt,
   stat_poly_eq(method = "lm",
                formula = y ~ x,
                label.x = "right",
-               label.y = "top",
+               label.y = "bottom",
                size = text_size) +
   doy_color + doy_fill + 
   coord_cartesian(xlim = c(0, 1)) +
   scale_x_continuous(n.breaks = 4) +
   scale_y_continuous(n.breaks = 3) +
-  xlab("Species variability") +
+  xlab("Taxonomic variability      Phylogenetic variability       Functional variability") +
   ylab(bquote(italic(d)[italic(D)]~~~~italic(P)[gap]~~~italic(CH)[CV])) +
   theme_bw(base_size = tamano) +
   th + gui +
@@ -143,3 +143,100 @@ plot
 
 dev.off()
 
+
+# ------------------------------------------------------------------------------
+# Statistical analysis
+
+library(lme4)
+library(sjPlot)
+library(sjmisc)
+library(stargazer)
+library(report)
+library(car)
+
+data_melt$DOY <- as.character(data_melt$DOY)
+
+# Taxonomic diversity-----------------------------------------------------------
+#CHcv
+ch <- lmer(value ~ PSV*DOY + (1 | plot_new:Block),
+           data = data_melt[type == "Taxonomic" & LiDAR == "Height heterogeneity", ])
+qqnorm(resid(ch))
+qqline(resid(ch))
+report(ch)
+Anova(ch, test.statistic="F")
+tab_model(ch, p.val = "kr", show.df = TRUE)
+
+#Pgap
+Pgap <- lmer(value ~ PSV*DOY + (1 | plot_new:Block),
+             data = data_melt[type == "Taxonomic" & LiDAR == "Gap probability", ])
+qqnorm(resid(Pgap))
+qqline(resid(Pgap))
+report(Pgap)
+Anova(Pgap, test.statistic="F")
+tab_model(Pgap, p.val = "kr", show.df = TRUE)
+
+#dD
+dD <- lmer(value ~ PSV*DOY + (1 | plot_new:Block),
+           data = data_melt[type == "Taxonomic" & LiDAR == "Structural complexity", ])
+qqnorm(resid(dD))
+qqline(resid(dD))
+report(dD)
+Anova(dD, test.statistic="F")
+tab_model(dD, p.val = "kr", show.df = TRUE)
+
+# Phylogenetic diversity--------------------------------------------------------
+#CHcv
+ch <- lmer(value ~ PSV*DOY + (1 | plot_new:Block),
+           data = data_melt[type == "Phylogenetic" & LiDAR == "Height heterogeneity", ])
+qqnorm(resid(ch))
+qqline(resid(ch))
+report(ch)
+Anova(ch, test.statistic="F")
+tab_model(ch, p.val = "kr", show.df = TRUE)
+
+#Pgap
+Pgap <- lmer(value ~ PSV*DOY + (1 | plot_new:Block),
+             data = data_melt[type == "Phylogenetic" & LiDAR == "Gap probability", ])
+qqnorm(resid(Pgap))
+qqline(resid(Pgap))
+report(Pgap)
+Anova(Pgap, test.statistic="F")
+tab_model(Pgap, p.val = "kr", show.df = TRUE)
+
+#dD
+dD <- lmer(value ~ PSV*DOY + (1 | plot_new:Block),
+           data = data_melt[type == "Phylogenetic" & LiDAR == "Structural complexity", ])
+qqnorm(resid(dD))
+qqline(resid(dD))
+report(dD)
+Anova(dD, test.statistic="F")
+tab_model(dD, p.val = "kr", show.df = TRUE)
+
+
+# Functional diversity--------------------------------------------------------
+#CHcv
+ch <- lmer(value ~ PSV*DOY + (1 | plot_new:Block),
+           data = data_melt[type == "Functional" & LiDAR == "Height heterogeneity", ])
+qqnorm(resid(ch))
+qqline(resid(ch))
+report(ch)
+Anova(ch, test.statistic="F")
+tab_model(ch, p.val = "kr", show.df = TRUE)
+
+#Pgap
+Pgap <- lmer(value ~ PSV*DOY + (1 | plot_new:Block),
+             data = data_melt[type == "Functional" & LiDAR == "Gap probability", ])
+qqnorm(resid(Pgap))
+qqline(resid(Pgap))
+report(Pgap)
+Anova(Pgap, test.statistic="F")
+tab_model(Pgap, p.val = "kr", show.df = TRUE)
+
+#dD
+dD <- lmer(value ~ PSV*DOY + (1 | plot_new:Block),
+           data = data_melt[type == "Functional" & LiDAR == "Structural complexity", ])
+qqnorm(resid(dD))
+qqline(resid(dD))
+report(dD)
+Anova(dD, test.statistic="F")
+tab_model(dD, p.val = "kr", show.df = TRUE)

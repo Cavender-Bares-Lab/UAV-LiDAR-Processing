@@ -1,8 +1,8 @@
 ################################################################################
-#' @title Effect of diversity and species variability on wood volume 
+#' @title Effect of diversity and variability on wood volume 
 ################################################################################
 
-#' @description Figure S13 to test the effect of diversity and composition on volume
+#' @description Figure S13 to test the effect of diversity and variability on volume
 
 #' @return A jpeg file
 
@@ -61,7 +61,7 @@ data_SV$SV_metric <- as.factor(data_SV$SV_metric)
 data_SV$SV_metric <- factor(data_SV$SV_metric, 
                             levels = c("TD_PSV", "FD_PSV", "PD_PSV"),
                             labels = c("Taxonomic", "Phylogenetic", "Functional"))
-data_SV$metric <- "Species variability"
+data_SV$metric <- "Variability"
 
 # ------------------------------------------------------------------------------
 # Plot details
@@ -154,7 +154,7 @@ plot_sv <- ggplot(data_SV,
   #scale_x_continuous(trans = log10_trans()) +
   scale_y_continuous(trans = log10_trans()) +
   annotation_logticks(sides = "l") +
-  xlab("Species variability")  +
+  xlab("Taxonomic variability      Phylogenetic variability       Functional variability")  +
   ylab(bquote(Wood~volume~(m^3))) +
   theme_bw(base_size = tamano) +
   th + gui +
@@ -165,7 +165,7 @@ plot <- ggarrange(plot_diversity, plot_sv,
                   common.legend = TRUE)
 
 #Export figure
-jpeg(paste0(root_path, "/Figure_S13.jpeg"), width = 210, height = 150, units = "mm", res = 600)
+jpeg(paste0(root_path, "/Figure_S13a.jpeg"), width = 210, height = 150, units = "mm", res = 600)
 
 plot
 
