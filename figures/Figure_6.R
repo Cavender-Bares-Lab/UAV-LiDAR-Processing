@@ -93,16 +93,18 @@ plot_comp <- scale_shape_manual("Plot composition", values = c(21, 24, 22),
                                                      title.position = "top",
                                                      title.hjust = 0.5)) 
 
-doy_color <- scale_color_carto_c("Day of the Year", 
-                                 type = "diverging", 
-                                 palette = "Fall",
-                                 guide = "none")
+doy_color <- scale_color_viridis_c("Day of the Year",
+                                   option = "mako",
+                                   begin = 0,
+                                   end = 0.85,
+                                   guide = "none")
 
-doy_fill <-   scale_fill_carto_c("Day of the Year", 
-                                 type = "diverging", 
-                                 palette = "Fall",
-                                 limits = c(95, 305),
-                                 breaks = c(100, 200, 300)) 
+doy_fill <-   scale_fill_viridis_c("Day of the Year",
+                                   option = "mako",
+                                   begin = 0,
+                                   end = 0.85,
+                                   limits = c(95, 305),
+                                   breaks = c(100, 200, 300))
 
 alpha_point <- 0.15
 
@@ -115,7 +117,7 @@ plot <- ggplot(data_melt,
                    color = DOY,
                    fill = DOY,
                    gruop = as.factor(DOY))) +
-  geom_point(colour = "grey", alpha = alpha_point, shape = 21) +
+  geom_point(colour = "grey25", alpha = alpha_point, shape = 21) +
   stat_poly_line(method = "lm",
                  se = FALSE,
                  formula = y ~ x,

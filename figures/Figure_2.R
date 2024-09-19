@@ -10,7 +10,7 @@
 #' -----------------------------------------------------------------------------
 #' Libraries
 library(data.table)
-library(rcartocolor)
+library(viridis)
 library(ggplot2)
 library(scales)
 library(ggpmisc)
@@ -20,7 +20,7 @@ options(scipen = 99999)
 #' Working path
 
 root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
-#root_path <- "F:/Projects/LiDAR/data"
+root_path <- "G:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Load data
@@ -31,17 +31,17 @@ frame <- fread(paste0(root_path, "/master_clean.csv"))
 #' Data reshaping
 
 data <- frame[, c("plot_new", "PA", "Block", "DOY", "volume",
-                  "Slope_Hill1", "Pgap", "cv_maximun_height")]
+                  "Slope_Hill1", "FC", "cv_maximun_height")]
 
 data_melt <- melt(data,
                   id.vars = c("DOY", "volume"),
-                  measure.vars = c("Slope_Hill1", "Pgap", "cv_maximun_height"),
+                  measure.vars = c("Slope_Hill1", "FC", "cv_maximun_height"),
                   variable.name = "LiDAR")
 
 data_melt$LiDAR <- as.factor(data_melt$LiDAR)
 data_melt$LiDAR <- factor(data_melt$LiDAR,
-                          levels = c("cv_maximun_height", "Pgap", "Slope_Hill1"),
-                          labels = c("Height heterogeneity", "Gap probability", "Structural complexity"))
+                          levels = c("cv_maximun_height", "FC", "Slope_Hill1"),
+                          labels = c("Height heterogeneity", "Fractional cover", "Structural complexity"))
 
 # ------------------------------------------------------------------------------
 # Plot details
@@ -70,16 +70,18 @@ gui <- guides(fill = guide_colourbar(barwidth = 15,
                                      title.position = "top",
                                      title.hjust = 0.5))
 
-doy_color <- scale_color_carto_c("Day of the Year",
-                                 type = "diverging",
-                                 palette = "Fall",
-                                 guide = "none")
+doy_color <- scale_color_viridis_c("Day of the Year",
+                                   option = "mako",
+                                   begin = 0,
+                                   end = 0.85,
+                                   guide = "none")
 
-doy_fill <-   scale_fill_carto_c("Day of the Year",
-                                 type = "diverging",
-                                 palette = "Fall",
-                                 limits = c(95, 305),
-                                 breaks = c(100, 200, 300))
+doy_fill <-   scale_fill_viridis_c("Day of the Year",
+                                   option = "mako",
+                                   begin = 0,
+                                   end = 0.85,
+                                   limits = c(95, 305),
+                                   breaks = c(100, 200, 300))
 
 alpha_point <- 0.15
 
@@ -92,7 +94,7 @@ plot <- ggplot(data_melt,
                    color = DOY,
                    fill = DOY,
                    gruop = as.factor(DOY))) +
-  geom_point(colour = "grey", alpha = alpha_point, shape = 21) +
+  geom_point(colour = "grey25", alpha = alpha_point, shape = 21) +
   stat_poly_line(method = "lm",
                  se = FALSE,
                  formula = y ~ x,
@@ -105,8 +107,8 @@ plot <- ggplot(data_melt,
   doy_color + doy_fill +
   scale_x_continuous(trans = log10_trans()) +
   annotation_logticks(sides = "b") +
-  xlab(bquote(Wood~volume~(m^3))) +
-  ylab(bquote(italic(d)[italic(D)]~~~~italic(P)[gap]~~~italic(CH)[CV])) +
+  xlab(bquote(Wood~volume~(m^3/m^2))) +
+  ylab(bquote(italic(d)[italic(D)]~~~~italic(FC)~~~italic(HH)[CV])) +
   theme_bw(base_size = tamano) +
   th + gui +
   facet_grid(LiDAR ~ ., scales = "free")
@@ -141,13 +143,13 @@ Anova(ch, test.statistic="F")
 tab_model(ch, p.val = "kr", show.df = TRUE)
 
 #Pgap
-Pgap <- lmer(Pgap ~ log(volume)*DOY + (1 | plot_new:Block),
+Pgap <- lmer(FC ~ log(volume)*DOY + (1 | plot_new:Block),
            data = data)
-qqnorm(resid(Pgap))
-qqline(resid(Pgap))
-report(Pgap)
-Anova(Pgap, test.statistic="F")
-tab_model(Pgap, p.val = "kr", show.df = TRUE)
+qqnorm(resid(FC))
+qqline(resid(FC))
+report(FC)
+Anova(FC, test.statistic="F")
+tab_model(FC, p.val = "kr", show.df = TRUE)
 
 #dD
 dD <- lmer(Slope_Hill1 ~ log(volume)*DOY + (1 | plot_new:Block),
