@@ -12,14 +12,14 @@
 library(data.table)
 library(picante)
 library(Taxonstand)
-library(V.PhyloMaker)
+library(V.PhyloMaker2)
 library(hillR)
 
 #' -----------------------------------------------------------------------------
 #' Working path
 
 root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
-#root_path <- "F:/Projects/LiDAR/data"
+root_path <- "G:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Functions
@@ -29,13 +29,11 @@ hill <- function(n_points, q) {
   return((sum(p^q)^(1 / (1 - q))))
 }
 
-#devtools::source_url("https://github.com/ShanKothari/DecomposingFD/blob/master/R/AlphaFD.R?raw=TRUE")
-
 #' -----------------------------------------------------------------------------
 #' Processing
 
 # Load data
-species_summary <- fread(paste0(root_path, "/species_summary.csv"))
+species_summary <- fread(paste0(root_path, "/species_summary (2024-09-19).csv"))
 
 #' -----------------------------------------------------------------------------
 #' Biomass data per species
@@ -201,6 +199,6 @@ FD_PSV <- psv(functional_matched$comm,
 diversity <- cbind(diversity, TD_PSV, PD_PSV, FD_PSV)
 
 # Export
-fwrite(diversity, paste0(root_path, "/diversity.csv"))
+fwrite(diversity, paste0(root_path, "/diversity (2024-09-19).csv"))
 
 

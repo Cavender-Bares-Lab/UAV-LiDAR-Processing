@@ -15,7 +15,7 @@ library(data.table)
 #' Working path
 
 root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
-#root_path <- "F:/Projects/LiDAR/data"
+root_path <- "G:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Functions
@@ -166,7 +166,7 @@ plot_summary <- plots[deadmissing == "No",
                         year_mean = mean(year_planted),
                         year_cv = sd(year_planted)/mean(year_planted), 
                         ntrees = .N, 
-                        volume = sum(V.conoid_conoidoid_infill, na.rm = TRUE),
+                        volume = sum(V.conoid_conoidoid_infill, na.rm = TRUE)/0.0064, #Volume density
                         vol_Hill0 = hill(V.conoid_conoidoid_infill, 0),
                         vol_Hill1 = hill(V.conoid_conoidoid_infill, 0.999),
                         vol_Hill2 = hill(V.conoid_conoidoid_infill, 2)),
@@ -177,11 +177,11 @@ plot_summary <- plots[deadmissing == "No",
 
 # Reshaping
 species_summary <- plots[deadmissing == "No", .(ntrees = .N,
-                                                volume = sum(V.conoid_conoidoid_infill, na.rm = TRUE)),
+                                                volume = (sum(V.conoid_conoidoid_infill, na.rm = TRUE))/0.0064), #Volume density
                          by = c("plot", "plot_new", "species")]
 
 # Export species summary 
-fwrite(species_summary, paste0(root_path, "species_summary.csv"))
+fwrite(species_summary, paste0(root_path, "/species_summary (2024-09-19).csv"))
 
 #-------------------------------------------------------------------------------
 # Get proportion of deciduous 
@@ -225,7 +225,7 @@ complete <- merge(plot_summary, proportions,
                   all.y = TRUE)
 
 # Export structural attributes
-fwrite(complete, paste0(root_path, "/structural_attributes.csv"))
+fwrite(complete, paste0(root_path, "/structural_attributes (2024-09-19).csv"))
 
 
 

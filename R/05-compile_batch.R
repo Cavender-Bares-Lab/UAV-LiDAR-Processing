@@ -18,10 +18,10 @@ library(sf)
 #' @example 
 
 path <-  "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
-path <- "F:/Projects/LiDAR/data"
+path <- "G:/Projects/LiDAR/data"
 path_in <- paste0(path, "/FSC")
 path_gpkg <- paste0(path, "/GIS/2022-04-10_FAB2.gpkg")
-path_out <- paste0(path, "/LiDAR_results.csv")
+path_out <- paste0(path, "/LiDAR_results (2024-09-19).csv")
 
 compile_results(path_in, gpkg, path_out)
 
@@ -64,7 +64,7 @@ compile_results <- function(path_in, path_gpkg, path_out) {
   
   # Merge results
   final <- merge(gpkg_frame, 
-                 results, 
+                 results[,1:32], 
                  by = c("Plot", "plot_new"), 
                  all.x = TRUE,
                  all.y = TRUE)

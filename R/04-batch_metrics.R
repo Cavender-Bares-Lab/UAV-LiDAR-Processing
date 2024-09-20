@@ -163,7 +163,7 @@ batch_metrics <- function(path_pc, path_gpkg, output_name, threads) {
                             FC = FC)
       
       results <- cbind(results, v_metrics, h_metrics, fractal) 
-      results <- cbind(results, h_metrics) 
+      #results <- cbind(results, h_metrics) 
       
       names_export <- paste0(output_name, "plot_", plot_new, ".csv")
       fwrite(results, names_export)

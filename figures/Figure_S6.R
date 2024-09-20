@@ -5,7 +5,7 @@
 #' @description Extended figure S6 providing the statistics associated with the 
 #' linear regressions
 #' 
-#' @return A jpeg file
+#' @return A png file
 
 #' -----------------------------------------------------------------------------
 #' Libraries
@@ -15,24 +15,25 @@ library(ggplot2)
 library(ggpmisc)
 library(scales)
 library(ggpubr)
+library(ggdark)
 
 #' -----------------------------------------------------------------------------
 #' Working path
 
 root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
-#root_path <- "F:/Projects/LiDAR/data"
+root_path <- "G:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Load data
 
-frame <- fread(paste0(root_path, "/master_clean.csv"))
+frame <- fread(paste0(root_path, "/master_clean (2024-09-19).csv"))
 
 #' -----------------------------------------------------------------------------
 #' Reshape frame
 
-taxa <- frame[, c("DOY", "hill0_taxa", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_new", "PA")]
-phylo <- frame[, c("DOY", "hill0_phylo", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_new", "PA")]
-funct <- frame[, c("DOY", "hill0_FD_q", "Slope_Hill1", "Pgap", "cv_maximun_height", "plot_new", "PA")]
+taxa <- frame[, c("DOY", "hill0_taxa", "Slope_Hill1", "FC", "cv_maximun_height", "plot_new", "PA", "Block")]
+phylo <- frame[, c("DOY", "hill0_phylo", "Slope_Hill1", "FC", "cv_maximun_height", "plot_new", "PA", "Block")]
+funct <- frame[, c("DOY", "hill0_FD_q", "Slope_Hill1", "FC", "cv_maximun_height", "plot_new", "PA", "Block")]
 
 taxa$type <- "Taxonomic"
 phylo$type <- "Phylogenetic"
@@ -47,67 +48,85 @@ data$type <- as.factor(data$type)
 data$type <- factor(data$type, levels = c("Taxonomic", "Phylogenetic", "Functional"))
 
 data_melt <- melt(data, 
-                  id.vars = c("DOY", "Diversity", "type"),
-                  measure.vars = c("Slope_Hill1", "Pgap", "cv_maximun_height"),
+                  id.vars = c("DOY", "Diversity", "type", "plot_new", "PA", "Block"),
+                  measure.vars = c("Slope_Hill1", "FC", "cv_maximun_height"),
                   variable.name = "LiDAR")
 
 data_melt$LiDAR <- as.factor(data_melt$LiDAR)
 data_melt$LiDAR <- factor(data_melt$LiDAR,
-                          levels = c("cv_maximun_height", "Pgap", "Slope_Hill1"),
-                          labels = c("Height heterogeneity", "Gap probability", "Structural complexity"))
+                          levels = c("cv_maximun_height", "FC", "Slope_Hill1"),
+                          labels = c("Height heterogeneity", "Fractional cover", "Structural complexity"))
 
 # ------------------------------------------------------------------------------
 # Plot details
+th_black <- theme_bw() + 
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        legend.position= c("top"), 
+        legend.background = element_rect(fill= "transparent"),
+        panel.background = element_rect(fill= "transparent"),
+        rect = element_rect(fill = "transparent"),
+        plot.margin = margin(4, 4, 0, 1, "pt"),
+        
+        strip.background = element_rect(color="black", 
+                                        fill="black", 
+                                        linewidth=1.5, 
+                                        linetype="solid"),
+        strip.text = element_text(color = "white"))
+
+th_trans <- dark_theme_bw(base_size = 11) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        legend.position= c("top"),
+        legend.background = element_rect(fill= "transparent"),
+        panel.background = element_rect(fill = "transparent"),
+        rect = element_rect(fill = "transparent"),
+        legend.title = element_text(colour="white"),
+        legend.text = element_text(color = "white"),
+        axis.text = element_text(color="white"),
+        plot.background = element_rect(colour = "transparent",
+                                       fill = "transparent",
+                                       linewidth=0),
+        plot.margin = margin(4, 4, 0, 1, "pt"),
+        strip.background = element_rect(color="white", 
+                                        fill="white", 
+                                        linewidth=1.5, 
+                                        linetype="solid"),
+        strip.text = element_text(color = "black"))
+
+th <- th_trans
+line_col <- "white"
+
+th <- th_black
+line_col <- "black"
+
 tamano <- 12
 tamano2 <- 10
 text_size <- 2.8
-
-th <- theme(plot.background = element_blank(), 
-            panel.grid.major = element_blank(), 
-            panel.grid.minor = element_blank(), 
-            axis.text.x = element_text(color = "black"),
-            axis.text.y = element_text(color = "black"),
-            plot.margin = margin(4, 4, 0, 1, "pt"),
-            legend.position= c("top"), 
-            legend.direction = "horizontal", 
-            legend.background = element_rect(fill = "transparent"), 
-            legend.box.background = element_blank(),
-            strip.background = element_rect(color="black", 
-                                            fill="black", 
-                                            linewidth=1.5, 
-                                            linetype="solid"),
-            strip.text = element_text(color = "white"))
 
 gui <- guides(fill = guide_colourbar(barwidth = 15, 
                                      barheight = 0.7, 
                                      title.position = "top",
                                      title.hjust = 0.5))
 
-plot_comp <- scale_shape_manual("Plot composition", values = c(21, 24, 22),
-                                guide = guide_legend(override.aes = list(size = 2,
-                                                                         colour = "black",
-                                                                         alpha = 1),
-                                                     title.position = "top",
-                                                     title.hjust = 0.5)) 
+doy_color <- scale_colour_gradientn("Day of the Year",
+                                    colours = rev(brewer.pal(9, "PRGn")[-5]),
+                                    limits = c(95, 305),
+                                    breaks = c(100, 200, 300),
+                                    guide = "none")
 
-doy_color <- scale_color_carto_c("Day of the Year", 
-                                 type = "diverging", 
-                                 palette = "Fall",
-                                 guide = "none")
+doy_fill <-   scale_fill_gradientn("Day of the Year",
+                                   colours = rev(brewer.pal(9, "PRGn")[-5]),
+                                   limits = c(95, 305),
+                                   breaks = c(100, 200, 300))
 
-doy_fill <-   scale_fill_carto_c("Day of the Year", 
-                                 type = "diverging", 
-                                 palette = "Fall",
-                                 limits = c(95, 305),
-                                 breaks = c(100, 200, 300)) 
-
-alpha_point <- 0.15
+alpha_point <- 0.75
 
 # ------------------------------------------------------------------------------
 # Diversity plots
 
 plot <- ggplot(data_melt, 
-               aes(x = Diversity, 
+               aes(x = Diversity + 1, 
                    y = value,
                    color = DOY,
                    fill = DOY,
@@ -121,14 +140,15 @@ plot <- ggplot(data_melt,
                use_label(c("R2", "F", "P")),
                formula = y ~ x,
                label.x = "right",
-               label.y = "bottom",
+               label.y = "top",
                size = text_size) +
   doy_color + doy_fill + 
-  scale_x_continuous(n.breaks = 4) +
+  scale_x_continuous(trans = log10_trans()) +
   scale_y_continuous(n.breaks = 4) +
+  annotation_logticks(sides = "b") +
   xlab(bquote(Species~richness))  +
   xlab(bquote(Species~richness~~~~~~italic(PD)~~~~~~italic(FD)))  +
-  ylab(bquote(italic(d)[italic(D)]~~~~italic(P)[gap]~~~italic(CH)[CV])) +
+  ylab(bquote(italic(d)[italic(D)]~~~~italic(FC)~~~italic(HH)[CV])) +
   theme_bw(base_size = tamano) +
   th + gui +
   facet_grid(LiDAR ~ type, scales = "free")
@@ -136,7 +156,12 @@ plot <- ggplot(data_melt,
 # ------------------------------------------------------------------------------
 #Export figure
 
-jpeg(paste0(root_path, "/Figure_S6.jpeg"), width = 210, height = 180, units = "mm", res = 600)
+png(paste0(root_path, "/Figures/Figure_S6_black_c.png"), 
+    width = 210, 
+    height = 180, 
+    units = "mm", 
+    res = 600,
+    bg = "transparent")
 
 plot
 

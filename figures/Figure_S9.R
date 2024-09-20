@@ -4,7 +4,7 @@
 
 #' @description Figure S9 to test the effect of diversity on overyielding
 #' 
-#' @return A jpeg file
+#' @return A png file
 
 #' -----------------------------------------------------------------------------
 #' Libraries
@@ -15,18 +15,17 @@ library(ggplot2)
 library(scales)
 library(ggpmisc)
 library(ggpubr)
-options(scipen = 99999)
 
 #' -----------------------------------------------------------------------------
 #' Working path
 
 root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
-#root_path <- "F:/Projects/LiDAR/data"
+root_path <- "G:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Load data
 
-frame <- fread(paste0(root_path, "/master_clean.csv"))
+frame <- fread(paste0(root_path, "/master_clean (2024-09-19).csv"))
 frame <- frame[date == "2022-04-10",]
 frame <- frame[SR_real != 1, ]
 
@@ -102,7 +101,7 @@ plot <- ggplot(data_melt,
                aes(SV,
                    effect,
                    fill = PA)) +
-  geom_point(colour = "grey", alpha = alpha_point, shape = 21) +
+  geom_point(colour = "grey25", alpha = alpha_point, shape = 21, size = 1.8) +
   stat_poly_line(method = "lm",
                  #se = FALSE,
                  formula = y ~ x,
@@ -117,8 +116,7 @@ plot <- ggplot(data_melt,
                size = text_size) +
   colour_PA +
   #coord_cartesian(xlim = c(0, 1)) +
-  scale_x_continuous(n.breaks = 3) +
-  #scale_x_continuous(trans = log10_trans()) +
+  scale_x_continuous(n.breaks = 3, trans = log10_trans()) +
   scale_y_continuous(n.breaks = 3) +
   #annotation_logticks(sides = "b") +
   xlab(bquote(Species~richness~~~~~~italic(PD)~~~~~~italic(FD)))  +

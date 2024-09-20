@@ -15,7 +15,7 @@ options(scipen = 99999)
 #' Working path
 
 root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
-#root_path <- "F:/Projects/LiDAR/data"
+root_path <- "G:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Processing
@@ -169,12 +169,23 @@ colnames(trees_2022)[6:8] <- c("deadmissing_2022", "date_2022", "volume_2022")
 inventories <- merge(trees_2021, trees_2022, by = c("plot", "plot_new", "individual_id", "species", "year_planted"),
                      all.x = TRUE, all.y = TRUE)
 
+# Add potential missing dates based on averages
+mean(yday(inventories$date_2022), na.rm = TRUE)
+inventories[is.na(date_2022), date_2022 := as.IDate("2022-10-13")]
+
+mean(yday(inventories$date_2021), na.rm = TRUE)
+inventories[is.na(date_2021), date_2021 := as.IDate("2021-11-19")]
+
+# Remove trees that where replanted on 2022
+inventories <- inventories[year_planted != 2022,]
+
 # Estimate AWP per tree
 inventories$tree_AWP <- (inventories$volume_2022 - inventories$volume_2021) /
   ((inventories$date_2022 - inventories$date_2021)/365.25)
 
-# Remove trees that where replanted on 2022
-inventories <- inventories[year_planted != 2022,]
+# Include the effect of mortality
+inventories[!is.na(volume_2021) & is.na(volume_2022), tree_AWP := 0]
+
 
 # ------------------------------------------------------------------------------
 # Productivity per species
@@ -207,11 +218,11 @@ mono_species_AWP <- mono_inventories[, .(plot_AWP = mean(tree_AWP)),
 # Plots with mean year planted before 2019
 species_inventories <- merge(species_inventories, summary_plot, by = "plot_new", all.x = FALSE, all.y = TRUE)
 species_inventories <- merge(species_inventories, mono_species_AWP, by = "species")
-colnames(species_inventories)[c(4, 8)] <- c("observed_AWP", "monocultueres_AWP")
+colnames(species_inventories)[c(4, 8)] <- c("observed_AWP", "monocultures_AWP")
 
 # ------------------------------------------------------------------------------
 # Correct by proportion of species
-species_inventories$expected_AWP <- species_inventories$monocultueres_AWP*species_inventories$proportion
+species_inventories$expected_AWP <- species_inventories$monocultures_AWP*species_inventories$proportion
 species_inventories <- species_inventories[order(plot_new, species)]
 #species_inventories$NBE <- species_inventories$observed_AWP - species_inventories$expected_AWP_corrected
 
@@ -242,4 +253,10 @@ for(i in 1:length(idplots)) {
   
 }
 
-fwrite(BE, paste0(root_path, "/plot_NBE.csv"))
+# Return values in density
+
+BE$CE <- BE$CE/0.0064
+BE$SE <- BE$SE/0.0064
+BE$NE <- BE$NE/0.0064
+
+fwrite(BE, paste0(root_path, "/plot_NBE (2024-09-19).csv"))
