@@ -140,8 +140,8 @@ plot <- ggplot(data_melt, aes(PSV,
   stat_poly_eq(use_label(c("eq", "R2")),
                method = "lm",
                formula = y ~ x,
-               label.x = "left",
-               label.y = "top",
+               label.x = "right",
+               label.y = "bottom",
                size = text_size,
                colour = line_col) +
   colour_PA +  
@@ -157,7 +157,7 @@ plot <- ggplot(data_melt, aes(PSV,
   facet_grid(LiDAR ~ type, scales = "free")
 
 #Export figure
-png(paste0(root_path, "/Figures/Figure_7_black_a.png"), 
+jpeg(paste0(root_path, "/Figures/Figure_7_b.jpeg"), 
     width = 210, 
     height = 180, 
     units = "mm", 

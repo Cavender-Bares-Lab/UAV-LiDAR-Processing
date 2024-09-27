@@ -132,10 +132,10 @@ plot <- ggplot(data_melt[partition != "Net biodiversity effect"],
                    fill = PA)) +
   geom_point(colour = "grey25", alpha = alpha_point, shape = 21, size = 1.8) +
   stat_poly_line(method = "lm",
-                 se = FALSE,
+                 #se = FALSE,
                  formula = y ~ x,
                  linewidth = 0.5,
-                 linetype = "dotted",
+                 #linetype = "dotted",
                  colour = line_col) +
   stat_poly_eq(use_label(c("eq", "R2")),
                method = "lm",
@@ -156,7 +156,7 @@ plot <- ggplot(data_melt[partition != "Net biodiversity effect"],
   facet_grid(partition ~ LiDAR, scales = "free")
 
 #Export figure
-png(paste0(root_path, "/Figures/Figure_S8_trans_d.png"), 
+jpeg(paste0(root_path, "/Figures/Figure_S8_d.jpeg"), 
     width = 210, 
     height = 130, 
     units = "mm", 

@@ -90,8 +90,8 @@ th_trans <- dark_theme_bw(base_size = 11) +
 th <- th_trans
 line_col <- "white"
 
-#th <- th_black
-#line_col <- "black"
+th <- th_black
+line_col <- "black"
 
 tamano <- 12
 tamano2 <- 10
@@ -121,10 +121,10 @@ plot <- ggplot(data_melt,
                    fill = PA)) +
   geom_point(colour = "grey25", alpha = alpha_point, shape = 21, size = 1.8) +
   stat_poly_line(method = "lm",
-                 se = FALSE,
+                 #se = FALSE,
                  formula = y ~ x, #exp(x)
                  linewidth = 0.5,
-                 linetype = "dotted", #dotted
+                 #linetype = "dotted", #dotted
                  colour = line_col) +
   stat_poly_eq(use_label(c("eq", "R2")),
                method = "lm",
@@ -145,7 +145,7 @@ plot <- ggplot(data_melt,
   facet_grid(LiDAR ~ ., scales = "free")
 
 #Export figure
-png(paste0(root_path, "/Figures/Figure_3_trans_b.png"),
+jpeg(paste0(root_path, "/Figures/Figure_3_a.jpeg"),
     width = 90, 
     height = 180,
     units = "mm",

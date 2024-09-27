@@ -139,7 +139,7 @@ plot <- ggplot(data_melt,
   facet_grid(LiDAR ~ ., scales = "free")
 
 #Export figure
-png(paste0(root_path, "/Figures/Figure_S5.png"), 
+jpeg(paste0(root_path, "/Figures/Figure_S5.jpeg"), 
     width = 130, 
     height = 180, 
     units = "mm", 

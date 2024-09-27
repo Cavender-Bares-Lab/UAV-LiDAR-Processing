@@ -21,12 +21,12 @@ options(scipen = 99999)
 #' Working path
 
 root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
-#root_path <- "F:/Projects/LiDAR/data"
+root_path <- "G:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Load data
 
-frame <- fread(paste0(root_path, "/master_clean.csv"))
+frame <- fread(paste0(root_path, "/master_clean (2024-09-19).csv"))
 frame <- frame[date == "2022-04-10",]
 frame <- frame[SR_real != 1,]
 
@@ -98,24 +98,29 @@ plot <- ggplot(data_melt,
   stat_poly_eq(use_label(c("eq", "R2")),
                method = "lm",
                formula = y ~ x,
-               label.x = "left",
-               label.y = "bottom",
+               label.x = "right",
+               label.y = "top",
                size = text_size) +
   colour_PA +
   scale_x_continuous(n.breaks = 3) +
   scale_y_continuous(n.breaks = 3) +
   #scale_y_continuous(trans = log10_trans(), n.breaks = 4) +
-  annotation_logticks(sides = "l") +
+  #annotation_logticks(sides = "l") +
   xlab("Proportion of angiosperms") +
-  ylab(bquote(SE~(m^3~y^-1)~~~~~~CE~(m^3~y^-1)~~~~~~NBE~(m^3~y^-1))) +
+  ylab(bquote(SE~(m^3~y^-1~ha^-1)~~~~~~CE~(m^3~y^-1~ha^-1)~~~~~~NBE~(m^3~y^-1~ha^-1))) +
   #ylab(bquote(NBE~(m^3~y^-1)~~~SE~(m^3~y^-1)~~~CE~(m^3~y^-1))) +
   theme_bw(base_size = tamano) +
   th + gui +
   facet_grid(partition ~ ., scales = "free")
 
 #Export figure
-jpeg(paste0(root_path, "/Figure_S11a.jpeg"), width = 90, height = 180, units = "mm", res = 600)
+jpeg(paste0(root_path, "/Figures/Figure_S11b.jpeg"), 
+     width = 90, 
+     height = 180, 
+     units = "mm", 
+     res = 600)
 
 plot
 
 dev.off()
+

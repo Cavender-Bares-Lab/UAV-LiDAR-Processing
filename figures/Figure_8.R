@@ -133,22 +133,22 @@ plot <- ggplot(data_melt[partition == "Net biodiversity effect"],
                    fill = PA)) +
   geom_point(colour = "grey25", alpha = alpha_point, shape = 21) +
   stat_poly_line(method = "lm",
-                 #se = FALSE,
+                 se = FALSE,
                  formula = y ~ x,
                  linewidth = 0.5,
-                 #linetype = "dotted",
+                 linetype = "dotted",
                  colour = line_col) +
   stat_poly_eq(use_label(c("eq", "R2")),
                method = "lm",
                formula = y ~ x,
-               label.x = "right",
-               label.y = "bottom",
+               label.x = "left",
+               label.y = "top",
                size = text_size,
                colour = line_col) +
   colour_PA +
-  coord_cartesian(ylim = c(-1, 25)) +
+  #coord_cartesian(ylim = c(-1, 25)) +
   scale_x_continuous(trans = log10_trans()) +
-  scale_y_continuous(n.breaks = 4) +
+  scale_y_continuous(n.breaks = 3, limits = c(0, 24.2), expand = c(0, 0)) +
   annotation_logticks(sides = "b",
                       colour = line_col) +
   xlab(bquote(italic(SS)[italic(HH)[CV]]~~~~italic(SS)[italic(FC)]~~~italic(SS)[italic(d)[italic(D)]])) +
@@ -158,7 +158,7 @@ plot <- ggplot(data_melt[partition == "Net biodiversity effect"],
   facet_grid(. ~ LiDAR, scales = "free")
 
 #Export figure
-png(paste0(root_path, "/Figures/Figure_8_trans_b.png"), 
+jpeg(paste0(root_path, "/Figures/Figure_8_b.jpeg"), 
     width = 180, 
     height = 90, 
     units = "mm", 

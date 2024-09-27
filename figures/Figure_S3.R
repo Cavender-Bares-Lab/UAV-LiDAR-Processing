@@ -14,7 +14,6 @@ library(ggplot2)
 library(scales)
 library(ggpmisc)
 library(ggdark)
-options(scipen = 99999)
 
 #' -----------------------------------------------------------------------------
 #' Working path
@@ -128,7 +127,7 @@ plot <- ggplot(data_melt,
                use_label(c("R2", "F", "P")),
                formula = y ~ x,
                label.x = "right", #left
-               label.y = "top", #bottom
+               label.y = "bottom", #bottom
                size = text_size) +
   doy_color + 
   doy_fill +
@@ -143,7 +142,7 @@ plot <- ggplot(data_melt,
   facet_grid(LiDAR ~ ., scales = "free")
 
 # Export figure
-png(paste0(root_path, "/Figures/Figure_S3_trans_b.png"), 
+jpeg(paste0(root_path, "/Figures/Figure_S3_a.jpeg"), 
     width = 90, 
     height = 180, 
     pointsize = 12,

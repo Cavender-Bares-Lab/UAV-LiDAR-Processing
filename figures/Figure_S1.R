@@ -11,7 +11,7 @@
 #' Working path
 
 root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
-#root_path <- "F:/Projects/LiDAR/data"
+root_path <- "G:/Projects/LiDAR/data"
 
 # ------------------------------------------------------------------------------
 # Plot details
@@ -19,11 +19,11 @@ root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
 
 
 # Export figure
-jpeg(paste0(root_path, "/Figure_S1.jpeg"), width = 210, height = 90, units = "mm", res = 600)
+jpeg(paste0(root_path, "/Figures/Figure_S1.jpeg"), width = 210, height = 90, units = "mm", res = 600)
 
 par(mfrow=c(1,3), oma = c(1, 1, 1, 1))
-plot(taxonomic_matched$phy, main = "Taxonomic")
-plot(phylogenetic_matched$phy, main = "Phylogenetic")
-plot(functional_matched$phy, main = "Functional")
+plot(taxonomic_matched$phy, cex = 1.15, cex.main = 1.5, main = "Taxonomic")
+plot(phylogenetic_matched$phy, cex = 1.15, cex.main = 1.5, main = "Phylogenetic")
+plot(functional_matched$phy, cex = 1.15, cex.main = 1.5, main = "Functional")
 
 dev.off()

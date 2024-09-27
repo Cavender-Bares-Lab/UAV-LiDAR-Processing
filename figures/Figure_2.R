@@ -14,6 +14,7 @@ library(ggplot2)
 library(scales)
 library(ggpmisc)
 library(ggdark)
+library(RColorBrewer)
 
 #' -----------------------------------------------------------------------------
 #' Working path
@@ -85,8 +86,8 @@ th_trans <- dark_theme_bw(base_size = 11) +
 th <- th_trans
 line_col <- "white"
 
-#th <- th_black
-#line_col <- "black"
+th <- th_black
+line_col <- "black"
 
 tamano <- 12
 tamano2 <- 10
@@ -128,12 +129,12 @@ plot <- ggplot(data_melt,
   stat_poly_eq(method = "lm",
                formula = y ~ x,
                label.x = "right", #left
-               label.y = "top", #bottom
+               label.y = "bottom", #bottom
                size = text_size) +
   doy_color + 
   doy_fill +
   scale_x_continuous(trans = log10_trans()) +
-  scale_y_continuous(n.breaks = 3) +
+  scale_y_continuous(n.breaks = 4) +
   annotation_logticks(sides = "b",
                       colour = line_col) +
   xlab(bquote(Wood~volume~(m^3~ha^-1))) +
@@ -143,13 +144,13 @@ plot <- ggplot(data_melt,
   facet_grid(LiDAR ~ ., scales = "free")
 
 # Export figure
-png(paste0(root_path, "/Figures/Figure_2_trans_b.png"), 
+jpeg(paste0(root_path, "/Figures/Figure_2_a.jpeg"), 
     width = 90, 
     height = 180, 
     pointsize = 12,
     units = "mm", 
     res = 600,
-    bg = "transparent")
+    bg = "white")
 
 plot
 

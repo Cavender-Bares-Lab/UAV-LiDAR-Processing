@@ -148,7 +148,7 @@ plot <- ggplot(reshaping,
   facet_grid(parameter ~ plot_type, scales = "free")
 
 #Export figure
-png(paste0(root_path, "/Figures/Figure_S4.png"), 
+jpeg(paste0(root_path, "/Figures/Figure_S4.jpeg"), 
     width = 210, 
     height = 150, 
     units = "mm", 

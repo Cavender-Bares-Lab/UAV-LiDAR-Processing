@@ -10,9 +10,7 @@
 #' -----------------------------------------------------------------------------
 #' Libraries
 library(data.table)
-library(plspm)
-#library(lme4)
-options(scipen = 99999)
+library(lavaan)
 
 #' -----------------------------------------------------------------------------
 #' Working path
@@ -23,19 +21,19 @@ root_path <- "G:/Projects/LiDAR/data"
 #' -----------------------------------------------------------------------------
 #' Load data
 
-frame <- fread(paste0(root_path, "/master_clean.csv"))
+frame <- fread(paste0(root_path, "/master_clean (2024-09-19).csv"))
 
 #' -----------------------------------------------------------------------------
 #' Data reshaping
 
 data <- frame[, c("plot_new", "PA", "Block", "DOY", "NE",
-                  "cv_maximun_height", "Pgap", "Slope_Hill1", 
+                  "cv_maximun_height", "FC", "Slope_Hill1", 
                   "hill0_taxa", "hill0_phylo", "hill0_FD_q", 
                   "TD_PSV", "FD_PSV", "PD_PSV")]
 
 ss_metrics <- data[, .(SS_slope = mean(Slope_Hill1)/sd(Slope_Hill1),
-                       SS_ch = mean(cv_maximun_height)/sd(cv_maximun_height),
-                       SS_pgap = mean(Pgap)/sd(Pgap)), 
+                       SS_hh = mean(cv_maximun_height)/sd(cv_maximun_height),
+                       SS_fc = mean(FC)/sd(FC)), 
                    by = c("plot_new", "PA", "Block", "NE",
                           "hill0_taxa", "hill0_phylo", "hill0_FD_q", 
                           "TD_PSV", "FD_PSV", "PD_PSV")]
@@ -47,21 +45,25 @@ ss_metrics <- na.exclude(ss_metrics)
 ss_metrics$hill0_taxa <- log10(ss_metrics$hill0_taxa)
 ss_metrics$hill0_phylo <- log10(ss_metrics$hill0_phylo)
 ss_metrics$hill0_FD_q <- log10(ss_metrics$hill0_FD_q)
-ss_metrics$NE <- log10(ss_metrics$NE)
+#ss_metrics$NE <- log10(ss_metrics$NE)
+
+ss_metrics$SS_slope <- log10(ss_metrics$SS_slope)
+ss_metrics$SS_hh <- log10(ss_metrics$SS_hh)
+ss_metrics$SS_fc <- log10(ss_metrics$SS_fc)
 
 # Melt by LiDAR
 ss_metrics <- melt(ss_metrics, 
                    id.vars = c("plot_new", "PA", "Block", "NE", 
                                "hill0_taxa", "hill0_phylo", "hill0_FD_q", 
                                "TD_PSV", "FD_PSV", "PD_PSV"),
-                   measure.vars = c("SS_slope", "SS_ch", "SS_pgap"),
+                   measure.vars = c("SS_slope", "SS_hh", "SS_fc"),
                    variable.name = "LiDAR_metric",
                    value.name = "LiDAR")
 
 ss_metrics$LiDAR_metric <- as.factor(ss_metrics$LiDAR_metric)
 ss_metrics$LiDAR_metric <- factor(ss_metrics$LiDAR_metric, 
-                                  levels = c("SS_ch", "SS_pgap", "SS_slope"),
-                                  labels = c("Height heterogeneity", "Gap probability", "Structural complexity"))
+                                  levels = c("SS_hh", "SS_fc", "SS_slope"),
+                                  labels = c("Height heterogeneity", "Fractional cover", "Structural complexity"))
 
 # Melt by diversity
 ss_metrics <- melt(ss_metrics, 
@@ -90,10 +92,6 @@ ss_metrics$SV_metric <- as.factor(ss_metrics$SV_metric)
 ss_metrics$SV_metric <- factor(ss_metrics$SV_metric, 
                                levels = c("TD_PSV", "FD_PSV", "PD_PSV"),
                                labels = c("Taxonomic", "Phylogenetic", "Functional"))
-
-# Transform
-ss_metrics$LiDAR <- log10(ss_metrics$LiDAR)
-
 
 # ------------------------------------------------------------------------------
 # PLSPM

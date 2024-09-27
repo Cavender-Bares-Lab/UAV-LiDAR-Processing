@@ -141,7 +141,7 @@ plot <- ggplot(data_melt,
   stat_poly_eq(method = "lm",
                formula = y ~ x,
                label.x = "left", # "left" "right"
-               label.y = "bottom", # "top" "bottom"
+               label.y = "top", # "top" "bottom"
                size = text_size) +
   doy_color + doy_fill + 
   coord_cartesian(xlim = c(0, 1)) +
@@ -155,7 +155,7 @@ plot <- ggplot(data_melt,
 
 # ------------------------------------------------------------------------------
 #Export figure
-png(paste0(root_path, "/Figures/Figure_6_trans_d.png"), 
+jpeg(paste0(root_path, "/Figures/Figure_6_d.jpeg"), 
     width = 210, 
     height = 180, 
     units = "mm", 

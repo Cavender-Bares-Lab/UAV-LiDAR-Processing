@@ -22,12 +22,12 @@ options(scipen = 99999)
 #' Working path
 
 root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
-#root_path <- "F:/Projects/LiDAR/data"
+root_path <- "G:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Load data
 
-frame <- fread(paste0(root_path, "/master_clean.csv"))
+frame <- fread(paste0(root_path, "/master_clean (2024-09-19).csv"))
 frame <- frame[date == "2022-04-10",]
 frame <- frame[SR_real != 1, ]
 
@@ -63,25 +63,50 @@ data_melt$partition <- factor(data_melt$partition,
 
 # ------------------------------------------------------------------------------
 # Plot details
+th_black <- theme_bw() + 
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        legend.position= c("top"), 
+        legend.background = element_rect(fill= "transparent"),
+        panel.background = element_rect(fill= "transparent"),
+        rect = element_rect(fill = "transparent"),
+        plot.margin = margin(4, 4, 0, 1, "pt"),
+        
+        strip.background = element_rect(color="black", 
+                                        fill="black", 
+                                        linewidth=1.5, 
+                                        linetype="solid"),
+        strip.text = element_text(color = "white"))
+
+th_trans <- dark_theme_bw(base_size = 11) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        legend.position= c("top"),
+        legend.background = element_rect(fill= "transparent"),
+        panel.background = element_rect(fill = "transparent"),
+        rect = element_rect(fill = "transparent"),
+        legend.title = element_text(colour="white"),
+        legend.text = element_text(color = "white"),
+        axis.text = element_text(color="white"),
+        plot.background = element_rect(colour = "transparent",
+                                       fill = "transparent",
+                                       linewidth=0),
+        plot.margin = margin(4, 4, 0, 1, "pt"),
+        strip.background = element_rect(color="white", 
+                                        fill="white", 
+                                        linewidth=1.5, 
+                                        linetype="solid"),
+        strip.text = element_text(color = "black"))
+
+th <- th_trans
+line_col <- "white"
+
+th <- th_black
+line_col <- "black"
+
 tamano <- 12
 tamano2 <- 10
 text_size <- 2.8
-
-th <- theme(plot.background = element_blank(), 
-            panel.grid.major = element_blank(), 
-            panel.grid.minor = element_blank(), 
-            axis.text.x = element_text(color = "black"),
-            axis.text.y = element_text(color = "black"),
-            plot.margin = margin(4, 4, 0, 1, "pt"),
-            legend.position= c("top"), 
-            legend.direction = "horizontal", 
-            legend.background = element_rect(fill = "transparent"), 
-            legend.box.background = element_blank(),
-            strip.background = element_rect(color="black", 
-                                            fill="black", 
-                                            linewidth=1.5, 
-                                            linetype="solid"),
-            strip.text = element_text(color = "white"))
 
 gui <- guides(fill = guide_colourbar(barwidth = 15, 
                                      barheight = 0.7, 
@@ -91,6 +116,8 @@ gui <- guides(fill = guide_colourbar(barwidth = 15,
 colour_PA <- scale_fill_viridis("Proportion of Angiosperms",
                                 option = "D",
                                 direction = 1,
+                                begin = 0,
+                                end = 0.975,
                                 limits = c(0, 1),
                                 breaks = c(0.0, 0.5, 1.0))
 
@@ -103,14 +130,14 @@ plot <- ggplot(data_melt,
                aes(SV,
                    effect,
                    fill = PA)) +
-  geom_point(colour = "grey", alpha = alpha_point, shape = 21) +
+  geom_point(colour = "grey25", alpha = alpha_point, shape = 21, size = 1.8) +
   stat_poly_line(method = "lm",
                  #se = FALSE,
                  formula = y ~ x,
                  linewidth = 0.5,
                  #linetype = "dotted",
                  colour = "black") +
-  stat_poly_eq(use_label(c("R2", "F", "P")),
+  stat_poly_eq(use_label(c("eq", "R2")),
                method = "lm",
                formula = y ~ x,
                label.x = "left",
@@ -123,13 +150,17 @@ plot <- ggplot(data_melt,
   #scale_y_continuous(n.breaks = 4) +
   #annotation_logticks(sides = "b") +
   xlab("Taxonomic variability      Phylogenetic variability       Functional variability")  +
-  ylab(bquote(SE~(m^3~y^-1)~~~~CE~(m^3~y^-1)~~~~NBE~(m^3~y^-1))) +
+  ylab(bquote(SE~(m^3~y^-1~ha^-1)~~~~CE~(m^3~y^-1~ha^-1)~~~~NBE~(m^3~y^-1~ha^-1))) +
   theme_bw(base_size = tamano) +
   th + gui +
   facet_grid(partition ~ SV_metric, scales = "free")
 
 #Export figure
-jpeg(paste0(root_path, "/Figure_S10a.jpeg"), width = 210, height = 190, units = "mm", res = 600)
+jpeg(paste0(root_path, "/Figures/Figure_S10_aa.jpeg"), 
+     width = 210, 
+     height = 190, 
+     units = "mm", 
+     res = 600)
 
 plot
 

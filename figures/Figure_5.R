@@ -114,7 +114,7 @@ gui <- guides(fill = guide_colourbar(barwidth = 15,
                                      title.position = "top",
                                      title.hjust = 0.5))
 
-colour_PA <- scale_fill_viridis("Proportion of Angiosperms",
+fill_PA <- scale_fill_viridis("Proportion of Angiosperms",
                                 option = "D",
                                 direction = 1,
                                 begin = 0,
@@ -126,8 +126,9 @@ alpha_point <- 1.0
 
 # ------------------------------------------------------------------------------
 # Plots
+data_melt$diversity <- data_melt$diversity + 1
 
-plot <- ggplot(data_melt, aes(diversity+1,
+plot <- ggplot(data_melt, aes(diversity + 1,
                               value,
                               fill = PA)) +
   geom_point(colour = "grey25", alpha = alpha_point, shape = 21, size = 1.8) +
@@ -140,11 +141,10 @@ plot <- ggplot(data_melt, aes(diversity+1,
   stat_poly_eq(use_label(c("eq", "R2")),
                method = "lm",
                formula = y ~ x,
-               label.x = "rigth",
+               label.x = "right",
                label.y = "top",
-               size = text_size,
-               colour = line_col) +
-  colour_PA +  
+               size = text_size) +
+  fill_PA + 
   scale_x_continuous(trans = log10_trans()) +
   scale_y_continuous(trans = log10_trans()) +
   annotation_logticks(sides = "bl",
@@ -156,7 +156,7 @@ plot <- ggplot(data_melt, aes(diversity+1,
   facet_grid(LiDAR ~ type, scales = "free")
 
 #Export figure
-png(paste0(root_path, "/Figures/Figure_5_trans_d.png"), 
+jpeg(paste0(root_path, "/Figures/Figure_5_e.jpeg"), 
     width = 210, 
     height = 180, 
     units = "mm", 

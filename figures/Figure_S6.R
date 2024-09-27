@@ -139,8 +139,8 @@ plot <- ggplot(data_melt,
   stat_poly_eq(method = "lm",
                use_label(c("R2", "F", "P")),
                formula = y ~ x,
-               label.x = "right",
-               label.y = "top",
+               label.x = "left",
+               label.y = "bottom",
                size = text_size) +
   doy_color + doy_fill + 
   scale_x_continuous(trans = log10_trans()) +
@@ -156,7 +156,7 @@ plot <- ggplot(data_melt,
 # ------------------------------------------------------------------------------
 #Export figure
 
-png(paste0(root_path, "/Figures/Figure_S6_black_c.png"), 
+jpeg(paste0(root_path, "/Figures/Figure_S6_b.jpeg"), 
     width = 210, 
     height = 180, 
     units = "mm", 

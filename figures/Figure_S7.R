@@ -140,7 +140,7 @@ plot <- ggplot(data_melt,
   stat_poly_eq(method = "lm",
                use_label(c("R2", "F", "P")),
                formula = y ~ x,
-               label.x = "right",
+               label.x = "left",
                label.y = "top",
                size = text_size) +
   doy_color + doy_fill + 
@@ -155,7 +155,7 @@ plot <- ggplot(data_melt,
 
 # ------------------------------------------------------------------------------
 #Export figure
-png(paste0(root_path, "/Figures/Figure_S7_dark_b.png"), 
+jpeg(paste0(root_path, "/Figures/Figure_S7_b.jpeg"), 
     width = 210, 
     height = 180, 
     units = "mm", 
