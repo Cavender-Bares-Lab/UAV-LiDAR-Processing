@@ -13,6 +13,7 @@ library(data.table)
 library(lavaan)
 library(scales)
 library(semPlot)
+library(MASS)
 
 #' -----------------------------------------------------------------------------
 #' Working path
@@ -43,6 +44,19 @@ ss_metrics <- data[, .(SS_slope = mean(Slope_Hill1)/sd(Slope_Hill1),
 # PSV != 0
 ss_metrics <- na.exclude(ss_metrics)
 
+# Box-Cox transformation
+transform <- function(x) {
+  
+  b <- boxcox(lm(x ~ 1))
+  lambda <- b$x[which.max(b$y)]
+  new_x <- (x ^ lambda - 1) / lambda
+  
+}
+
+frame_transform <- apply(ss_metrics[,-1], 2, FUN = transform)
+frame_transform <- as.data.table(frame_transform)
+ss_metrics <- frame_transform
+
 # Transformations
 ss_metrics$hill0_taxa <- log10(ss_metrics$hill0_taxa)
 #ss_metrics$hill0_phylo <- log10(ss_metrics$hill0_phylo)
@@ -55,8 +69,10 @@ ss_metrics$SS_fc <- log10(ss_metrics$SS_fc)
 
 ss_metrics$NE <- sqrt(ss_metrics$NE)
 
+shapiro.test(ss_metrics$TD_PSV)
+
 # Scale variables
-ss_metrics <- as.data.table(scale(ss_metrics[, 4:13], center = FALSE, scale = TRUE))
+ss_metrics <- as.data.table(scale(ss_metrics, center = FALSE, scale = TRUE))
 
 # ------------------------------------------------------------------------------
 # Structural Regression with One Endogenous Variable
@@ -133,13 +149,39 @@ Stability ~ Diversity + Variability
 NBE ~ Stability + Diversity + Variability
 '
 
+structural_complexity <- '
+# measurement model
+Diversity =~ hill0_taxa + hill0_phylo + hill0_FD_q
+Variability =~ TD_PSV + PD_PSV + FD_PSV
+Stability =~ SS_slope 
+NBE =~ NE
+
+# regressions
+Stability ~ Diversity + Variability
+NBE ~ Stability + Diversity + Variability
+
+# covariances and variances
+hill0_taxa ~~ hill0_taxa
+hill0_phylo ~~ hill0_phylo
+hill0_FD_q ~~ hill0_FD_q
+TD_PSV ~~ TD_PSV
+PD_PSV ~~ PD_PSV
+FD_PSV ~~ FD_PSV
+'
+
 fit_SSdD <- lavaan(model = structural_complexity,
                    data = ss_metrics,
                    model.type = "sem",
-                   estimator = "ML",
+                   #estimator = "ML",
                    se = "bootstrap",
                    bootstrap = 1000)
 
 varTable(fit_SSdD)
 semPaths(fit_SSdD)
 summary(fit_SSdD, fit.measures = TRUE, standardized = TRUE, rsquare = TRUE, ci = TRUE)
+
+
+
+
+
+boxcox(lm(x ~ 1))
