@@ -18,8 +18,8 @@ library(MASS)
 #' -----------------------------------------------------------------------------
 #' Working path
 
-#root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
-root_path <- "G:/Projects/LiDAR/data"
+root_path <- "/media/antonio/work/Projects/LiDAR/data"
+#root_path <- "G:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Load data
@@ -43,33 +43,38 @@ ss_metrics <- data[, .(SS_slope = mean(Slope_Hill1)/sd(Slope_Hill1),
 
 # PSV != 0
 ss_metrics <- na.exclude(ss_metrics)
+ss_metrics <- as.data.frame(ss_metrics[,c(-1,-2, -3)])
 
 # Box-Cox transformation
-transform <- function(x) {
+for(i in 1:ncol(ss_metrics)) {
   
-  b <- boxcox(lm(x ~ 1))
+  variable <- ss_metrics[, i]
+  test1 <- shapiro.test(variable)$p.value
+  
+  #Log
+  log_variable <- log10(variable)
+  test2 <- shapiro.test(log_variable)$p.value
+  
+  # Boxcox
+  b <- boxcox(lm(variable ~ 1))
   lambda <- b$x[which.max(b$y)]
-  new_x <- (x ^ lambda - 1) / lambda
+  box_variable <- (variable ^ lambda - 1) / lambda
+  test3 <- shapiro.test(box_variable)$p.value
   
+  # Sqrt
+  sqrt_variable <- sqrt(variable)
+  test4 <- shapiro.test(sqrt_variable)$p.value
+  
+  max_p <- which.max(c(test1, test2, test3, test4))
+  
+  if(max_p == 2) {
+    ss_metrics[, i] <- log_variable
+  } else if(max_p == 3) {
+    ss_metrics[, i] <- box_variable
+  } else if(max_p == 4) {
+    ss_metrics[, i] <- sqrt_variable
+  }
 }
-
-frame_transform <- apply(ss_metrics[,-1], 2, FUN = transform)
-frame_transform <- as.data.table(frame_transform)
-ss_metrics <- frame_transform
-
-# Transformations
-ss_metrics$hill0_taxa <- log10(ss_metrics$hill0_taxa)
-#ss_metrics$hill0_phylo <- log10(ss_metrics$hill0_phylo)
-#ss_metrics$hill0_FD_q <- log10(ss_metrics$hill0_FD_q)
-#ss_metrics$NE <- log10(ss_metrics$NE)
-
-ss_metrics$SS_slope <- log10(ss_metrics$SS_slope)
-ss_metrics$SS_hh <- log10(ss_metrics$SS_hh)
-ss_metrics$SS_fc <- log10(ss_metrics$SS_fc)
-
-ss_metrics$NE <- sqrt(ss_metrics$NE)
-
-shapiro.test(ss_metrics$TD_PSV)
 
 # Scale variables
 ss_metrics <- as.data.table(scale(ss_metrics, center = FALSE, scale = TRUE))
@@ -83,7 +88,7 @@ ss_metrics <- as.data.table(scale(ss_metrics, center = FALSE, scale = TRUE))
 height_heterogeneity <- '
 # measurement model
 Diversity =~ hill0_taxa + hill0_phylo + hill0_FD_q
-Variability =~ TD_PSV + FD_PSV + PD_PSV
+Variability =~ TD_PSV + PD_PSV + FD_PSV
 Stability =~ SS_hh 
 NBE =~ NE
 
@@ -99,11 +104,6 @@ fit_SShh <- lavaan(model = height_heterogeneity,
                    se = "bootstrap",
                    bootstrap = 10)
 
-
-fit_SShh <- lavaan(model = height_heterogeneity,
-                   data = ss_metrics,
-                   model.type = "sem")
-
 varTable(fit_SShh)
 semPaths(fit_SShh)
 summary(fit_SShh, fit.measures = TRUE, standardized = TRUE, rsquare = TRUE, ci = TRUE)
@@ -114,7 +114,7 @@ summary(fit_SShh, fit.measures = TRUE, standardized = TRUE, rsquare = TRUE, ci =
 fractional_cover <- '
 # measurement model
 Diversity =~ hill0_taxa + hill0_phylo + hill0_FD_q
-Variability =~ TD_PSV + FD_PSV + PD_PSV
+Variability =~ TD_PSV + PD_PSV + FD_PSV
 Stability =~ SS_fc 
 NBE =~ NE
 
@@ -123,12 +123,12 @@ Stability ~ Diversity + Variability
 NBE ~ Stability + Diversity + Variability
 '
 
-fit_SSfc <- lavaan(model = fractional_cover,
+fit_SSfc <- lavaan(model = fractional_cover, 
                    data = ss_metrics,
                    model.type = "sem",
                    estimator = "ML",
                    se = "bootstrap",
-                   bootstrap = 1000)
+                   bootstrap = 10)
 
 varTable(fit_SSfc)
 semPaths(fit_SSfc)
@@ -149,39 +149,12 @@ Stability ~ Diversity + Variability
 NBE ~ Stability + Diversity + Variability
 '
 
-structural_complexity <- '
-# measurement model
-Diversity =~ hill0_taxa + hill0_phylo + hill0_FD_q
-Variability =~ TD_PSV + PD_PSV + FD_PSV
-Stability =~ SS_slope 
-NBE =~ NE
-
-# regressions
-Stability ~ Diversity + Variability
-NBE ~ Stability + Diversity + Variability
-
-# covariances and variances
-hill0_taxa ~~ hill0_taxa
-hill0_phylo ~~ hill0_phylo
-hill0_FD_q ~~ hill0_FD_q
-TD_PSV ~~ TD_PSV
-PD_PSV ~~ PD_PSV
-FD_PSV ~~ FD_PSV
-'
-
 fit_SSdD <- lavaan(model = structural_complexity,
                    data = ss_metrics,
                    model.type = "sem",
-                   #estimator = "ML",
                    se = "bootstrap",
-                   bootstrap = 1000)
+                   bootstrap = 10)
 
 varTable(fit_SSdD)
 semPaths(fit_SSdD)
 summary(fit_SSdD, fit.measures = TRUE, standardized = TRUE, rsquare = TRUE, ci = TRUE)
-
-
-
-
-
-boxcox(lm(x ~ 1))
