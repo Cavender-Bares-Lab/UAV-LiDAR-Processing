@@ -18,8 +18,8 @@ library(MASS)
 #' -----------------------------------------------------------------------------
 #' Working path
 
-root_path <- "/media/antonio/work/Projects/LiDAR/data"
-#root_path <- "G:/Projects/LiDAR/data"
+#root_path <- "/media/antonio/work/Projects/LiDAR/data"
+root_path <- "G:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Load data
@@ -102,11 +102,11 @@ fit_SShh <- lavaan(model = height_heterogeneity,
                    model.type = "sem",
                    estimator = "ML",
                    se = "bootstrap",
-                   bootstrap = 10)
+                   bootstrap = 1000)
 
 varTable(fit_SShh)
 semPaths(fit_SShh)
-summary(fit_SShh, fit.measures = TRUE, standardized = TRUE, rsquare = TRUE, ci = TRUE)
+summary(fit_SShh, standardized = TRUE, ci = TRUE, rsquare = TRUE)
 
 #--------------------------------------------
 # Fractional plant cover
@@ -128,11 +128,11 @@ fit_SSfc <- lavaan(model = fractional_cover,
                    model.type = "sem",
                    estimator = "ML",
                    se = "bootstrap",
-                   bootstrap = 10)
+                   bootstrap = 1000)
 
 varTable(fit_SSfc)
 semPaths(fit_SSfc)
-summary(fit_SSfc, fit.measures = TRUE, standardized = TRUE, rsquare = TRUE, ci = TRUE)
+summary(fit_SSfc, standardized = TRUE, ci = TRUE, rsquare = TRUE)
 
 #--------------------------------------------
 # Structural complexity
@@ -153,8 +153,8 @@ fit_SSdD <- lavaan(model = structural_complexity,
                    data = ss_metrics,
                    model.type = "sem",
                    se = "bootstrap",
-                   bootstrap = 10)
+                   bootstrap = 1000)
 
 varTable(fit_SSdD)
 semPaths(fit_SSdD)
-summary(fit_SSdD, fit.measures = TRUE, standardized = TRUE, rsquare = TRUE, ci = TRUE)
+summary(fit_SSdD, standardized = TRUE, ci = TRUE, rsquare = TRUE)

@@ -177,8 +177,6 @@ library(stargazer)
 library(report)
 library(car)
 
-data_melt$DOY <- as.character(data_melt$DOY)
-
 # Taxonomic diversity-----------------------------------------------------------
 #HHcv
 HH <- lmer(value ~ PSV*DOY + (1 | plot_new:Block),

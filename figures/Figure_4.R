@@ -176,7 +176,7 @@ library(stargazer)
 library(report)
 library(car)
 
-data_melt$DOY <- as.HHaracter(data_melt$DOY)
+data_melt$DOY <- as.numeric(data_melt$DOY)
 
 # Taxonomic diversity-----------------------------------------------------------
 #HH

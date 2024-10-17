@@ -167,14 +167,13 @@ library(stargazer)
 library(report)
 library(car)
 
-data$DOY <- as.character(data$DOY)
-
 #HHcv
 HH <- lmer(cv_maximun_height ~ log10(volume)*DOY + (1 | plot_new:Block),
            data = data)
 qqnorm(resid(HH))
 qqline(resid(HH))
 report(HH)
+plot(HH)
 Anova(HH, test.statistic="F")
 tab_model(HH, p.val = "kr", show.df = TRUE)
 
@@ -184,6 +183,7 @@ FC <- lmer(FC ~ log10(volume)*DOY + (1 | plot_new:Block),
 qqnorm(resid(FC))
 qqline(resid(FC))
 report(FC)
+plot(FC)
 Anova(FC, test.statistic="F")
 tab_model(FC, p.val = "kr", show.df = TRUE)
 
