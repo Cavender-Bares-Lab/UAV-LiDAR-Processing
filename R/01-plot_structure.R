@@ -166,7 +166,7 @@ plot_summary <- plots[deadmissing == "No",
                         year_mean = mean(year_planted),
                         year_cv = sd(year_planted)/mean(year_planted), 
                         ntrees = .N, 
-                        volume = sum(V.conoid_conoidoid_infill, na.rm = TRUE)/0.0064, #Volume density
+                        volume = sum(V.conoid_conoidoid_infill, na.rm = TRUE)/0.0081, #Volume density
                         vol_Hill0 = hill(V.conoid_conoidoid_infill, 0),
                         vol_Hill1 = hill(V.conoid_conoidoid_infill, 0.999),
                         vol_Hill2 = hill(V.conoid_conoidoid_infill, 2)),
@@ -177,7 +177,7 @@ plot_summary <- plots[deadmissing == "No",
 
 # Reshaping
 species_summary <- plots[deadmissing == "No", .(ntrees = .N,
-                                                volume = (sum(V.conoid_conoidoid_infill, na.rm = TRUE))/0.0064), #Volume density
+                                                volume = (sum(V.conoid_conoidoid_infill, na.rm = TRUE))/0.0081), #Volume density
                          by = c("plot", "plot_new", "species")]
 
 # Export species summary 
