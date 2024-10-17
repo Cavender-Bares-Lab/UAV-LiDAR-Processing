@@ -2,7 +2,7 @@
 #' @title Effect of diversity and variability on wood volume 
 ################################################################################
 
-#' @description Figure S13 to test the effect of diversity and variability on volume
+#' @description Figure S12 to test the effect of diversity and variability on volume
 
 #' @return A jpeg file
 
@@ -21,12 +21,12 @@ options(scipen = 99999)
 #' Working path
 
 root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
-#root_path <- "F:/Projects/LiDAR/data"
+#root_path <- "G:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Load data
 
-frame <- fread(paste0(root_path, "/master_clean.csv"))
+frame <- fread(paste0(root_path, "/master_clean (2024-09-19).csv"))
 frame <- frame[date == "2022-04-10",]
 
 #' -----------------------------------------------------------------------------
@@ -35,6 +35,8 @@ frame <- frame[date == "2022-04-10",]
 data <- frame[, c("plot_new", "PA", "Block", "DOY", "volume",
                   "hill0_taxa", "hill0_phylo", "hill0_FD_q", 
                   "TD_PSV", "FD_PSV", "PD_PSV")]
+
+data$volume <- data$volume
 
 # Melt by diversity
 data_diversity <- melt(data, 
@@ -102,7 +104,7 @@ alpha_point <- 1.0
 # Plot
 
 plot_diversity <- ggplot(data_diversity,
-                         aes(diversity,
+                         aes(diversity + 1 ,
                              volume,
                              fill = PA)) +
   geom_point(colour = "grey", alpha = alpha_point, shape = 21) +
@@ -120,11 +122,11 @@ plot_diversity <- ggplot(data_diversity,
                size = text_size) +
   colour_PA +
   #coord_cartesian(ylim = c(-0.001, 0.16)) +
-  #scale_x_continuous(trans = log10_trans()) +
+  scale_x_continuous(trans = log10_trans()) +
   scale_y_continuous(trans = log10_trans()) +
-  annotation_logticks(sides = "l") +
+  annotation_logticks(sides = "lb") +
   xlab(bquote(Species~richness~~~~~~italic(PD)~~~~~~italic(FD)))  +
-  ylab(bquote(Wood~volume~(m^3))) +
+  ylab(bquote(Wood~volume~(m^3~ha^-1))) +
   #ylab(bquote(NBE~(m^3~y^-1)~~~SE~(m^3~y^-1)~~~CE~(m^3~y^-1))) +
   theme_bw(base_size = tamano) +
   th + gui +
@@ -155,7 +157,7 @@ plot_sv <- ggplot(data_SV,
   scale_y_continuous(trans = log10_trans()) +
   annotation_logticks(sides = "l") +
   xlab("Taxonomic variability      Phylogenetic variability       Functional variability")  +
-  ylab(bquote(Wood~volume~(m^3))) +
+  ylab(bquote(Wood~volume~(m^3~ha^-1))) +
   theme_bw(base_size = tamano) +
   th + gui +
   facet_grid(metric ~ SV_metric, scales = "free")

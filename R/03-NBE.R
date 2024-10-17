@@ -255,8 +255,8 @@ for(i in 1:length(idplots)) {
 
 # Return values in density
 
-BE$CE <- BE$CE/0.0064
-BE$SE <- BE$SE/0.0064
-BE$NE <- BE$NE/0.0064
+BE$CE <- BE$CE/0.0081
+BE$SE <- BE$SE/0.0081
+BE$NE <- BE$NE/0.0081
 
 fwrite(BE, paste0(root_path, "/plot_NBE (2024-09-19).csv"))
