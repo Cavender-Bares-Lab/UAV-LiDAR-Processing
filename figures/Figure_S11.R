@@ -20,13 +20,13 @@ options(scipen = 99999)
 #' -----------------------------------------------------------------------------
 #' Working path
 
-root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+root_path <- "/media/antonio/work/Projects/LiDAR/data"
 root_path <- "G:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Load data
 
-frame <- fread(paste0(root_path, "/master_clean (2024-09-19).csv"))
+frame <- fread(paste0(root_path, "/master_clean (2024-10-17).csv"))
 frame <- frame[date == "2022-04-10",]
 frame <- frame[SR_real != 1,]
 
@@ -88,7 +88,7 @@ plot <- ggplot(data_melt,
                aes(PA,
                    effect,
                    fill = SR_real)) +
-  geom_point(colour = "grey", alpha = alpha_point, shape = 21, size = 2) +
+  geom_point(colour = "grey25", alpha = alpha_point, shape = 21, size = 2) +
   stat_poly_line(method = "lm",
                  #se = FALSE,
                  formula = y ~ x,

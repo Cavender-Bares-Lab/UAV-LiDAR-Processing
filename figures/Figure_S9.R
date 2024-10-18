@@ -19,13 +19,13 @@ library(ggpubr)
 #' -----------------------------------------------------------------------------
 #' Working path
 
-root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+root_path <- "/media/antonio/work/Projects/LiDAR/data"
 root_path <- "G:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Load data
 
-frame <- fread(paste0(root_path, "/master_clean (2024-09-19).csv"))
+frame <- fread(paste0(root_path, "/master_clean (2024-10-17).csv"))
 frame <- frame[date == "2022-04-10",]
 frame <- frame[SR_real != 1, ]
 
@@ -139,7 +139,7 @@ plot <- ggplot(data_melt,
                method = "lm",
                formula = y ~ x,
                label.x = "right",
-               label.y = "top",
+               label.y = "bottom",
                size = text_size) +
   colour_PA +
   #coord_cartesian(xlim = c(0, 1)) +
@@ -154,7 +154,7 @@ plot <- ggplot(data_melt,
   facet_grid(partition ~ SV_metric, scales = "free")
 
 #Export figure
-jpeg(paste0(root_path, "/Figures/Figure_S9_c.jpeg"), 
+jpeg(paste0(root_path, "/Figures/Figure_S9a.jpeg"), 
      width = 210, 
      height = 190, 
      units = "mm", 

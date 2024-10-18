@@ -15,7 +15,7 @@ library(ggplot2)
 #' -----------------------------------------------------------------------------
 #' Working path
 
-root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+root_path <- "/media/antonio/work/Projects/LiDAR/data"
 root_path <- "G:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------

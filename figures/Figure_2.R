@@ -19,13 +19,13 @@ library(RColorBrewer)
 #' -----------------------------------------------------------------------------
 #' Working path
 
-root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+root_path <- "/media/antonio/work/Projects/LiDAR/data"
 root_path <- "G:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Load data
 
-frame <- fread(paste0(root_path, "/master_clean (2024-09-19).csv"))
+frame <- fread(paste0(root_path, "/master_clean (2024-10-17).csv"))
 
 #' -----------------------------------------------------------------------------
 #' Data reshaping
@@ -129,7 +129,7 @@ plot <- ggplot(data_melt,
   stat_poly_eq(method = "lm",
                formula = y ~ x,
                label.x = "right", #left
-               label.y = "bottom", #bottom
+               label.y = "top", #bottom
                size = text_size) +
   doy_color + 
   doy_fill +
@@ -144,7 +144,7 @@ plot <- ggplot(data_melt,
   facet_grid(LiDAR ~ ., scales = "free")
 
 # Export figure
-jpeg(paste0(root_path, "/Figures/Figure_2_a.jpeg"), 
+jpeg(paste0(root_path, "/Figures/Figure_2b.jpeg"), 
     width = 90, 
     height = 180, 
     pointsize = 12,

@@ -20,13 +20,13 @@ library(viridis)
 #' -----------------------------------------------------------------------------
 #' Working path
 
-root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+root_path <- "/media/antonio/work/Projects/LiDAR/data"
 root_path <- "G:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Working path
 
-frame <- fread(paste0(root_path, "/master_clean (2024-09-19).csv"))
+frame <- fread(paste0(root_path, "/master_clean (2024-10-17).csv"))
 
 #' -----------------------------------------------------------------------------
 #' Reshape frame
@@ -141,8 +141,8 @@ plot <- ggplot(data_melt, aes(diversity + 1,
   stat_poly_eq(use_label(c("eq", "R2")),
                method = "lm",
                formula = y ~ x,
-               label.x = "right",
-               label.y = "top",
+               label.x = "right", # "left" "right"
+               label.y = "bottom", # "top" "bottom"
                size = text_size) +
   fill_PA + 
   scale_x_continuous(trans = log10_trans()) +
@@ -156,12 +156,12 @@ plot <- ggplot(data_melt, aes(diversity + 1,
   facet_grid(LiDAR ~ type, scales = "free")
 
 #Export figure
-jpeg(paste0(root_path, "/Figures/Figure_5_e.jpeg"), 
+jpeg(paste0(root_path, "/Figures/Figure_5a.jpeg"), 
     width = 210, 
     height = 180, 
     units = "mm", 
     res = 600,
-    bg = "transparent")
+    bg = "white")
 
 plot
 

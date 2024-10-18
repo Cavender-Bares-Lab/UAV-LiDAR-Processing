@@ -20,13 +20,13 @@ library(ggdark)
 #' -----------------------------------------------------------------------------
 #' Working path
 
-root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+root_path <- "/media/antonio/work/Projects/LiDAR/data"
 root_path <- "G:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Load data
 
-frame <- fread(paste0(root_path, "/master_clean (2024-09-19).csv"))
+frame <- fread(paste0(root_path, "/master_clean (2024-10-17).csv"))
 
 #' -----------------------------------------------------------------------------
 #' Reshape frame
@@ -155,12 +155,12 @@ plot <- ggplot(data_melt,
 # ------------------------------------------------------------------------------
 #Export figure
 
-jpeg(paste0(root_path, "/Figures/Figure_4_d.jpeg"),
+jpeg(paste0(root_path, "/Figures/Figure_4d.jpeg"),
     width = 210, 
     height = 180, 
     units = "mm", 
     res = 600,
-    bg = "transparent")
+    bg = "white")
 
 plot
 

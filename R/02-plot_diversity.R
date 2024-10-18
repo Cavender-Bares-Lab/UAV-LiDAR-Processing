@@ -18,7 +18,7 @@ library(hillR)
 #' -----------------------------------------------------------------------------
 #' Working path
 
-root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+root_path <- "/media/antonio/work/Projects/LiDAR/data"
 root_path <- "G:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
@@ -33,7 +33,7 @@ hill <- function(n_points, q) {
 #' Processing
 
 # Load data
-species_summary <- fread(paste0(root_path, "/species_summary (2024-09-19).csv"))
+species_summary <- fread(paste0(root_path, "/species_summary (2024-10-17).csv"))
 
 #' -----------------------------------------------------------------------------
 #' Biomass data per species
@@ -199,6 +199,6 @@ FD_PSV <- psv(functional_matched$comm,
 diversity <- cbind(diversity, TD_PSV, PD_PSV, FD_PSV)
 
 # Export
-fwrite(diversity, paste0(root_path, "/diversity (2024-09-19).csv"))
+fwrite(diversity, paste0(root_path, "/diversity (2024-10-17).csv"))
 
 

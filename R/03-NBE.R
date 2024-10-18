@@ -14,7 +14,7 @@ options(scipen = 99999)
 #' -----------------------------------------------------------------------------
 #' Working path
 
-root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+root_path <- "/media/antonio/work/Projects/LiDAR/data"
 root_path <- "G:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
@@ -259,4 +259,4 @@ BE$CE <- BE$CE/0.0081
 BE$SE <- BE$SE/0.0081
 BE$NE <- BE$NE/0.0081
 
-fwrite(BE, paste0(root_path, "/plot_NBE (2024-09-19).csv"))
+fwrite(BE, paste0(root_path, "/plot_NBE (2024-10-17).csv"))

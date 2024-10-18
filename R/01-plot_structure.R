@@ -14,7 +14,7 @@ library(data.table)
 #' -----------------------------------------------------------------------------
 #' Working path
 
-root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+root_path <- "/media/antonio/work/Projects/LiDAR/data"
 root_path <- "G:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
@@ -181,7 +181,7 @@ species_summary <- plots[deadmissing == "No", .(ntrees = .N,
                          by = c("plot", "plot_new", "species")]
 
 # Export species summary 
-fwrite(species_summary, paste0(root_path, "/species_summary (2024-09-19).csv"))
+fwrite(species_summary, paste0(root_path, "/species_summary (2024-10-17).csv"))
 
 #-------------------------------------------------------------------------------
 # Get proportion of deciduous 
@@ -225,7 +225,7 @@ complete <- merge(plot_summary, proportions,
                   all.y = TRUE)
 
 # Export structural attributes
-fwrite(complete, paste0(root_path, "/structural_attributes (2024-09-19).csv"))
+fwrite(complete, paste0(root_path, "/structural_attributes (2024-10-17).csv"))
 
 
 

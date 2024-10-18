@@ -20,13 +20,13 @@ library(ggdark)
 #' -----------------------------------------------------------------------------
 #' Working path
 
-root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+root_path <- "/media/antonio/work/Projects/LiDAR/data"
 root_path <- "G:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Load data
 
-frame <- fread(paste0(root_path, "/master_clean (2024-09-19).csv"))
+frame <- fread(paste0(root_path, "/master_clean (2024-10-17).csv"))
 
 #' -----------------------------------------------------------------------------
 #' Data reshaping
@@ -121,10 +121,10 @@ plot <- ggplot(data_melt,
                    fill = PA)) +
   geom_point(colour = "grey25", alpha = alpha_point, shape = 21, size = 1.8) +
   stat_poly_line(method = "lm",
-                 #se = FALSE,
+                 se = FALSE,
                  formula = y ~ x, #exp(x)
                  linewidth = 0.5,
-                 #linetype = "dotted", #dotted
+                 linetype = "dotted", #dotted
                  colour = line_col) +
   stat_poly_eq(use_label(c("eq", "R2")),
                method = "lm",
@@ -145,7 +145,7 @@ plot <- ggplot(data_melt,
   facet_grid(LiDAR ~ ., scales = "free")
 
 #Export figure
-jpeg(paste0(root_path, "/Figures/Figure_3_a.jpeg"),
+jpeg(paste0(root_path, "/Figures/Figure_3b.jpeg"),
     width = 90, 
     height = 180,
     units = "mm",

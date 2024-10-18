@@ -19,13 +19,13 @@ library(ggdark)
 #' -----------------------------------------------------------------------------
 #' Working path
 
-root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+root_path <- "/media/antonio/work/Projects/LiDAR/data"
 root_path <- "G:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Load data
 
-frame <- fread(paste0(root_path, "/master_clean (2024-09-19).csv"))
+frame <- fread(paste0(root_path, "/master_clean (2024-10-17).csv"))
 
 #' -----------------------------------------------------------------------------
 #' Reshape frame
@@ -140,8 +140,8 @@ plot <- ggplot(data_melt,
                  linewidth = 0.5) +
   stat_poly_eq(method = "lm",
                formula = y ~ x,
-               label.x = "left", # "left" "right"
-               label.y = "top", # "top" "bottom"
+               label.x = "right", # "left" "right"
+               label.y = "bottom", # "top" "bottom"
                size = text_size) +
   doy_color + doy_fill + 
   coord_cartesian(xlim = c(0, 1)) +
@@ -155,12 +155,12 @@ plot <- ggplot(data_melt,
 
 # ------------------------------------------------------------------------------
 #Export figure
-jpeg(paste0(root_path, "/Figures/Figure_6_d.jpeg"), 
+jpeg(paste0(root_path, "/Figures/Figure_6d.jpeg"), 
     width = 210, 
     height = 180, 
     units = "mm", 
     res = 600,
-    bg = "transparent")
+    bg = "white")
 
 plot
 

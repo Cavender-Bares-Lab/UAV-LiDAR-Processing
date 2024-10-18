@@ -20,13 +20,13 @@ options(scipen = 99999)
 #' -----------------------------------------------------------------------------
 #' Working path
 
-root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+root_path <- "/media/antonio/work/Projects/LiDAR/data"
 #root_path <- "G:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Load data
 
-frame <- fread(paste0(root_path, "/master_clean (2024-09-19).csv"))
+frame <- fread(paste0(root_path, "/master_clean (2024-10-17).csv"))
 frame <- frame[date == "2022-04-10",]
 
 #' -----------------------------------------------------------------------------
@@ -107,14 +107,14 @@ plot_diversity <- ggplot(data_diversity,
                          aes(diversity + 1 ,
                              volume,
                              fill = PA)) +
-  geom_point(colour = "grey", alpha = alpha_point, shape = 21) +
+  geom_point(colour = "grey25", alpha = alpha_point, shape = 21, size = 1.8) +
   stat_poly_line(method = "lm",
                  #se = FALSE,
                  formula = y ~ poly(x, 2),
                  linewidth = 0.5,
                  #linetype = "dotted",
                  colour = "black") +
-  stat_poly_eq(use_label(c("R2", "F", "P")),
+  stat_poly_eq(use_label(c("R2", "P")),
                method = "lm",
                formula = y ~ poly(x, 2),
                label.x = "right",
@@ -137,14 +137,14 @@ plot_sv <- ggplot(data_SV,
                   aes(SV,
                       volume,
                       fill = PA)) +
-  geom_point(colour = "grey", alpha = alpha_point, shape = 21) +
+  geom_point(colour = "grey25", alpha = alpha_point, shape = 21, size = 1.8) +
   stat_poly_line(method = "lm",
                  #se = FALSE,
                  formula = y ~ x,
                  linewidth = 0.5,
                  #linetype = "dotted",
                  colour = "black") +
-  stat_poly_eq(use_label(c("R2", "F", "P")),
+  stat_poly_eq(use_label(c("R2", "P")),
                method = "lm",
                formula = y ~ x,
                label.x = "right",
@@ -167,7 +167,7 @@ plot <- ggarrange(plot_diversity, plot_sv,
                   common.legend = TRUE)
 
 #Export figure
-jpeg(paste0(root_path, "/Figure_S13a.jpeg"), width = 210, height = 150, units = "mm", res = 600)
+jpeg(paste0(root_path, "/Figures/Figure_S12a.jpeg"), width = 210, height = 150, units = "mm", res = 600)
 
 plot
 

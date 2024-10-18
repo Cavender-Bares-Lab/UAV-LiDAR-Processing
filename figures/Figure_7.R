@@ -19,7 +19,7 @@ library(ggdark)
 #' -----------------------------------------------------------------------------
 #' Working path
 
-root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+root_path <- "/media/antonio/work/Projects/LiDAR/data"
 root_path <- "G:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
@@ -140,8 +140,8 @@ plot <- ggplot(data_melt, aes(PSV,
   stat_poly_eq(use_label(c("eq", "R2")),
                method = "lm",
                formula = y ~ x,
-               label.x = "right",
-               label.y = "bottom",
+               label.x = "left",
+               label.y = "top",
                size = text_size,
                colour = line_col) +
   colour_PA +  
@@ -157,12 +157,12 @@ plot <- ggplot(data_melt, aes(PSV,
   facet_grid(LiDAR ~ type, scales = "free")
 
 #Export figure
-jpeg(paste0(root_path, "/Figures/Figure_7_b.jpeg"), 
+jpeg(paste0(root_path, "/Figures/Figure_7b.jpeg"), 
     width = 210, 
     height = 180, 
     units = "mm", 
     res = 600,
-    bg = "transparent")
+    bg = "white")
 
 plot
 

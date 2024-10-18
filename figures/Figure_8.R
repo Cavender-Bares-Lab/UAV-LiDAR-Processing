@@ -19,13 +19,13 @@ library(ggdark)
 #' -----------------------------------------------------------------------------
 #' Working path
 
-root_path <- "/media/antonio/Extreme_Pro/Projects/LiDAR/data"
+root_path <- "/media/antonio/work/Projects/LiDAR/data"
 root_path <- "G:/Projects/LiDAR/data"
 
 #' -----------------------------------------------------------------------------
 #' Load data
 
-frame <- fread(paste0(root_path, "/master_clean (2024-09-19).csv"))
+frame <- fread(paste0(root_path, "/master_clean (2024-10-17).csv"))
 
 #' -----------------------------------------------------------------------------
 #' Data reshaping
@@ -158,12 +158,12 @@ plot <- ggplot(data_melt[partition == "Net biodiversity effect"],
   facet_grid(. ~ LiDAR, scales = "free")
 
 #Export figure
-jpeg(paste0(root_path, "/Figures/Figure_8_b.jpeg"), 
+jpeg(paste0(root_path, "/Figures/Figure_8b.jpeg"), 
     width = 180, 
     height = 90, 
     units = "mm", 
     res = 600,
-    bg = "transparent")
+    bg = "white")
 
 plot
 
